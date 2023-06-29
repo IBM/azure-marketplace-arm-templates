@@ -1,0 +1,258 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "registryName": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),'r',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name of the container registry"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-vnet')]",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "acrLoginServer": {
+            "type": "string",
+            "defaultValue": "azurecr.io",
+            "metadata": {
+                "description": "Azure Container Registry Suffix"
+            }
+        },
+        "registrySku": {
+            "type": "string",
+            "defaultValue": "Premium",
+            "allowedValues": [
+                "Basic",
+                "Classic",
+                "Standard",
+                "Premium"
+            ],
+            "metadata": {
+                "description": "Container Registry SKU"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Log Analytics"
+            }
+        },
+        "createAnalyticsWorkspace": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an analytics workspace"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace. Specify if not creating new one."
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new subnet for the private endpoint"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-endpoint-subnet')]",
+            "metadata": {
+                "description": "Name of the subnet to connect private endpoint onto"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "description": "CIDR for the subnet if creating"
+            }
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ContainerRegistry/registries",
+            "apiVersion": "2021-09-01",
+            "name": "[parameters('registryName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('registrySku')]"
+            },
+            "properties": {
+                "publicNetworkAccess": "Disabled",
+                "zoneRedundancy": "Disabled",
+                "adminUserEnabled": true
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-11-01",
+            "condition": "[parameters('createSubnet')]",
+            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('subnetCIDR')]",
+                "serviceEndpoints": [
+                    {
+                        "service": "Microsoft.ContainerRegistry"
+                    }
+                ],
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "privateEndpointNetworkPolicies": "Disabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name": "[concat('privatelink.', parameters('acrLoginServer'))]",
+            "location": "global",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name": "[concat('privatelink.', parameters('acrLoginServer'), '/', parameters('vnetName'), '-link')]",
+            "location": "global",
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', concat('privatelink.', parameters('acrLoginServer')))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2021-03-01",
+            "name": "oms-pe-acr",
+            "location": "[parameters('location')]",
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+                            "groupIds": [
+                                "registry"
+                            ]
+                        },
+                        "name": "oms-pe-acr"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2022-07-01",
+            "name": "[concat('oms-pe-acr', '/dnsgroupname')]",
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "registry",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones',concat('privatelink.', parameters('acrLoginServer')))]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', 'oms-pe-acr')]"
+            ]
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "condition": "[and(parameters('createAnalyticsWorkspace'), parameters('deployLogAnalytics'))]",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "name": "[parameters('registryName')]",
+            "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+            "properties": {
+                "logAnalyticsDestinationType": "AzureDiagnostics",
+                "logs": [
+                    {
+                        "category": "ContainerRegistryRepositoryEvents",
+                        "enabled": true
+                    },
+                    {
+                        "category": "ContainerRegistryLoginEvents",
+                        "enabled": true
+                    }
+                ],
+                "metrics": [
+                    {
+                        "category": "AllMetrics",
+                        "enabled": true
+                    }
+                ],
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "acrName": {
+            "type": "string",
+            "value": "[parameters('registryName')]"
+        },
+        "arcLoginServer": {
+            "type": "string",
+            "value": "[parameters('acrLoginServer')]"
+        },
+        "subnetName": {
+            "condition": "[parameters('createSubnet')]",
+            "type": "string",
+            "value": "[parameters('subnetName')]"
+        },
+        "workspaceName": {
+            "condition": "[parameters('createAnalyticsWorkspace')]",
+            "type": "string",
+            "value": "[parameters('workspaceName')]"
+        }
+    }
+}

@@ -1,0 +1,249 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 15,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Existing virtual network name"
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new subnet"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-dev-subnet')]",
+            "metadata": {
+                "description": "Existing subnet name to attach to VM"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the developer subnet"
+            }
+        },
+        "ngwName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-ngw')]",
+            "metadata": {
+                "description": "Name of the NAT Gateway"
+            }
+        },
+        "vmBootstrap": {
+            "type": "string",
+            "defaultValue": "#cloud-config\n\nruncmd:\n - sudo apt-get update -y \n - sudo apt-get install -y ca-certificates curl gnupg lsb-release\n - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg\n - echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null\n - sudo apt-get update -y\n - sudo apt-get -y install docker-ce docker-ce-cli containerd.io\n - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3\n - chmod 700 get_helm.sh\n - ./get_helm.sh\n - sudo usermod -aG docker $USER\n - mkdir /tmp/OCPInstall\n - [ wget, -nv, \"https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz\", -O, /tmp/OCPInstall/openshift-client-linux.tar.gz ]\n - tar xvf /tmp/OCPInstall/openshift-client-linux.tar.gz -C /tmp/OCPInstall\n - sudo cp /tmp/OCPInstall/oc /usr/bin",
+            "metadata": {
+                "description": "Bootstrap script for Dev VM"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Default admin password for VMs"
+            }
+        },
+        "vmNsgSecurityRules": {
+            "type": "array",
+            "defaultValue": [
+                {
+                    "name": "SSH",
+                    "properties": {
+                        "priority": 300,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "22"
+                    }
+                }
+            ]
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2ms",
+            "metadata": {
+                "description": "Size of Dev VM"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the Dev VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "18.04-LTS",
+            "allowedValues": [
+                "18.04-LTS",
+                "20.04-LTS"
+            ]
+        }
+    },
+    "variables": {
+        "vmName": "[concat(parameters('namePrefix'),'-vm')]",
+        "nsgName": "[concat(parameters('namePrefix'), '-nsg')]",
+        "nicName": "[concat(parameters('namePrefix'),'-nic')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-11-01",
+            "condition": "[parameters('createSubnet')]",
+            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('subnetCIDR')]",
+                "natGateway": {
+                    "id": "[resourceId('Microsoft.Network/natGateways', parameters('ngwName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2022-07-01",
+            "name": "[variables('nicName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic"
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2022-07-01",
+            "name": "[variables('nsgName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": "[parameters('vmNsgSecurityRules')]"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('vmName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('vmDiskType')]"
+                        }
+                    },
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "[parameters('vmOSVersion')]",
+                        "version": "latest"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmName')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "customData": "[base64(parameters('vmBootstrap'))]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    }
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            },
+            "zones": [
+                "[parameters('vmZone')]"
+            ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "vmName": {
+            "type": "string",
+            "value": "[variables('vmName')]"
+        },
+        "vmNIC": {
+            "type": "object",
+            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',variables('nicName')))]"
+        }
+    }
+}
