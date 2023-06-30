@@ -635,7 +635,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/openshift/aro/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/aro/azuredeploy.json'))]",
                     "contentVersion":"1.0.0.0"
                 },
                 "parameters": {
