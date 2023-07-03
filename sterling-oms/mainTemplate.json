@@ -972,6 +972,11 @@
             "condition": "[equals(parameters('acceptLicense'),'accept')]",
             "value": "[uri(concat('https://smcfs-',parameters('omsNamespace'),'.apps.',parameters('domain'),'.',parameters('location'),'.aroapp.io'),'/order-management')]"
         },
+        "callcenterURL": {
+            "type": "string",
+            "condition": "[equals(parameters('acceptLicense'),'accept')]",
+            "value": "[uri(concat('https://smcfs-',parameters('omsNamespace'),'.apps.',parameters('domain'),'.',parameters('location'),'.aroapp.io'),'/call-center')]"
+        },
         "developerVMName": {
             "type": "string",
             "condition": "[parameters('deployDevVM')]",
