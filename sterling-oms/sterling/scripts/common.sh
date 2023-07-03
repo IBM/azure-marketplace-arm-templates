@@ -349,10 +349,10 @@ function wait_for_cluster_operators() {
     # Wait for cluster operators to be available
     count=0
     while ${BIN_DIR}/oc get clusteroperators | awk '{print $4}' | grep True; do
-        log-output "INFO: Waiting on cluster operators to be availabe. Waited $count minutes. Will wait up to 15 minutes."
+        log-output "INFO: Waiting on cluster operators to be availabe. Waited $count minutes. Will wait up to 30 minutes."
         sleep 60
         count=$(( $count + 1 ))
-        if (( $count > 15 )); then
+        if (( $count > 30 )); then
             log-output "ERROR: Timeout waiting for cluster operators to be available"
             exit 1;
         fi
