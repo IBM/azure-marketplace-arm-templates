@@ -491,6 +491,8 @@ spec:
       env:
         - name: PSQL_HOST
           value: ${PSQL_HOST}
+        - name: PSQL_ADMIN
+          value: ${ADMIN_USER}
         - name: PSQL_PASSWORD
           valueFrom:
             secretKeyRef:
