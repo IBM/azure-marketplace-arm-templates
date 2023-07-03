@@ -96,6 +96,20 @@ Then obtain the credentials for this cluster with the following,
 az aro list-credentials -n cluster_name -g resource_group
 ```
 
+### Call Center
+
+The Sterling OMS Call Center can be accessed from
+- the URL in the marketplace deployment output
+- in the ARO cluster, by navigating to Networking - Routes and locating the Call Center route
+- by constructing it from as "https://smcfs-***omsNamespace***.apps.***aroDomain***.***aroLocation***.aroapp.io/call-center" for example, "https://smcfs-oms.apps.mydomain.eastus.aroapp.io/call-center"
+
+### Order Management Hub
+
+The Sterling OMS Order Management hub can be accessed from
+- the URL in the marketplace deployment output
+- in the ARO cluster, by navigating to Networking - Routes and locating the Order Management  route
+- by constructing it from as "https://smcfs-***omsNamespace***.apps.***aroDomain***.***aroLocation***.aroapp.io/order-management" for example, "https://smcfs-oms.apps.mydomain.eastus.aroapp.io/order-management"
+
 ### Database Access
 
 Once OMS is deployed, you can check the status of the database by connecting to it and listing the created tables in the schema as follows.
@@ -107,7 +121,7 @@ Once OMS is deployed, you can check the status of the database by connecting to 
     4. Choose `terminal` then enter the following. The variables are set as environment variables for the pod.
 
         ```shell
-        psql -d "host=$PSQL_HOST port=5432 dbname=$DB_NAME user=azureuser password=$PSQL_PASSWORD sslmode=require"
+        psql -d "host=$PSQL_HOST port=5432 dbname=$DB_NAME user=$PSQL_ADMIN password=$PSQL_PASSWORD sslmode=require"
 
         => \dt <schema_name>.*
         ```
