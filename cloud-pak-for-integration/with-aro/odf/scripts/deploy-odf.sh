@@ -13,9 +13,11 @@ if [[ -z $CLIENT_ID ]]; then CLIENT_ID=""; fi
 if [[ -z $CLIENT_SECRET ]]; then CLIENT_SECRET=""; fi
 if [[ -z $TENANT_ID ]]; then TENANT_ID=""; fi
 if [[ -z $SUBSCRIPTION_ID ]]; then SUBSCRIPTION_ID=""; fi
-if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="/workspace"; fi
+if [[ -z $WORKSPACE_DIR ]]; then export WORKSPACE_DIR="/workspace"; fi
 if [[ -z $BIN_DIR ]]; then export BIN_DIR="/usr/local/bin"; fi
-if [[ -z $TMP_DIR ]]; then TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
+if [[ -z $TMP_DIR ]]; then export TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
+if [[ -z $NEW_CLUSTER ]]; then NEW_CLUSTER="no"; fi
+if [[ -z $STORAGE_SIZE ]]; then export STORAGE_SIZE="2Ti"; fi
 
 ######
 # Create working directories
@@ -48,6 +50,13 @@ if (( $? != 0 )); then
     az-login $CLIENT_ID $CLIENT_SECRET $TENANT_ID $SUBSCRIPTION_ID
 else
     log-output "INFO: Using existing Azure CLI login"
+fi
+
+######
+# Pause to let cluster settle if just created before trying to login
+if [[ $NEW_CLUSTER == "yes" ]]; then
+  log-output "INFO: Sleeping for 10 minutes to let cluster finish setting up authentication services before logging in"
+  sleep 600
 fi
 
 #######
@@ -392,7 +401,8 @@ while [[ $(${BIN_DIR}/oc get machinesets -n openshift-machine-api ${CLUSTER_ID}-
     || [[ $(${BIN_DIR}/oc get machinesets -n openshift-machine-api ${CLUSTER_ID}-odf-${CLUSTER_LOCATION}3 -o jsonpath='{.status.availableReplicas}{"\n"}') != "1" ]]; do
     log-output "INFO: Waiting for machinesets to become available. Waiting $count minutes. Will wait up to 30 minutes."
     sleep 60
-    if (( $count > 60 )); then
+    count=$(( $count + 1 ))
+    if (( $count > 30 )); then
         log-output "ERROR: Timeout waiting for cluster operators to be available"
         exit 1;    
     fi
@@ -441,7 +451,7 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: "100Mi"
+            storage: "${STORAGE_SIZE}"
         storageClassName: managed-premium
         volumeMode: Block
     name: ocs-deviceset
@@ -466,7 +476,8 @@ count=0
 while [[ $(${BIN_DIR}/oc get StorageCluster ocs-storagecluster -n openshift-storage --no-headers -o custom-columns='phase:status.phase') != "Ready" ]]; do
     log-output "INFO: Waiting for storage cluster to become available. Waited $count minutes. Will wait up to 30 minutes"
     sleep 60
-    if (( $count > 60 )); then
+    count=$(( $count + 1 ))
+    if (( $count > 30 )); then
         log-output "ERROR: Timeout waiting for cluster operators to be available"
         exit 1;    
     fi

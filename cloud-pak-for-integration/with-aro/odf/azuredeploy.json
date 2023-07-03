@@ -58,13 +58,6 @@
                 "description": "Name of the ARO cluster"
             }
         },
-        "namespace": {
-            "type": "string",
-            "defaultValue": "cp4i",
-            "metadata": {
-                "description": "Namespace for CP4I instance"
-            }
-        },
         "branch": {
             "type": "string",
             "defaultValue": "main",
@@ -119,7 +112,7 @@
                 "supportingScriptUris": [
                     "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-aro/odf/scripts/common.sh'))]"
                 ],
-                "timeout": "PT60M",
+                "timeout": "PT90M",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
             },
