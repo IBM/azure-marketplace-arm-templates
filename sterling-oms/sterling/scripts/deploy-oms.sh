@@ -140,20 +140,6 @@ wait_for_cluster_operators $ARO_CLUSTER $RESOURCE_GROUP $BIN_DIR
 oc-login $ARO_CLUSTER $BIN_DIR $RESOURCE_GROUP
 
 ######
-# Wait for cluster operators to finish deploying
-count=0
-while [[ $(${BIN_DIR}/oc get clusteroperators -o json | jq -r '.items[].status.conditions[] | select(.type=="Available") | .status' | grep False) ]]; do
-    log-output "INFO: Waiting for cluster operators to finish installation. Waited $count minutes. Will wait up to 30 minutes."
-    sleep 60
-    count=$(( $count + 1 ))
-    if (( $count > 60 )); then
-        log-output "ERROR: Timeout waiting for cluster operators to be available"
-        exit 1;    
-    fi
-done
-log-output "INFO: All OpenShift cluster operators available"
-
-######
 # Create required namespace
 CURRENT_NAMESPACE=$(${BIN_DIR}/oc get namespaces | grep $OMS_NAMESPACE)
 if [[ -z $CURRENT_NAMESPACE ]]; then
