@@ -52,13 +52,21 @@ function az-login() {
 function oc-login() {
 # Login to an OpenShift cluster. Must be logged into az cli beforehand and az cli must be in PATH
 # Usage:
-#        oc-login ARO_CLUSTER BIN_DIR
+#        oc-login ARO_CLUSTER BIN_DIR RESOURCE_GROUP
 #
 
     if [[ -z ${2} ]]; then
         BIN_DIR="/usr/local/bin"
     else
         BIN_DIR="${2}"
+    fi
+
+    if [[ -z ${1} ]]; then 
+        ARO_CLUSTER=${1}
+    fi
+
+    if [[ -z ${3} ]]; then
+        RESOURCE_GROUP=${3}
     fi
 
     if ! ${BIN_DIR}/oc status 1> /dev/null 2> /dev/null; then
@@ -78,7 +86,7 @@ function oc-login() {
         done
         log-output "INFO: Successfully logged into cluster $ARO_CLUSTER"
     else   
-        CURRENT_SERVER=$(${BIN_DIR}/oc status | grep server | awk '{printf $6}' | sed -e 's#^https://##; s#/##')
+        CURRENT_SERVER=$(echo "$(${BIN_DIR}/oc status | grep server | awk '{printf $6}')/" )
         API_SERVER=$(az aro list --query "[?contains(name,'$CLUSTER')].[apiserverProfile.url]" -o tsv)
         if [[ $CURRENT_SERVER == $API_SERVER ]]; then
             log-output "INFO: Already logged into cluster"
@@ -291,5 +299,69 @@ function cleanup_file() {
 
     if [[ -f $FILE ]]; then
         rm $FILE
+    fi
+}
+
+function wait_for_cluster_operators() {
+# Login to an OpenShift cluster. Must be logged into az cli beforehand and az cli must be in PATH
+# Usage:
+#        oc-login ARO_CLUSTER RESOURCE_GROUP BIN_DIR
+#
+
+    if [[ -z ${1} ]]; then 
+        ARO_CLUSTER=${1}
+    fi
+
+    if [[ -z ${2} ]]; then
+        RESOURCE_GROUP=${2}
+    fi
+
+    if [[ -z ${3} ]]; then
+        BIN_DIR="/usr/local/bin"
+    else
+        BIN_DIR="${3}"
+    fi
+
+    log-output "INFO: Checking for cluster operator status"
+    # Attempt to login to cluster if not already
+    if ! ${BIN_DIR}/oc status 1> /dev/null 2> /dev/null; then
+        log-output "INFO: Attempting login to OpenShift cluster $ARO_CLUSTER"
+        API_SERVER=$(az aro list --query "[?contains(name,'$ARO_CLUSTER')].[apiserverProfile.url]" -o tsv)
+        CLUSTER_PASSWORD=$(az aro list-credentials --name $ARO_CLUSTER --resource-group $RESOURCE_GROUP --query kubeadminPassword -o tsv)
+        # Below loop added to allow authentication service to start on new clusters
+        count=0
+        while ! ${BIN_DIR}/oc login $API_SERVER -u kubeadmin -p $CLUSTER_PASSWORD --insecure-skip-tls-verify=true 1> /dev/null 2> /dev/null ; do
+            log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
+            sleep 60
+            count=$(( $count + 1 ))
+            if (( $count > 15 )); then
+                log-output "ERROR: Timeout waiting to log into cluster"
+                exit 1;    
+            fi
+        done
+        log-output "INFO: Successfully logged into cluster $ARO_CLUSTER"
+        existing_login="no"
+    else
+        log-output "INFO: Already logged into cluster"
+        existing_login="yes"
+    fi
+
+    # Wait for cluster operators to be available
+    count=0
+    while ${BIN_DIR}/oc get clusteroperators | awk '{print $4}' | grep True; do
+        log-output "INFO: Waiting on cluster operators to be availabe. Waited $count minutes. Will wait up to 15 minutes."
+        sleep 60
+        count=$(( $count + 1 ))
+        if (( $count > 15 )); then
+            log-output "ERROR: Timeout waiting for cluster operators to be available"
+            exit 1;
+        fi
+    done
+    log-output "INFO: Cluster operators are ready"
+
+    # Log out of cluster to allow secure login
+    if [[ $existing_login == "no" ]]; then
+        log-output "INFO: Logging out of temporary cluster login"
+        oc logout 1> /dev/null 2> /dev/null
     fi
 }

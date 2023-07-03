@@ -39,7 +39,6 @@ if [[ -z $DB_NAME ]]; then export DB_NAME="oms"; fi
 if [[ -z $SCHEMA_NAME ]]; then export SCHEMA_NAME="oms"; fi
 if [[ -z $OM_INSTANCE_NAME ]]; then export OM_INSTANCE_NAME="oms-instance"; fi
 if [[ -z $LICENSE ]]; then export LICENSE="decline"; fi
-if [[ -z $NEW_CLUSTER ]]; then NEW_CLUSTER="yes"; fi
 if [[ -z $ADMIN_USER ]]; then ADMIN_USER="azureuser"; fi
 if [[ -z $CREATE_ACR ]]; then CREATE_ACR=true; fi
 if [[ -z $PROFESSIONAL_REPO ]]; then PROFESSIONAL_REPO="cp.icr.io/cp/ibm-oms-professional"; fi
@@ -132,16 +131,13 @@ else
     log-output "INFO: Using existing Azure CLI login"
 fi
 
-######
-# Pause to let cluster settle if just created before trying to login
-if [[ $NEW_CLUSTER == "yes" ]]; then
-  log-output "INFO: Sleeping for 10 minutes to let cluster finish setting up authentication services before logging in"
-  sleep 600
-fi
+#####
+# Wait for cluster operators to be available
+wait_for_cluster_operators $ARO_CLUSTER $RESOURCE_GROUP $BIN_DIR
 
 #######
 # Login to cluster
-oc-login $ARO_CLUSTER $BIN_DIR
+oc-login $ARO_CLUSTER $BIN_DIR $RESOURCE_GROUP
 
 ######
 # Wait for cluster operators to finish deploying
