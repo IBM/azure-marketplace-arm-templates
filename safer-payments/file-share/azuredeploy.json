@@ -1,0 +1,240 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "metadata": {
+        "comments": "Deploys a private file share",
+        "author": "Rich Ehrhardt"
+    },
+    "parameters": {
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name for the storage account"
+            }
+        },
+        "privateStorageEndpointName": {
+            "type": "string",
+            "defaultValue": "backup-endpoint",
+            "metadata": {
+                "description": "Name of the private endpoint for the storage"
+            }
+        },
+        "fileShareName": {
+            "type": "string",
+            "defaultValue": "backup",
+            "minLength": 3,
+            "maxLength": 63,
+            "metadata": {
+                "description": "Name of the file share to be created"
+            }
+        },
+        "quota": {
+            "type": "int",
+            "defaultValue": 5120,
+            "minValue": 1,
+            "maxValue": 5120,
+            "metadata": {
+                "description": "Size in GB of the share quota"
+            }
+        },
+        "location": {
+                "type": "string",
+                "defaultValue": "[resourceGroup().location]",
+                "metadata": {
+                    "description": "Location for all resources."
+                }
+        },
+        "createSubnet": {
+                "type": "bool",
+                "defaultValue": true,
+                "metadata": {
+                    "description": "Flag to determine whether to create subnet or use existing"
+                }
+        },
+        "vnetName": {
+                "type": "string",
+                "defaultValue": "vnet",
+                "metadata": {
+                    "description": "Name of the virtual network"
+                }
+        },
+        "subnetName": {
+                "type": "string",
+                "defaultValue": "backup-subnet",
+                "metadata": {
+                    "description": "Name of the subnet to connect service to"
+                }
+        },
+        "subnetCidr": {
+                "type": "string",
+                "defaultValue": "10.0.0.0/26",
+                "metadata": {
+                    "description": "Subnet address space"
+                }
+        },
+        "fileType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "Standard_ZRS"
+            ],
+            "metadata": {
+                "description": "Type of storage account. If storage account already exists, this value must match existing storage account."
+            }
+        }
+    },
+    "variables": {
+        "storageSuffix": "core.windows.net",
+        "storageDNSZoneName": "[concat('privatelink.file.',variables('storageSuffix'))]",
+        "fileStorageAccountPrivateEndpointGroupName": "file",
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2022-09-01",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "kind": "StorageV2",
+            "sku": {
+                "name": "[parameters('fileType')]"
+            },
+            "properties": {
+                "accessTier": "Cool",
+                "allowSharedKeyAccess": true,
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "supportsHttpsTrafficOnly": false,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Deny"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2022-09-01",
+            "name": "[concat(parameters('storageAccountName'),'/default/',parameters('fileShareName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ],
+            "properties": {
+                "shareQuota": "[parameters('quota')]",
+                "cors": {
+                    "corsRules": []
+                },
+                "protocolSettings": {
+                    "smb": {
+                        "multichannel": {
+                            "enabled": false
+                        }
+                    }
+                },
+                "shareDeleteRetentionPolicy": {
+                    "days": 7,
+                    "enabled": true
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-11-01",
+            "condition": "[parameters('createSubnet')]",
+            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('subnetCIDR')]",
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "privateEndpointNetworkPolicies": "Disabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('storageDNSZoneName')]",
+            "location": "global",
+            "properties": {},
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name": "[concat(variables('storageDNSZoneName'),'/',parameters('vnetName'),'-link')]",
+            "location": "global",
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('storageDNSZoneName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2021-03-01",
+            "name": "[parameters('privateStorageEndpointName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[parameters('privateStorageEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts',parameters('storageAccountName'))]",
+                            "groupIds": [
+                                "[variables('fileStorageAccountPrivateEndpointGroupName')]"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+               "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2022-07-01",
+            "name": "[concat(parameters('privateStorageEndpointName'),'/','dnsgroupname')]",
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "premium",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('storageDNSZoneName'))]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints',parameters('privateStorageEndpointName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "storageAccountName": {
+            "type": "string",
+            "value": "[parameters('storageAccountName')]"
+        },
+        "storageAccountResourceId": {
+            "type": "string",
+            "value": "[variables('storageAccountId')]"
+        },
+        "storageAccountKey": {
+            "type": "securestring",
+            "value": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]"
+        }
+    }
+}

@@ -1,0 +1,387 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix for created resources"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure region for created resources"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Virtual network name for VM"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Subnet name within VNet for VM"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine."
+            }
+        },
+        "authType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "securityType": {
+            "type": "string",
+            "defaultValue": "TrustedLaunch",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3",
+            "metadata": {
+                "description": "Size of Virtual Machine"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 8.6",
+            "allowedValues": [
+                "RHEL 8.6"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "createPublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "publicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "mountDrive": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to mount file share drive"
+            }
+        },
+        "storageAccount": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Used with mountDrive flag. Name of the storage account."
+            }
+        },
+        "shareName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Used with mountDrive flag. Name of the file share to mount."
+            }
+        },
+        "baseURL": {
+            "type": "string",
+            "defaultValue": "[uri('https://raw.githubusercontent.com/ibm-ecosystem-lab/azure-arm-templates/',parameters('branch'))]"
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for scripts."
+            }
+        },
+        "scriptOffset": {
+            "type": "string",
+            "defaultValue": "/ibm-products/safer-payments/node/scripts/",
+            "metadata": {
+                "description": "Path offset from baseURL and branch for the folder containing the script to run"
+            }
+        },
+        "scriptName": {
+            "type": "string",
+            "defaultValue": "install-sp-rhel.sh",
+            "metadata": {
+                "description": "Name of the script to run on VM"
+            }
+        },
+        "nodeType": {
+            "type": "string",
+            "defaultValue": "primary",
+            "allowedValues": [
+                "primary",
+                "ha",
+                "dr",
+                "standby"
+            ],
+            "metadata": {
+                "description": "Type of node to be deployed."
+            }
+        }
+    },
+    "variables": {
+        "vmName": "[concat(parameters('namePrefix'),'-vm')]",
+        "nicName": "[concat(parameters('namePrefix'),'-nic')]",
+        "linuxConfigSSH": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                        "keyData": "[parameters('adminPassword')]"
+                    }
+                ]
+            }
+        },
+        "linuxConfigPWD": {
+            "disablePasswordAuthentication": false
+        },
+        "imageReference": {
+            "RHEL 8.6": {
+                "publisher": "RedHat",
+                "offer": "RHEL",
+                "sku": "8_6",
+                "version": "latest"
+            }
+        },
+        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - echo adminuser=',parameters('adminUserName'),' >> /tmp/script-parameters.txt\n')]",
+        "securityProfile": {
+            "uefiSettings": {
+                "secureBootEnabled": true,
+                "vTpmEnabled": true
+            },
+            "securityType": "[parameters('securityType')]"
+        },
+        "publicIP": {
+            "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+        },
+        "vnetId": "[resourceId(resourceGroup().name,'Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
+        "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]",
+        "backupStorageAccountId": "[if(parameters('mountDrive'),resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccount')),null())]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2022-07-01",
+            "name": "[variables('nicName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetId')]"
+                            },
+                            "publicIPAddress": "[if(parameters('createPublicIP'),variables('publicIP'),json('null'))]",
+                            "privateIPAllocationMethod": "Dynamic"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-07-01",
+            "condition": "[parameters('createPublicIP')]",
+            "name": "[parameters('publicIPName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+            },
+            "zones": [
+                "1",
+                "2",
+                "3"
+            ],
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "deleteOption": "Delete",
+                "publicIPAddressVersion": "IPv4",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('domainName')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('vmName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('vmDiskType')]"
+                        }
+                    },
+                    "imageReference": "[variables('imageReference')[parameters('vmOSVersion')]]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmName')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "customData": "[base64(variables('vmBootstrap'))]",
+                    "linuxConfiguration": "[if(equals(parameters('authType'), 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
+                },
+                "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'),variables('securityProfile'),json('null'))]",
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            },
+            "zones": [
+                "[parameters('vmZone')]"
+            ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2022-03-01",
+            "condition": "[and(if(equals(variables('imageReference')[parameters('vmOSVersion')].publisher, 'RedHat'), bool('true'), bool('false')),not(parameters('mountDrive')))]",
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('vmName'),'/','install-sp-rhel')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "fileUris": [
+                        "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
+                    ],
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -t ',parameters('nodeType'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2022-03-01",
+            "condition": "[and(if(equals(variables('imageReference')[parameters('vmOSVersion')].publisher, 'RedHat'), bool('true'), bool('false')),parameters('mountDrive'))]",
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('vmName'),'/','install-sp-rhel-with-mount')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "fileUris": [
+                        "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
+                    ],
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -t ',parameters('nodeType'),' -m -s ',parameters('storageAccount'),' -p ',parameters('shareName'),' -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "vmName": {
+            "type": "string",
+            "value": "[variables('vmName')]"
+        },
+        "internalIP": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2022-07-01').ipConfigurations[0].properties.privateIPAddress]"
+        },
+        "publicIP": {
+            "condition": "[parameters('createPublicIP')]",
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
+        },
+        "fqdn": {
+            "condition": "[parameters('createPublicIP')]",
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').dnsSettings.fqdn]"
+        }
+    }
+}

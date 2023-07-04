@@ -1,0 +1,246 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Virtual network for bastion subnet"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "firewallSubnetName": {
+            "type": "string",
+            "defaultValue": "AzureFirewallSubnet",
+            "allowedValues": [
+                "AzureFirewallSubnet"
+            ],
+            "metadata": {
+                "description": "Firewall subnet name"
+            }
+        },
+        "firewallSubnetCidr": {
+            "type": "string",
+            "metadata": {
+                "description": "Firewall subnet address space"
+            }
+        },
+        "publicIPAddresses": {
+            "type": "int",
+            "defaultValue": 2,
+            "maxValue": 100,
+            "minValue": 1,
+            "metadata": {
+                "description": "Number of public IP addresses for the firewall"
+            }
+        },
+        "availabilityZones": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Availability zones for firewall"
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use an existing subnet or create a new one."
+            }
+        }
+    },
+    "variables": {
+        "firewallName": "[concat(parameters('namePrefix'),'-firewall')]",
+        "publicIPName": "[concat(parameters('namePrefix'),'-fw-pip')]",
+        "firewallPolicyName": "[concat(parameters('namePrefix'),'-fw-policy')]",
+        "firewallSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('firewallSubnetName'))]",
+        "firewallPublicIpId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]",
+        "copy": [
+            {
+                "name": "firewallIpConfigurations",
+                "count": "[length(range(0, parameters('publicIPAddresses')))]",
+                "input": {
+                "name": "[format('IpConf{0}', range(0, parameters('publicIPAddresses'))[copyIndex('firewallIpConfigurations')])]",
+                "properties": {
+                    "subnet": "[if(equals(range(0, parameters('publicIPAddresses'))[copyIndex('firewallIpConfigurations')], 0), json(format('{{\"id\": \"{0}\"}}', variables('firewallSubnetId'))), json('null'))]",
+                    "publicIPAddress": {
+                    "id": "[format('{0}-{1}',variables('firewallPublicIpId'), add(range(0, parameters('publicIPAddresses'))[copyIndex('firewallIpConfigurations')], 1))]"
+                    }
+                }
+                }
+            }
+        ]
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/azureFirewalls",
+            "apiVersion": "2022-11-01",
+            "name": "[variables('firewallName')]",
+            "location": "[parameters('location')]",
+            "zones": "[if(equals(length(parameters('availabilityZones')),0), null(), parameters('availabilityZones'))]",
+            "dependsOn": [
+                "publicIpAddresses",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('firewallSubnetName'))]",
+                "[resourceId('Microsoft.Network/firewallPolicies', variables('firewallPolicyName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": "[variables('firewallIpConfigurations')]",
+                "firewallPolicy": {
+                    "id": "[resourceId('Microsoft.Network/firewallPolicies', variables('firewallPolicyName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-11-01",
+            "copy": {
+                "name": "publicIPAddresses",
+                "count": "[length(range(0, parameters('publicIPAddresses')))]"
+            },
+            "name": "[format('{0}-{1}', variables('publicIPName'), add(range(0, parameters('publicIPAddresses'))[copyIndex()], 1))]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2022-11-01",
+            "condition": "[parameters('createSubnet')]",
+            "name": "[concat(parameters('vnetName'), '/',parameters('firewallSubnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('firewallSubnetCidr')]",
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/firewallPolicies",
+            "apiVersion": "2022-01-01",
+            "name": "[variables('firewallPolicyName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "threatIntelMode": "Alert"
+            }
+        },
+        {
+            "type": "Microsoft.Network/firewallPolicies/ruleCollectionGroups",
+            "apiVersion": "2022-11-01",
+            "name": "[concat(variables('firewallPolicyName'), '/DefaultNetworkRuleCollectionGroup')]",
+            "location": "eastus",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/firewallPolicies', variables('firewallPolicyName'))]"
+            ],
+            "properties": {
+                "priority": 200,
+                "ruleCollections": [
+                    {
+                        "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                        "action": {
+                            "type": "Allow"
+                        },
+                        "rules": [
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowHTTPSInbound",
+                                "ipProtocols": [
+                                    "TCP"
+                                ],
+                                "sourceAddresses": [
+                                    "*"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": [
+                                    "10.0.0.0/20"
+                                ],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [],
+                                "destinationPorts": [
+                                    "443"
+                                ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowHTTPSOutbound",
+                                "ipProtocols": [
+                                    "TCP"
+                                ],
+                                "sourceAddresses": [
+                                    "10.0.0.0/20"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": [
+                                    "*"
+                                ],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [],
+                                "destinationPorts": [
+                                    "443"
+                                ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowSSHInbound",
+                                "ipProtocols": [
+                                    "TCP"
+                                ],
+                                "sourceAddresses": [
+                                    "*"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": [
+                                    "10.0.0.0/20"
+                                ],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [],
+                                "destinationPorts": [
+                                    "22"
+                                ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowSSHOutbound",
+                                "ipProtocols": [
+                                    "TCP"
+                                ],
+                                "sourceAddresses": [
+                                    "10.0.0.0/20"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": [
+                                    "*"
+                                ],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [],
+                                "destinationPorts": [
+                                    "22"
+                                ]
+                            }
+                        ],
+                        "name": "SaferPayments",
+                        "priority": 100
+                    }
+                ]
+            }
+        }
+    ]
+}
