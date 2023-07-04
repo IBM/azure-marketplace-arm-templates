@@ -62,7 +62,7 @@
         },
         "firewallSubnetCidr": {
             "type": "string",
-            "defaultValue": "10.0.2.0/26",
+            "defaultValue": "10.0.1.0/26",
             "metadata": {
                 "description": "Firewall subnet address space"
             }
@@ -76,7 +76,7 @@
         },
         "bastionSubnetCidr": {
             "type": "string",
-            "defaultValue": "10.0.3.0/26",
+            "defaultValue": "10.0.2.0/26",
             "metadata": {
                 "description": "Bastion subnet address space"
             }
@@ -271,7 +271,7 @@
         },
         "backupStorageSubnetCidr": {
             "type": "string",
-            "defaultValue": "10.1.5.0/26",
+            "defaultValue": "10.0.3.0/26",
             "metadata": {
                 "description": "Subnet CIDR for the backup storage"
             }
