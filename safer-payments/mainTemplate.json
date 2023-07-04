@@ -15,39 +15,39 @@
                 "description": "T Shirt size of deployment"
             }
         },
-        "region": {
+        "location": {
             "type": "string",
             "defaultValue": "[resourceGroup().location]",
             "metadata": {
-                "description": "Azure region for primary site"
+                "description": "Azure region for deployed resources"
             }
         },
         "vnetName": {
             "type": "string",
             "defaultValue": "vnet",
             "metadata": {
-                "description": "Primary region virtual network name"
+                "description": "Virtual network name"
             }
         },
         "vnetCidr": {
             "type": "string",
             "defaultValue": "10.0.0.0/20",
             "metadata": {
-                "description": "Primary region virtual network address space"
+                "description": "Virtual network address space"
             }
         },
         "vmSubnetName": {
             "type": "string",
             "defaultValue": "vm-subnet",
             "metadata": {
-                "description": "Primary region VM subnet name"
+                "description": "VM subnet name"
             }
         },
         "vmSubnetCidr": {
             "type": "string",
             "defaultValue": "10.0.0.0/24",
             "metadata": {
-                "description": "Primary region VM subnet address space"
+                "description": "VM subnet address space"
             }
         },
         "firewallSubnetName": {
@@ -57,28 +57,28 @@
                 "AzureFirewallSubnet"
             ],
             "metadata": {
-                "description": "Primary region firewall subnet name"
+                "description": "Firewall subnet name"
             }
         },
         "firewallSubnetCidr": {
             "type": "string",
             "defaultValue": "10.0.2.0/26",
             "metadata": {
-                "description": "Primary region firewall subnet address space"
+                "description": "Firewall subnet address space"
             }
         },
         "deployFirewall": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": "Flag to determine whether to deploy the primary region firewall"
+                "description": "Flag to determine whether to deploy the firewall"
             }
         },
         "bastionSubnetCidr": {
             "type": "string",
             "defaultValue": "10.0.3.0/26",
             "metadata": {
-                "description": "Primary region bastion subnet address space"
+                "description": "Bastion subnet address space"
             }
         },
         "bastionSubnetName": {
@@ -95,22 +95,26 @@
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": "Flag to determine whether to deploy the primary region bastion host"
+                "description": "Flag to determine whether to deploy the bastion service"
             }
         },
         "nsgName": {
             "type": "string",
             "defaultValue": "vm-nsg",
             "metadata": {
-                "description": "Name of the primary network security group"
+                "description": "Name of the network security group"
             }
         },
         "enableDDoSProtection": {
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Enable DDoS network protection on public IP addresses in Primary region"
+                "description": "Enable DDoS network protection on public IP addresses"
             }
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[concat(resourceGroup().name,'-sp')]"
         },
         "deployNode1": {
             "type": "bool",
@@ -309,14 +313,16 @@
                 "vmOSVersion": "RHEL 8.6",
                 "dataDiskSize": 400
             }
-        }
+        },
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
     },
     "resources": [
         {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2022-11-01",
             "name": "[parameters('vnetName')]",
-            "location": "[parameters('region')]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
             ],
@@ -350,7 +356,7 @@
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2022-11-01",
             "name": "[parameters('nsgName')]",
-            "location": "[parameters('region')]",
+            "location": "[parameters('location')]",
             "properties": {
                 "securityRules": [
                     {
@@ -395,6 +401,26 @@
             }
         },
         {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "name": "[parameters('managedIdName')]",
+            "location": "[parameters('location')]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "dependsOn": [
+                "[parameters('managedIdName')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployBastion')]",
@@ -413,7 +439,7 @@
                         "value": "primary"
                     },
                     "location": {
-                        "value": "[parameters('region')]"
+                        "value": "[parameters('location')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -446,7 +472,7 @@
                         "value": "primary"
                     },
                     "location": {
-                        "value": "[parameters('region')]"
+                        "value": "[parameters('location')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -479,7 +505,7 @@
                         "value": "[format('drbackup{0}', substring(uniqueString(resourceGroup().id),1,5))]"
                     },
                     "location": {
-                        "value": "[parameters('region')]"
+                        "value": "[parameters('location')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -527,7 +553,7 @@
                         "value": "node1"
                     },
                     "location": {
-                        "value": "[parameters('region')]"
+                        "value": "[parameters('location')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -571,6 +597,12 @@
                     "scriptName": {
                         "value": "[variables('deployScript')]"
                     },
+                    "createManagedIdentity": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
                     "instanceNumber": {
                         "value": "1"
                     }
@@ -596,7 +628,7 @@
                         "value": "node2"
                     },
                     "location": {
-                        "value": "[parameters('region')]"
+                        "value": "[parameters('location')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -640,6 +672,12 @@
                     "scriptName": {
                         "value": "[variables('deployScript')]"
                     },
+                    "createManagedIdentity": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
                     "instanceNumber": {
                         "value": "2"
                     }
@@ -666,7 +704,7 @@
                         "value": "node3"
                     },
                     "location": {
-                        "value": "[parameters('region')]"
+                        "value": "[parameters('location')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -709,6 +747,12 @@
                     },
                     "scriptName": {
                         "value": "[variables('deployScript')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
                     },
                     "instanceNumber": {
                         "value": "3"
@@ -736,7 +780,7 @@
                         "value": "node3-with-backup"
                     },
                     "location": {
-                        "value": "[parameters('region')]"
+                        "value": "[parameters('location')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -779,6 +823,12 @@
                     },
                     "scriptName": {
                         "value": "[variables('deployScript')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
                     },
                     "instanceNumber": {
                         "value": "3"
