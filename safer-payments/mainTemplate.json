@@ -282,6 +282,12 @@
             "metadata": {
                 "description": "Github branch for linked deployments."
             }
+        },
+        "binaryPath": {
+            "type": "string",
+            "metadata": {
+                "description": "URL to the Safer Payments binary to be installed"
+            }
         }
     },
     "variables": {
@@ -552,6 +558,9 @@
                     "namePrefix": {
                         "value": "node1"
                     },
+                    "binaryPath": {
+                        "value": "[parameters('binaryPath')]"
+                    },
                     "location": {
                         "value": "[parameters('location')]"
                     },
@@ -626,6 +635,9 @@
                 "parameters": {
                     "namePrefix": {
                         "value": "node2"
+                    },
+                    "binaryPath": {
+                        "value": "[parameters('binaryPath')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
@@ -706,6 +718,9 @@
                     "location": {
                         "value": "[parameters('location')]"
                     },
+                    "binaryPath": {
+                        "value": "[parameters('binaryPath')]"
+                    },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
                     },
@@ -778,6 +793,9 @@
                 "parameters": {
                     "namePrefix": {
                         "value": "node3-with-backup"
+                    },
+                    "binaryPath": {
+                        "value": "[parameters('binaryPath')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
