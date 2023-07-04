@@ -24,7 +24,7 @@
         },
         "vnetName": {
             "type": "string",
-            "defaultValue": "primary-vnet",
+            "defaultValue": "vnet",
             "metadata": {
                 "description": "Primary region virtual network name"
             }
@@ -38,7 +38,7 @@
         },
         "vmSubnetName": {
             "type": "string",
-            "defaultValue": "primary-vm-subnet",
+            "defaultValue": "vm-subnet",
             "metadata": {
                 "description": "Primary region VM subnet name"
             }
@@ -100,7 +100,7 @@
         },
         "nsgName": {
             "type": "string",
-            "defaultValue": "primary-nsg",
+            "defaultValue": "vm-nsg",
             "metadata": {
                 "description": "Name of the primary network security group"
             }
@@ -423,7 +423,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployBastion')]",
-            "name": "primary-bastion",
+            "name": "bastion",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ],
@@ -456,7 +456,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployFirewall')]",
-            "name": "primary-firewall",
+            "name": "firewall",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ],
@@ -549,7 +549,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[concat('primary-',parameters('node1Type'))]"
+                        "value": "[parameters('node1Type')]"
                     },
                     "location": {
                         "value": "[parameters('region')]"
@@ -618,7 +618,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[concat('primary-',parameters('node2Type'))]"
+                        "value": "[parameters('node2Type')]"
                     },
                     "location": {
                         "value": "[parameters('region')]"
@@ -688,7 +688,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[concat('dr-',parameters('node3Type'))]"
+                        "value": "[parameters('node3Type')]"
                     },
                     "location": {
                         "value": "[parameters('region')]"
@@ -758,7 +758,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[concat('dr-',parameters('node3Type'),'-with-backup')]"
+                        "value": "[concat(parameters('node3Type'),'-with-backup')]"
                     },
                     "location": {
                         "value": "[parameters('region')]"
