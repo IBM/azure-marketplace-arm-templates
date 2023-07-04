@@ -330,13 +330,13 @@
             "apiVersion": "2021-03-01",
             "name": "[variables('vmName')]",
             "location": "[parameters('location')]",
-            "properties": {
-                "identity": {
-                    "type": "userAssigned",
-                    "userAssignedIdentities": {
+            "identity": {
+                "type": "userAssigned",
+                "userAssignedIdentities": {
                     "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
                 }
-                },
+            },
+            "properties": {
                 "hardwareProfile": {
                     "vmSize": "[parameters('vmSize')]"
                 },
