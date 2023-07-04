@@ -307,7 +307,7 @@
     },
     "variables": {
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
-        "scriptOffset": "/ibm-products/safer-payments/node/scripts/",
+        "scriptOffset": "/safer-payments/node/scripts/",
         "deployScript": "install-sp-rhel.sh",
         "tshirtSize": {
             "dev": {   // Only for dev work
@@ -613,7 +613,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/ibm-products/safer-payments/node/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/node/azuredeploy.json'))]",
                     "contentVersion":"1.0.0.0"
                 },
                 "parameters": {

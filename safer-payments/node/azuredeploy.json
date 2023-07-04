@@ -148,7 +148,7 @@
         },
         "baseURL": {
             "type": "string",
-            "defaultValue": "[uri('https://raw.githubusercontent.com/ibm-ecosystem-lab/azure-arm-templates/',parameters('branch'))]"
+            "defaultValue": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
         },
         "branch": {
             "type": "string",
@@ -159,7 +159,7 @@
         },
         "scriptOffset": {
             "type": "string",
-            "defaultValue": "/ibm-products/safer-payments/node/scripts/",
+            "defaultValue": "/safer-payments/node/scripts/",
             "metadata": {
                 "description": "Path offset from baseURL and branch for the folder containing the script to run"
             }
