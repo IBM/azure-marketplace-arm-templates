@@ -1,0 +1,991 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names. Must only contain numbers and lowercase letters."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Entitlement key for IBM container registry"
+            }
+        },
+        "deployVNet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a virtual network"
+            }
+        },
+        "deployBastion": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a bastion service"
+            }
+        },
+        "deployDevVM": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create dev VM"
+            }
+        },
+        "deployARO": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create the ARO cluster"
+            }
+        },
+        "deployFileShare": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a private file share"
+            }
+        },
+        "deployACR": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "descirption": "Flag to determine whether to create the private container registry"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Log Analytics"
+            }
+        },
+        "deployPostgres": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the PostgreSQL service"
+            }
+        },
+        "deploySterling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to install and configure Sterling OMS"
+            }
+        },
+        "acceptLicense": {
+            "type": "string",
+            "defaultValue": "decline",
+            "allowedValues": [
+                "accept",
+                "decline"
+            ],
+            "metadata": {
+                "description": "Accept license terms to install an instance of Sterling OMS"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network"
+            }
+        },
+        "controlSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the control subnet"
+            }
+        },
+        "controlSubnetName": {
+            "type": "string",
+            "defaultValue": "control-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift control subnet"
+            }
+        },
+        "workerSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/24",
+            "metadata": {
+                "description": "CIDR for the worker subnet"
+            }
+        },
+        "workerSubnetName": {
+            "type": "string",
+            "defaultValue": "worker-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift worker subnet"
+            }
+        },
+        "natGwName": {
+            "type": "string",
+            "defaultValue": "natGateway",
+            "metadata": {
+                "description": "Name of the NAT Gateway"
+            }
+        },
+        "gwPublicIPName": {
+            "type": "string",
+            "defaultValue": "ngw-pip",
+            "metadata": {
+                "description": "Name of the NAT gateway public IP address"
+            }
+        },
+        "bastionSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.6.0/24",
+            "metadata": {
+                "description": "CIDR for the bastion subnet"
+            }
+        },
+        "devSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.4.0/24",
+            "metadata": {
+                "description": "CIDR for the development subnet"
+            }
+        },
+        "devSubnetName": {
+            "type": "string",
+            "defaultValue": "dev-subnet",
+            "metadata": {
+                "description": "Name for the development subnet"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Default admin password for VMs"
+            }
+        },
+        "spClientId" : {
+            "type": "string",
+            "metadata": {
+                "description" : "The app ID of the Service Principal (client id)"
+            }
+        },
+        "spClientSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The service principal secret key."
+            }
+        },
+        "spObjectId": {
+            "type": "String",
+            "metadata": {
+                "description": "The ObjectID of the Service Principal"
+            }
+        },
+        "rpObjectId": {
+            "type": "string",
+            "metadata": {
+                "description": "Red Hat OpenShift Resource Provider Object Id - obtain using (az ad sp list --display-name \"Azure Red Hat OpenShift RP\" --query \"[0].id\" -o tsv)"
+            }
+        },
+        "pullSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Red Hat OpenShift Pull Secret"
+            }
+        },
+        "masterSize": {
+            "type": "string",
+            "defaultValue": "Standard_D8s_v3",
+            "metadata": {
+                "description": "VM size for master nodes"
+            }
+        },
+        "workerSize": {
+            "type": "string",
+            "defaultValue": "Standard_D4s_v3",
+            "metadata": {
+                "description": "VM size for worker nodes"
+            }
+        },
+        "workerCount": {
+            "type": "int",
+            "defaultValue": 3,
+            "minValue": 3,
+            "maxValue": 60,
+            "metadata": {
+                "description": "Number of compute nodes to deploy"
+            }
+        },
+        "apiVisibility": {
+            "type": "string",
+            "defaultValue": "Public",
+            "allowedValues": [
+                "Public",
+                "Private"
+            ],
+            "metadata": {
+                "description": "Visibility of cluster API - public or private"
+            }
+        },
+        "ingressVisibility": {
+            "type": "string",
+            "defaultValue": "Public",
+            "allowedValues": [
+                "Public",
+                "Private"
+            ],
+            "metadata": {
+                "description": "Visibility of cluster ingress portal - public or private"
+            }
+        },
+        "domain": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Domain name prefix for the ARO cluster. Default is generated from resource group id."
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),'file',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name for the storage account"
+            }            
+        },
+        "privateStorageEndpointName": {
+            "type": "string",
+            "defaultValue": "oms-pe-premiumstorage",
+            "metadata": {
+                "description": "Name of the private endpoint for the storage"
+            }
+        },
+        "mqsharename": {
+            "type": "string",
+            "defaultValue": "mqha",
+            "metadata": {
+                "description": "name of the Azure Premium File Share to create MQ instance"
+            }
+        },
+        "endpointSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "description": "CIDR for the subnet if creating"
+            }
+        },
+        "endpointSubnetName": {
+            "type": "string",
+            "defaultValue": "endpoint-subnet",
+            "metadata": {
+                "description": "CIDR for the subnet if creating"
+            }
+        },
+        "registryName": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),'r',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name of the container registry"
+            }
+        },
+        "registrySku": {
+            "type": "string",
+            "defaultValue": "Premium",
+            "allowedValues": [
+                "Basic",
+                "Classic",
+                "Standard",
+                "Premium"
+            ],
+            "metadata": {
+                "description": "Container Registry SKU"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace. Specify if not creating new one."
+            }
+        },
+        "dbDNSName": {
+            "type": "string",
+            "defaultValue": "omspostgres.private.postgres.database.azure.com",
+            "metadata": {
+                "description": "DNS endpoint name for the database service"
+            }
+        },
+        "databaseSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.3.0/24",
+            "metadata": {
+                "description": "CIDR for the database subnet"
+            }
+        },
+        "databaseSubnetName": {
+            "type": "string",
+            "defaultValue": "data-subnet",
+            "metadata": {
+                "description": "Name of the subnet for the database service."
+            }
+        },
+        "omsNamespace": {
+            "type": "string",
+            "defaultValue": "oms",
+            "metadata": {
+                "description": "Kubernetes namespace for the OMS instance"
+            }
+        },
+        "omInstanceName": {
+            "type": "string",
+            "defaultValue": "oms-instance",
+            "metadata": {
+                "description": "Name of the instance to be created"
+            }
+        },
+        "omsEdition": {
+            "type": "string",
+            "defaultValue": "Professional",
+            "allowedValues": [
+                "Professional",
+                "Enterprise"
+            ],
+            "metadata": {
+                "description": "Sterling OMS Edition to install"
+            }
+        },
+        "dbName": {
+            "type": "string",
+            "defaultValue": "oms",
+            "metadata": {
+                "description": "Name of the database to be created"
+            }
+        },
+        "dbStorageSizeGB": {
+            "type": "int",
+            "defaultValue": 2048,
+            "allowedValues": [
+                32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384
+            ],
+            "metadata": {
+                "description": "Initial database size in GB. Note that storage cannot be scaled down once created."
+            }
+        },
+        "dbVMSize": {
+            "type": "string",
+            "defaultValue": "Standard_E16ds_v4",
+            "allowedValues": [
+                "Standard_E2ds_v4",
+                "Standard_E4ds_v4",
+                "Standard_E8ds_v4",
+                "Standard_E16ds_v4",
+                "Standard_E20ds_v4",
+                "Standard_E32ds_v4",
+                "Standard_E48ds_v4",
+                "Standard_E64ds_v4"
+            ],
+            "metadata": {
+                "description": "PostgreSQL VM Size"
+            }
+        },
+        "dbHAMode": {
+            "type": "string",
+            "defaultValue": "ZoneRedundant",
+            "allowedValues": [
+                "Disabled",
+                "SameZone",
+                "ZoneRedundant"
+            ]
+        },
+        "backupRetentionDays": {
+            "type": "int",
+            "defaultValue": 7,
+            "metadata": {
+                "description": "Number of days to retain backups"
+            }
+        },
+        "geoRedundantBackup": {
+            "type": "string",
+            "defaultValue": "disabled",
+            "allowedValues": [
+                "disabled",
+                "enabled"
+            ],
+            "metadata": {
+                "description": "Use geo redundant backups or not for PostgreSQL service"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for linked deployments."
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+        "omsImage": "[if(equals(parameters('omsEdition'),'Professional'),'icr.io/cpopen/ibm-oms-pro-case-catalog:v1.0','icr.io/cpopen/ibm-oms-ent-case-catalog:v1.0')]"
+    },
+    "resources": [
+        { 
+            "apiVersion": "2021-04-01",
+            "name": "pid-e1da4656-a411-4813-9522-f66dde07691f-partnercenter", 
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-07-01",
+            "condition": "[parameters('deployVNet')]",
+            "name": "[parameters('vnetName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/natGateways', parameters('natGwName'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('controlSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('controlSubnetCIDR')]",
+                            "privateLinkServiceNetworkPolicies": "Disabled",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.ContainerRegistry"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "[parameters('workerSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('workerSubnetCIDR')]",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.ContainerRegistry"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "[parameters('endpointSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('endpointSubnetCIDR')]",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.ContainerRegistry"
+                                }
+                            ],
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "privateEndpointNetworkPolicies": "Disabled"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-07-01",
+            "condition": "[parameters('deployVNet')]",
+            "name": "[parameters('gwPublicIPName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "publicIPAllocationMethod": "Static"
+            },
+            "sku": {
+                "name": "Standard"
+            }
+        },
+        {
+            "type": "Microsoft.Network/natGateways",
+            "apiVersion": "2022-07-01",
+            "condition": "[parameters('deployVNet')]",
+            "name": "[parameters('natGwName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIpAddresses": [
+                    {
+                        "id": "[resourceId('Microsoft.Network/publicIpAddresses/', parameters('gwPublicIPName'))]"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('gwPublicIPName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[and(parameters('deployBastion'),parameters('deployDevVM'))]",
+            "name": "bastion",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/bastion/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "bastionSubnetCIDR": {
+                        "value": "[parameters('bastionSubnetCIDR')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployDevVM')]",
+            "name": "dev-vm",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'bastion')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/dev-vm/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[concat(parameters('namePrefix'),'-dev')]"
+                    },
+                    "createSubnet": {
+                        "value": true
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('devSubnetCIDR')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('devSubnetName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('adminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "ngwName": {
+                        "value": "[parameters('natGwName')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployARO')]",
+            "comments": "Deploys Azure Red Hat Openshift on existing VNet and subnets",
+            "name": "aro",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'private-fileshare')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/aro/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "createVnet": {
+                        "value": false
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "controlSubnetName": {
+                        "value": "[parameters('controlSubnetName')]"
+                    },
+                    "workerSubnetName": {
+                        "value": "[parameters('workerSubnetName')]"
+                    },
+                    "spClientId": {
+                        "value": "[parameters('spClientId')]"
+                    },
+                    "spClientSecret": {
+                        "value": "[parameters('spClientSecret')]"
+                    },
+                    "spObjectId": {
+                        // to do: get this through deploy script in linked template
+                        "value": "[parameters('spObjectId')]"
+                    },
+                    "rpObjectId": {
+                        // to do: get this through deploy script in linked template
+                        "value": "[parameters('rpObjectId')]"
+                    },
+                    "pullSecret": {
+                        "value": "[parameters('pullSecret')]"
+                    },
+                    "masterSize": {
+                        "value": "[parameters('masterSize')]"
+                    },
+                    "workerSize": {
+                        "value": "[parameters('workerSize')]"
+                    },
+                    "workerCount": {
+                        "value": "[parameters('workerCount')]"
+                    },
+                    "apiVisibility": {
+                        "value": "[parameters('apiVisibility')]"
+                    },
+                    "ingressVisibility": {
+                        "value": "[parameters('ingressVisibility')]"
+                    },
+                    "domain": {
+                        "value": "[parameters('domain')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "comments": "Shared workspace for multiple resources",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployFileShare')]",
+            "name": "private-fileshare",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/file-share/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('storageAccountName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "privateStorageEndpointName": {
+                        "value": "[parameters('privateStorageEndpointName')]"
+                    },
+                    "mqsharename": {
+                        "value": "[parameters('mqsharename')]"
+                    },
+                    "createSubnet": {
+                        "value": false
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployACR')]",
+            "name": "private-acr",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/acr/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "registryName": {
+                        "value": "[parameters('registryName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "registrySku": {
+                        "value": "[parameters('registrySku')]"
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createSubnet": {
+                        "value": false
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployPostgres')]",
+            "name": "postgresql",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/postgresql/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"                    
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('adminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "createSubnet": {
+                        "value": true
+                    },
+                    "subnetName": {
+                        "value": "[parameters('databaseSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('databaseSubnetCIDR')]"
+                    },
+                    "dbDNSZoneName": {
+                        "value": "[parameters('dbDNSName')]"
+                    },
+                    "dbVMSize": {
+                        "value": "[parameters('dbVMSize')]"
+                    },
+                    "dbStorageSizeGB": {
+                        "value": "[parameters('dbStorageSizeGB')]"
+                    },
+                    "dbHAMode": {
+                        "value": "[parameters('dbHAMode')]"
+                    },
+                    "backupRetentionDays": {
+                        "value": "[parameters('backupRetentionDays')]"
+                    },
+                    "geoRedundantBackup": {
+                        "value": "[parameters('geoRedundantBackup')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deploySterling')]",
+            "name": "sterling-software",
+            "comments": "Runs the deployment script to install and configure Sterling OMS",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'aro')]",
+                "[resourceId('Microsoft.Resources/deployments', 'private-acr')]",
+                "[resourceId('Microsoft.Resources/deployments', 'private-fileshare')]",
+                "[resourceId('Microsoft.Resources/deployments', 'postgresql')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling-oms/sterling/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"   
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "ibmEntitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "fileShareAccountName":{
+                        "value": "[parameters('storageAccountName')]"
+                    },
+                    "fileShareSKU":{
+                        "value": "Premium_LRS"
+                    },
+                    "createStorageAccount": {
+                        "value": true
+                    },
+                    "storageAccountName": {
+                        "value": "[concat(parameters('namePrefix'),'script',substring(uniqueString(resourceGroup().id),1,7))]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": true
+                    },
+                    "managedIdName": {
+                        "value": "[concat(parameters('namePrefix'),'-script-sp')]"
+                    },
+                    "spClientId": {
+                        "value": "[parameters('spClientId')]"
+                    },
+                    "spClientSecret": {
+                        "value": "[parameters('spClientSecret')]"
+                    },
+                    "aroClusterName": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','aro'),'2021-04-01').outputs['clusterName'].value]"
+                    },
+                    "omsNamespace": {
+                        "value": "[parameters('omsNamespace')]"
+                    },
+                    "omInstanceName": {
+                        "value": "[parameters('omInstanceName')]"
+                    },
+                    "dbName": {
+                        "value": "[parameters('dbName')]"
+                    },
+                    "adminUsername": {
+                        "value": "[parameters('adminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "whichOMS": {
+                        "value": "[variables('omsImage')]"
+                    },
+                    "createACR": {
+                        "value": "[parameters('deployACR')]"
+                    },
+                    "registryName": {
+                        "value": "[if(parameters('deployACR'),reference(resourceId('Microsoft.Resources/deployments','private-acr'),'2021-04-01').outputs['acrName'].value,'NULL')]"
+                    },
+                    "acceptLicense": {
+                        "value": "[parameters('acceptLicense')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "resourceGroup": {
+            "type": "string",
+            "value": "[resourceGroup().name]"
+        },
+        "clusterName": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','aro'),'2021-04-01').outputs['clusterName'].value]"
+        },
+        "aroClusterURL": {
+            "type": "string",
+            "value": "[uri(concat('https://console-openshift-console.apps.',parameters('domain'),'.',parameters('location'),'.aroapp.io/'),'')]"
+        },
+        "aroClusterCredentials": {
+            "type": "string",
+            "value": "[concat('Use \"az aro list-credentials -g ',resourceGroup().name,' -n ',reference(resourceId('Microsoft.Resources/deployments','aro'),'2021-04-01').outputs['clusterName'].value,'\" to obtain credentials')]"
+        },
+        "orderHubURL": {
+            "type": "string",
+            "condition": "[equals(parameters('acceptLicense'),'accept')]",
+            "value": "[uri(concat('https://smcfs-',parameters('omsNamespace'),'.apps.',parameters('domain'),'.',parameters('location'),'.aroapp.io'),'/order-management')]"
+        },
+        "callcenterURL": {
+            "type": "string",
+            "condition": "[equals(parameters('acceptLicense'),'accept')]",
+            "value": "[uri(concat('https://smcfs-',parameters('omsNamespace'),'.apps.',parameters('domain'),'.',parameters('location'),'.aroapp.io'),'/call-center')]"
+        },
+        "developerVMName": {
+            "type": "string",
+            "condition": "[parameters('deployDevVM')]",
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','dev-vm'),'2021-04-01').outputs['vmName'].value]"
+        },
+        "privateContainerRegistryName": {
+            "type": "string",
+            "condition": "[parameters('deployACR')]",
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','private-acr'),'2021-04-01').outputs['acrName'].value]"
+        }
+    }
+}

@@ -1,0 +1,279 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Default admin password for VMs"
+            }
+        },
+        "backupRetentionDays": {
+            "type": "int",
+            "defaultValue": 7,
+            "metadata": {
+                "description": "Number of days to retain backups"
+            }
+        },
+        "geoRedundantBackup": {
+            "type": "string",
+            "defaultValue": "disabled",
+            "metadata": {
+                "description": "Use geo redundant backups or not for PostgreSQL service"
+            }
+        },
+        "dbStorageSizeGB": {
+            "type": "int",
+            "defaultValue": 2048,
+            "metadata": {
+                "description": "Initial database size in GB"
+            }
+        },
+        "dbVersion": {
+            "type": "string",
+            "defaultValue": "13",
+            "metadata": {
+                "description": "Version of PostgreSQL to install"
+            }
+        },
+        "dbVMSize": {
+            "type": "string",
+            "defaultValue": "Standard_E16ds_v4",
+            "metadata": {
+                "description": "PostgreSQL VM Size"
+            }
+        },
+        "dbEdition": {
+            "type": "string",
+            "defaultValue": "MemoryOptimized",
+            "metadata": {
+                "description": "PostgreSQL VM compute tier"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Log Analytics"
+            }
+        },
+        "createAnalyticsWorkspace": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an analytics workspace"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace. Specify if not creating new one."
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the virtual network to deploy into"
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-data-subnet')]",
+            "metadata": {
+                "description": "Name of the existing or new subnet to attach the service to"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.3.0/24",
+            "metadata": {
+                "description": "CIDR for subnet if being created"
+            }
+        },
+        "dbDNSZoneName": {
+            "type": "string",
+            "defaultValue": "omspostgres.private.postgres.database.azure.com",
+            "metadata": {
+                "description": "DNS endpoint name for the database service"
+            }
+        },
+        "dbHAMode": {
+            "type": "string",
+            "defaultValue": "ZoneRedundant",
+            "allowedValues": [
+                "Disabled",
+                "SameZone",
+                "ZoneRedundant"
+            ]
+        },
+        "postgreSQLName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-postgresql')]",
+            "metadata": {
+                "description": "Name for the PostgreSQL resource"
+            }
+        },
+        "dbDiagSettingsName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('postgreSQLName'),'-diag-settings')]",
+            "metadata": {
+                "description": "Name of the diagnostic setting resource"
+            }
+        }
+    },
+    "variables": {
+
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-11-01",
+            "condition": "[parameters('createSubnet')]",
+            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('subnetCIDR')]",
+                "delegations": [
+                                {
+                                    "name": "Microsoft.DBPostgresSQL.flexibleServers",
+                                    "properties": {
+                                        "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers"
+                                    }
+                                }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name": "[parameters('dbDNSZoneName')]",
+            "location": "global",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name": "[concat(parameters('dbDNSZoneName'), '/', parameters('dbDNSZoneName'), '-link')]",
+            "location": "global",
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('dbDNSZoneName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+            "apiVersion": "2021-06-01",
+            "name": "[parameters('postgreSQLName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('dbVMSize')]",
+                "tier": "[parameters('dbEdition')]"
+            },
+            "properties": {
+                "administratorLogin": "[parameters('adminUserName')]",
+                "administratorLoginPassword": "[parameters('adminPassword')]",
+                "backup": {
+                    "backupRetentionDays": "[parameters('backupRetentionDays')]",
+                    "geoRedundantBackup": "[parameters('geoRedundantBackup')]"
+                },
+                "createMode": "Create",
+                "dataEncryption": {
+                    "type": "SystemManaged"
+                },
+                "highAvailability": {
+                    "mode": "[parameters('dbHAMode')]"
+                },
+                "network": {
+                    "delegatedSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+                    "privateDnsZoneArmResourceId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('dbDNSZoneName'))]"
+                },
+                "storage": {
+                    "storageSizeGB": "[parameters('dbStorageSizeGB')]"
+                },
+                "version": "[parameters('dbVersion')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', parameters('dbDNSZoneName'), format('{0}-link', parameters('dbDNSZoneName')))]"
+            ]
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "condition": "[and(parameters('deployLogAnalytics'),parameters('createAnalyticsWorkspace'))]",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "name": "[parameters('dbDiagSettingsName')]",
+            "scope": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgreSQLName'))]",
+            "properties": {
+                "logAnalyticsDestinationType": "AzureDiagnostics",
+                "logs": [
+                    {
+                        "category": "PostgreSQLLogs",
+                        "enabled": true
+                    }
+                ],
+                "metrics": [
+                    {
+                        "category": "AllMetrics",
+                        "enabled": true
+                    }
+                ],
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgreSQLName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "endpointName": {
+            "type": "string",
+            "value": "[parameters('dbDNSZoneName')]"
+        }
+    }
+}
