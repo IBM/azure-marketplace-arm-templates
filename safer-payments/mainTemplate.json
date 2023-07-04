@@ -168,11 +168,25 @@
                 "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
             }
         },
-        "createVMPublicIP": {
+        "createVMPublicIP-node1": {
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Flag to indicate whether a public ip address should be created for each node."
+                "description": "Flag to indicate whether a public ip address should be created for node 1."
+            }
+        },
+        "createVMPublicIP-node2": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created for node 2."
+            }
+        },
+        "createVMPublicIP-node3": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created for node 3."
             }
         },
         "node1Type": {
@@ -585,7 +599,7 @@
                         "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
                     },
                     "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP')]"
+                        "value": "[parameters('createVMPublicIP-node1')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -654,7 +668,7 @@
                         "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
                     },
                     "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP')]"
+                        "value": "[parameters('createVMPublicIP-node2')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -724,7 +738,7 @@
                         "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
                     },
                     "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP')]"
+                        "value": "[parameters('createVMPublicIP-node3')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -794,7 +808,7 @@
                         "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
                     },
                     "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP')]"
+                        "value": "[parameters('createVMPublicIP-node3')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
