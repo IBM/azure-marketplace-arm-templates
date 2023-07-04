@@ -189,45 +189,6 @@
                 "description": "Flag to indicate whether a public ip address should be created for node 3."
             }
         },
-        "node1Type": {
-            "type": "string",
-            "defaultValue": "primary",
-            "allowedValues": [
-                "primary",
-                "ha",
-                "dr",
-                "standby"
-            ],
-            "metadata": {
-                "description": "Parameters for setup script for Node 1"
-            }
-        },
-        "node2Type": {
-            "type": "string",
-            "defaultValue": "ha",
-            "allowedValues": [
-                "primary",
-                "ha",
-                "dr",
-                "standby"
-            ],
-            "metadata": {
-                "description": "Parameters for setup script for Node 2"
-            }
-        },
-        "node3Type": {
-            "type": "string",
-            "defaultValue": "dr",
-            "allowedValues": [
-                "primary",
-                "ha",
-                "dr",
-                "standby"
-            ],
-            "metadata": {
-                "description": "Parameters for setup script for Node 3"
-            }
-        },
         "node1AvailabilityZone": {
             "type": "string",
             "defaultValue": "1",
@@ -563,7 +524,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[parameters('node1Type')]"
+                        "value": "node1"
                     },
                     "location": {
                         "value": "[parameters('region')]"
@@ -610,8 +571,8 @@
                     "scriptName": {
                         "value": "[variables('deployScript')]"
                     },
-                    "nodeType": {
-                        "value": "[parameters('node1Type')]"
+                    "instanceNumber": {
+                        "value": "1"
                     }
                 }
             }
@@ -632,7 +593,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[parameters('node2Type')]"
+                        "value": "node2"
                     },
                     "location": {
                         "value": "[parameters('region')]"
@@ -679,8 +640,8 @@
                     "scriptName": {
                         "value": "[variables('deployScript')]"
                     },
-                    "nodeType": {
-                        "value": "[parameters('node2Type')]"
+                    "instanceNumber": {
+                        "value": "2"
                     }
                 }
             }
@@ -702,7 +663,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[parameters('node3Type')]"
+                        "value": "node3"
                     },
                     "location": {
                         "value": "[parameters('region')]"
@@ -749,8 +710,8 @@
                     "scriptName": {
                         "value": "[variables('deployScript')]"
                     },
-                    "nodeType": {
-                        "value": "[parameters('node3Type')]"
+                    "instanceNumber": {
+                        "value": "3"
                     }
                 }
             }
@@ -772,7 +733,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[concat(parameters('node3Type'),'-with-backup')]"
+                        "value": "node3-with-backup"
                     },
                     "location": {
                         "value": "[parameters('region')]"
@@ -819,8 +780,8 @@
                     "scriptName": {
                         "value": "[variables('deployScript')]"
                     },
-                    "nodeType": {
-                        "value": "[parameters('node3Type')]"
+                    "instanceNumber": {
+                        "value": "3"
                     },
                     "mountDrive": {
                         "value": true

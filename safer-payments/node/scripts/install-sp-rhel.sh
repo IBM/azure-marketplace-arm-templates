@@ -20,9 +20,11 @@ function usage()
 {
    echo "Sets a node for IBM Safer Payments."
    echo
-   echo "Usage: ${0} -t TYPE [-m -s STORAGE_ACCOUNT -p SHARE -k KEY] [-h]"
+   echo "Usage: ${0} -i INSTANCE -b BINARY_URL -a [-m -s STORAGE_ACCOUNT -p SHARE -k KEY] [-h]"
    echo "  options:"
-   echo "  -t     the type of node to deploy (primary, ha, dr, standby)"
+   echo "  -i     the instance of node to deploy (1, 2, 3)"
+   echo "  -b     the URL to the safer payments binary"
+   echo "  -a     accept the Safer Payments license terms"
    echo "  -m     (optional) will attempt to mount CIFS drive with provided storage account, share name and key."
    echo "  -s     (optional) the name of the Azure file share storage account"
    echo "  -p     (optional) the Azure file share name to mount"
@@ -34,15 +36,19 @@ function usage()
 log-output "INFO: Script started"
 
 # Get the options
-while getopts ":t:ms:p:k:h" option; do
+while getopts ":i:b:ams:p:k:h" option; do
    case $option in
       h) # display Help
          usage
          exit 1;;
+      b) # URL to binary
+         BINARY=$OPTARG;;
+      a) # Accept license   
+         ACCEPT_LICENSE="yes";;
       m) # mount drive
          MOUNT_DRIVE="yes";;
-      t) # Type of node to deploy
-         TYPE=$OPTARG;;
+      i) # Instance of node to deploy
+         INSTANCE=$OPTARG;;
       s) # storage account for mount
          STORAGE_ACCOUNT=$OPTARG;;
       p) # Share name for mount
@@ -63,7 +69,7 @@ export TIMESTAMP=$(date +"%y%m%d-%H%M%S")
 if [[ -z $TMP_DIR ]]; then export TMP_DIR="tmp-$TIMESTAMP"; fi
 if [[ -z $OUTPUT_DIR ]]; then export OUTPUT_DIR="${TMP_DIR}"; fi
 
-log-output "INFO: Setting up node as $TYPE"
+log-output "INFO: Setting up node as $INSTANCE"
 
 # Wait for cloud-init to finish
 count=0
@@ -114,59 +120,140 @@ if [[ $MOUNT_DRIVE == "yes" ]]; then
     fi
 fi
 
-# Download safer payments binary
+######
+# Install the az cli
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+if [[ $(/usr/bin/cat /etc/redhat-release | grep "8.") ]]; then
+    sudo dnf install -y https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+elsif [[ $(/usr/bin/cat /etc/redhat-release | grep "9.") ]]; then
+    sudo dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm
+else
+    log-output "ERROR: RHEL version not supported"
+    exit 1
+fi
+sudo dnf install azure-cli -y
 
-# Extract the files
-# mkdir -p ${SCRIPT_DIR}/${TMP_DIR}
-# tar xf ${SCRIPT_DIR}/${BIN_FILE} -C ${SCRIPT_DIR}/${TMP_DIR}
+#######
+# Log into az cli with managed identity
+if [[ -f "/usr/bin/az" ]]; then
+    log-output "INFO: Logging into az cli"
+    az login --identity
+else
+    log-output "ERROR: AZ CLI not properly installed"
+    exit 1
+fi
 
-# Get zip file and unzip
-# zipFiles=( $( cd ${SCRIPT_DIR}/${TMP_DIR} && find SaferPayments*.zip
-# if (( ${#zipFiles[@]} > 0 )); then 
-#   unzip ${SCRIPT_DIR}/${TMP_DIR}/${zipFiles[0]}
-# else
-#   log-output "ERROR: Safer Payments zip file not found in ${BIN_FILE}"
-#    exit 1
-# fi
+######
+# Get configuration parameters
+#
+######################################
 
-# Setup the Java Runtime Environment
+######
+# Download and extract safer payments binary
 
-# jreFiles=( $( cd ${SCRIPT_DIR}/${TMP_DIR} && find ibm_jre*.vm ))
-# if (( ${#jreFiles[@]} > 0 )); then
-#   unzip ${SCRIPT_DIR}/${TMP_DIR}/${jreFiles[0]}
-# else
-#   log-output "ERROR: ibm_jre file not found"
-#   exit 1
-# fi
-# tar xf vm.tar.Z
-# chmod +x jre/bin/java
-# chmod +x SaferPayments.bin
+if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
-# Run safer payments installation
-# Accept the license
-# sed -i 's/LICENSE_ACCEPTED=FALSE/LICENSE_ACCEPTED=TRUE/g' installer.properties
+    # Download the binary
+    log-output "INFO: Downloading the Safer Payments binary"
+    wget -O ${SCRIPT_DIR}/${BIN_FILE} $BIN_URL
 
-# Change install path to be under /usr
-# sed -i 's/\/opt\//\/usr\//g' installer.properties
+    # Extract the files
+    log-output "INFO: Extracting the files from the binary"
+    mkdir -p ${SCRIPT_DIR}/${TMP_DIR}
+    tar xf ${SCRIPT_DIR}/${BIN_FILE} -C ${SCRIPT_DIR}/${TMP_DIR}
 
-# sudo env "PATH=$(pwd)/jre/bin:$PATH" ./SaferPayments.bin -i silent
+    # Get zip file and unzip
+    zipFiles=( $( cd ${SCRIPT_DIR}/${TMP_DIR} && find SaferPayments*.zip ) )
+    if (( ${#zipFiles[@]} > 0 )); then 
+        cd ${SCRIPT_DIR}/${TMP_DIR} && unzip ./${zipFiles[0]}
+    else
+        log-output "ERROR: Safer Payments zip file not found in ${BIN_FILE}"
+        exit 1
+    fi
 
-# Create user and group to run safer payments
-# sudo adduser 
+    #######
+    # Setup the Java Runtime Environment
 
-# Run safer payments postrequisites
-# cp -R /installationPath/factory_reset/* /instancePath 
-# chown -R SPUser:SPUserGroup /instancePath
+    log-output "INFO: Setting up the Java Runtime Environment"
+    jreFiles=( $( cd ${SCRIPT_DIR}/${TMP_DIR} && find ibm_jre*.vm ) )
+    if (( ${#jreFiles[@]} > 0 )); then
+        cd ${SCRIPT_DIR}/${TMP_DIR} && unzip ./${jreFiles[0]}
+    else
+        log-output "ERROR: ibm_jre file not found"
+        exit 1
+    fi
 
-# Configure safer payments as a service
+    if [[ -f ${SCRIPT_DIR}/${TMP_DIR}/vm.tar.Z ]]; then
+        tar xf vm.tar.Z
+    else
+        log-output "ERROR: vm.tar.z not found in binary file"
+        exit 1
+    fi
 
-# On primary
+    chmod +x ${SCRIPT_DIR}/${TMP_DIR}/jre/bin/java
+    chmod +x ${SCRIPT_DIR}/${TMP_DIR}/SaferPayments.bin
 
-# Write custom /instancePath/cfg/cluster.iris to primary node
-# Copy instancePath/* to other nodes
+    #######
+    # Run safer payments installation
+
+    log-output "INFO: Installing Safer Payments"
+    # Accept the license
+    sed -i 's/LICENSE_ACCEPTED=FALSE/LICENSE_ACCEPTED=TRUE/g' ${SCRIPT_DIR}/${TMP_DIR}/installer.properties
+
+    # Change install path to be under /usr
+    sed -i 's/\/opt\//\/usr\//g' ${SCRIPT_DIR}/${TMP_DIR}/installer.properties
+
+    sudo env "PATH=${SCRIPT_DIR}/${TMP_DIR}/jre/bin:$PATH" ${SCRIPT_DIR}/${TMP_DIR}/SaferPayments.bin -i silent
+
+    # Create user and group to run safer payments
+    sudo groupadd SPUserGroup
+    sudo adduser SPUser -g SPUserGroup
+
+    # Run safer payments postrequisites
+    INSTALL_PATH=$(cat ${SCRIPT_DIR}/${TMP_DIR}/installer.properties | grep USER_INSTALL_DIR | awk '{split($0,value,"="); print value[2]}')
+    sudo mkdir -p /instancePath
+    sudo cp -R ${INSTALL_PATH}/factory_reset/* /instancePath 
+    sudo chown -R SPUser:SPUserGroup /instancePath
+
+    # Configure safer payments as a service
+
+    # On primary create custom cluster.iris
+    if [[ $INSTANCE = "1" ]]; then
+        log-output "INFO: Configuring initial instance $INSTANCE"
+        cd /instancePath/cfg && sudo -u SPUser iris id=$INSTANCE createinstances=3 &
+        # Allow time for service to start
+        sleep 120
+        PROCESS_ID=$(/usr/bin/ps xua | grep -v grep | grep iris | grep -v sudo | awk '{print $2}') 
+        sudo kill $PROCESS_ID
+        # Allow time for service to shutdown
+        sleep 120
+
+        log-output "INFO: Configuring cluster.iris"
+
+        sudo -u SPUser cp /instancePath/cfg/cluster.iris /instancePath/cfg/default-cluster.iris
+        
+        sudo -u SPUser cat /instancePath/cfg/cluster.iris \
+         | jq '.configuration.irisInstances[0].interfaces[].address = "10.0.0.4"' \
+         | jq '.configuration.irisInstances[1].interfaces[].address = "10.0.0.5"' \
+         | jq '.configuration.irisInstances[2].interfaces[].address = "10.0.0.6"' > ./new-cluster.iris
+
+        sudo -u SPUser cp /instancePath/cfg/new-cluster.iris /instancePath/cfg/cluster.iris
+
+    fi
+
+    # Write custom /instancePath/cfg/cluster.iris to primary node
+
+
+    # Copy instancePath/* to other nodes
+
+    # Start instance
+    cd /instancePath/cfg && sudo -u SPUser iris console id=${INSTANCE}
+else
+    log-output "INFO: License not accepted. Safer Payments not installed"
+fi
 
 # Shutdown node if standby
-if [[ $TYPE = "standby" ]]; then
+if [[ $TYPE = "4" ]]; then
     log-output "INFO: Shutting down"
     sudo shutdown -h 0
 fi

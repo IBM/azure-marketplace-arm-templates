@@ -171,17 +171,31 @@
                 "description": "Name of the script to run on VM"
             }
         },
-        "nodeType": {
+        "instanceNumber": {
             "type": "string",
-            "defaultValue": "primary",
+            "defaultValue": "1",
             "allowedValues": [
-                "primary",
-                "ha",
-                "dr",
-                "standby"
+                "1",
+                "2",
+                "3",
+                "4"
             ],
             "metadata": {
-                "description": "Type of node to be deployed."
+                "description": "Safer Payments instance number to be configured."
+            }
+        },
+        "binaryPath": {
+            "type": "string",
+            "defaultValue": "https://github.com/IBM/",
+            "metadata": {
+                "description": "URL to the Safer Payments binary to be installed"
+            }
+        },
+        "acceptLicense": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to install safer payments"
             }
         }
     },
@@ -279,6 +293,9 @@
             "name": "[variables('vmName')]",
             "location": "[parameters('location')]",
             "properties": {
+                "identity": {
+                    "type": "SystemAssigned"
+                },
                 "hardwareProfile": {
                     "vmSize": "[parameters('vmSize')]"
                 },
@@ -337,7 +354,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -t ',parameters('nodeType'))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -b ', parameters('binaryPath'),if(parameters('acceptLicense'),' -a ',''))]"
                 }
             }
         },
@@ -359,7 +376,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -t ',parameters('nodeType'),' -m -s ',parameters('storageAccount'),' -p ',parameters('shareName'),' -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -b ', parameters('binaryPath'),if(parameters('acceptLicense'),' -a ',''),' -m -s ',parameters('storageAccount'),' -p ',parameters('shareName'),' -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
                 }
             }
         }
