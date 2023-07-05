@@ -191,8 +191,7 @@
             "allowedValues": [
                 "1",
                 "2",
-                "3",
-                "4"
+                "3"
             ],
             "metadata": {
                 "description": "Safer Payments instance number to be configured."
@@ -210,6 +209,27 @@
             "defaultValue": false,
             "metadata": {
                 "description": "Flag to determine whether to install safer payments"
+            }
+        },
+        "node1Name": {
+            "type": "string",
+            "defaultValue": "node1-vm",
+            "metadata": {
+                "description": "Name of node 1 VM"
+            }
+        },
+        "node2Name": {
+            "type": "string",
+            "defaultValue": "node2-vm",
+            "metadata": {
+                "description": "Name of node 2 VM"
+            }
+        },
+        "node3Name": {
+            "type": "string",
+            "defaultValue": "node3-vm",
+            "metadata": {
+                "description": "Name of node 3 VM"
             }
         }
     },
@@ -253,7 +273,29 @@
         "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]",
         "backupStorageAccountId": "[if(parameters('mountDrive'),resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccount')),null())]",
         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+        "inputParameters": {
+            "binaryPath": "[parameters('binaryPath')]",
+            "resourceGroup": "[resourceGroup().name]",
+            "nodes": [
+                {
+                    "instance": "1",
+                    "vmName": "[parameters('node1Name')]"
+                },
+                {
+                    "instance": "2",
+                    "vmName": "[parameters('node2Name')]"
+                },
+                {
+                    "instance": "3",
+                    "vmName": "[parameters('node3Name')]"
+                }
+            ],
+            "mountDetails": {
+                "storageAccount": "[parameters('storageAccount')]",
+                "shareName": "[parameters('shareName')]"
+            }
+        }
     },
     "resources": [
         {
@@ -395,7 +437,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -b ', parameters('binaryPath'),if(parameters('acceptLicense'),' -a ',''))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p ', replace(string(variables('inputParameters')), '\"', '\\\"'),if(parameters('acceptLicense'),' -a ',''))]"
                 }
             }
         },
@@ -417,7 +459,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -b ', parameters('binaryPath'),if(parameters('acceptLicense'),' -a ',''),' -m -s ',parameters('storageAccount'),' -p ',parameters('shareName'),' -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p ', replace(string(variables('inputParameters')), '\"', '\\\"'),if(parameters('acceptLicense'),' -a ',''),' -m -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
                 }
             }
         }

@@ -102,7 +102,7 @@ fi
 
 # Wait for cloud-init to finish
 count=0
-while [[ $(ps xua | grep cloud-init | grep -v grep) ]]; do
+while [[ $(/usr/bin/ps xua | grep cloud-init | grep -v grep) ]]; do
     log-output "INFO: Waiting for cloud init to finish. Waited $count minutes. Will wait 15 mintues."
     sleep 60
     count=$(( $count + 1 ))
@@ -183,7 +183,7 @@ fi
 if [[ -f "/usr/bin/az" ]]; then
     if [[ -z $(/usr/bin/az account show) ]]; then
         log-output "INFO: Logging into az cli"
-        az login --identity
+        /usr/bin/az login --identity
     else
         log-output "INFO: Already logged into Azure CLI"
     fi
@@ -318,39 +318,30 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
     # Configure safer payments as a service
 
-    # On primary create custom cluster.iris
-    if [[ $INSTANCE = "1" ]]; then
-        log-output "INFO: Configuring initial instance $INSTANCE"
-        cd /instancePath/cfg && sudo -u SPUser iris id=$INSTANCE createinstances=3 &
-        # Allow time for service to start
-        log-output "INFO: Sleeping for 2 minutes to let process finish"
-        sleep 120
-        log-output "INFO: Killing initial process"
-        PROCESS_ID=$(/usr/bin/ps xua | grep -v grep | grep iris | grep -v sudo | awk '{print $2}') 
-        sudo kill $PROCESS_ID
-        # Allow time for service to shutdown
-        log-output "INFO: Sleeping for 2 minutes to let shutdown complete"
-        sleep 120
+    log-output "INFO: Configuring initial instance $INSTANCE"
+    cd /instancePath/cfg && sudo -u SPUser iris id=$INSTANCE createinstances=3 &
+    # Allow time for service to start
+    log-output "INFO: Sleeping for 2 minutes to let process finish"
+    sleep 120
+    log-output "INFO: Killing initial process"
+    PROCESS_ID=$(/usr/bin/ps xua | grep -v grep | grep iris | grep -v sudo | awk '{print $2}') 
+    sudo kill $PROCESS_ID
+    # Allow time for service to shutdown
+    log-output "INFO: Sleeping for 2 minutes to let shutdown complete"
+    sleep 120
 
-        log-output "INFO: Configuring cluster.iris"
+    log-output "INFO: Configuring cluster.iris"
 
-        sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/${TMP_DIR}/default-cluster.iris
-        
-        sudo cat /instancePath/cfg/cluster.iris \
-         | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
-         | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
-         | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris
+    sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/${TMP_DIR}/default-cluster.iris
+    
+    sudo cat /instancePath/cfg/cluster.iris \
+        | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
+        | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
+        | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris
 
-        sudo cp ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
+    sudo cp ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
 
-        sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
-
-    fi
-
-    # Write custom /instancePath/cfg/cluster.iris to primary node
-
-
-    # Copy instancePath/* to other nodes
+    sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
 
     # Start instance
     # Change the below to a system process
