@@ -20,11 +20,11 @@ function usage()
 {
    echo "Sets a node for IBM Safer Payments."
    echo
-   echo "Usage: ${0} -i INSTANCE -b BINARY_URL -a [-m -s STORAGE_ACCOUNT -p SHARE -k KEY] [-h]"
+   echo "Usage: ${0} -i INSTANCE -p PARAMETERS [-a -m -s] [-h]"
    echo "  options:"
    echo "  -i     the instance of node to deploy (1, 2, 3)"
-   echo "  -b     the URL to the safer payments binary"
-   echo "  -a     accept the Safer Payments license terms"
+   echo "  -p     install parameters in json format"
+   echo "  -a     (optional) accept the Safer Payments license terms"
    echo "  -m     (optional) will attempt to mount CIFS drive with provided storage account, share name and key."
    echo "  -s     (optional) the name of the Azure file share storage account"
    echo "  -p     (optional) the Azure file share name to mount"
@@ -36,23 +36,19 @@ function usage()
 log-output "INFO: Script started"
 
 # Get the options
-while getopts ":i:b:ams:p:k:h" option; do
+while getopts ":i:p:amsh" option; do
    case $option in
       h) # display Help
          usage
          exit 1;;
-      b) # URL to binary
-         BINARY=$OPTARG;;
+      p) # install parameters
+         PARAMS=$OPTARG;;
       a) # Accept license   
          ACCEPT_LICENSE="yes";;
       m) # mount drive
          MOUNT_DRIVE="yes";;
       i) # Instance of node to deploy
          INSTANCE=$OPTARG;;
-      s) # storage account for mount
-         STORAGE_ACCOUNT=$OPTARG;;
-      p) # Share name for mount
-         SHARE=$OPTARG;;
       k) # Storage account key for mount
          KEY=$OPTARG;;
      \?) # Invalid option
@@ -62,6 +58,31 @@ while getopts ":i:b:ams:p:k:h" option; do
    esac
 done
 
+# Parse parameters and check for readiness to proceed
+if [[ -z $INSTANCE ]]; then 
+    log-output "ERROR: Instance number not provided"
+    exit 1
+fi
+
+if [[ -z $PARAMS ]]; then
+    log-output "ERROR: No parameters provided"
+    exit 1
+fi
+
+BINARY_URL=$(echo $PARAMS | jq -r '.binaryPath' )
+RESOURCE_GROUP=$(echo $PARAMS | jq -r '.resourceGroup')
+
+if [[ $INSTANCE = "1" ]]; then
+    NODE1_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "1") | .vmName')
+    NODE2_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .vmName')
+    NODE3_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .vmName')
+fi
+
+if [[ $ACCEPT_LICENSE ]] && [[ -z $BINARY_URL ]]; then
+    log-output "ERROR: License accepted but binary path not provided"
+    exit 1
+fi
+
 # Set Defaults
 if [[ -z $SCRIPT_DIR ]]; then export SCRIPT_DIR="$(pwd)"; fi
 if [[ -z $BIN_FILE ]]; then export BIN_FILE="Safer_Payments_6.5_mp_ml.tar"; fi
@@ -70,6 +91,16 @@ if [[ -z $TMP_DIR ]]; then export TMP_DIR="tmp-$TIMESTAMP"; fi
 if [[ -z $OUTPUT_DIR ]]; then export OUTPUT_DIR="${TMP_DIR}"; fi
 
 log-output "INFO: Setting up node as $INSTANCE"
+
+# Log parameters
+log-output "INFO: Binary path is $BINARY_URL"
+log-output "INFO: RESOURCE_GROUP is $RESOURCE_GROUP"
+
+if [[ $INSTANCE = "1" ]]; then
+    log-output "INFO: Node 1 Name is $NODE1_NAME"
+    log-output "INFO: Node 2 Name is $NODE2_NAME"
+    log-output "INFO: Node 3 Name is $NODE3_NAME"
+fi
 
 # Wait for cloud-init to finish
 count=0
@@ -122,22 +153,31 @@ fi
 
 ######
 # Install the az cli
-sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
-if [[ $(/usr/bin/cat /etc/redhat-release | grep "8.") ]]; then
-    sudo dnf install -y https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
-elsif [[ $(/usr/bin/cat /etc/redhat-release | grep "9.") ]]; then
-    sudo dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm
-else
-    log-output "ERROR: RHEL version not supported"
-    exit 1
+if [[ ! $(/usr/bin/which az) ]]; then
+    log-output "INFO: Installing Azure CLI tools"
+    sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+    if [[ $(/usr/bin/cat /etc/redhat-release | grep "8.") ]]; then
+        sudo dnf install -y https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+    elif [[ $(/usr/bin/cat /etc/redhat-release | grep "9.") ]]; then
+        sudo dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm
+    else
+        log-output "ERROR: RHEL version not supported"
+        exit 1
+    fi
+    sudo dnf install azure-cli -y
+else 
+    log-output "INFO: Azure CLI tools already installed"
 fi
-sudo dnf install azure-cli -y
 
 #######
 # Log into az cli with managed identity
 if [[ -f "/usr/bin/az" ]]; then
-    log-output "INFO: Logging into az cli"
-    az login --identity
+    if [[ -z $(/usr/bin/az account show) ]]; then
+        log-output "INFO: Logging into az cli"
+        az login --identity
+    else
+        log-output "INFO: Already logged into Azure CLI"
+    fi
 else
     log-output "ERROR: AZ CLI not properly installed"
     exit 1
@@ -145,8 +185,60 @@ fi
 
 ######
 # Get configuration parameters
-#
-######################################
+
+# IP Addresses
+if [[ $INSTANCE = "1" ]]; then
+    log-output "INFO: Getting VM IP Addresses"
+
+    NODE1_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE1_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
+    log-output "INFO: Node 1 IP address is $NODE1_IP"
+
+    NODE2_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE2_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
+    
+
+    if [[ -z $NODE2_IP ]]; then 
+        NODE2_IP="127.0.0.1"
+        log-output "INFO: $NODE2_NAME not found. Setting Node 2 IP Address to $NODE2_IP"
+    else
+        log-output "INFO: Node 2 IP address is $NODE2_IP"
+    fi
+
+    NODE3_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE3_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
+    if [[ -z $NODE3_IP ]]; then 
+        NODE3_IP="127.0.0.1"
+        log-output "INFO: $NODE3_NAME not found. Setting Node 2 IP Address to $NODE3_IP"
+    else
+        log-output "INFO: Node 3 IP address is $NODE3_IP"
+    fi
+fi
+
+#####
+# Configure RHEL firewall
+
+# Below uses the default firewall rules
+
+if [[ $INSTANCE == "1" ]]; then
+    sudo firewall-cmd --zone=public --add-port=8001/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27921/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27931/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27941/tcp --permanent
+    sudo firewall-cmd --reload
+elif [[ $INSTANCE == "2" ]]; then
+    sudo firewall-cmd --zone=public --add-port=8002/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27922/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27932/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27942/tcp --permanent
+    sudo firewall-cmd --reload
+elif [[ $INSTANCE == "3" ]]; then
+    sudo firewall-cmd --zone=public --add-port=8003/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27923/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27933/tcp --permanent
+    sudo firewall-cmd --zone=public --add-port=27943/tcp --permanent
+    sudo firewall-cmd --reload
+else
+    log-output "ERROR: Instance $INSTANCE not found"
+    exit 1
+fi
 
 ######
 # Download and extract safer payments binary
@@ -155,7 +247,7 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
     # Download the binary
     log-output "INFO: Downloading the Safer Payments binary"
-    wget -O ${SCRIPT_DIR}/${BIN_FILE} $BIN_URL
+    wget -O ${SCRIPT_DIR}/${BIN_FILE} "$BINARY_URL"
 
     # Extract the files
     log-output "INFO: Extracting the files from the binary"
@@ -222,22 +314,27 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
         log-output "INFO: Configuring initial instance $INSTANCE"
         cd /instancePath/cfg && sudo -u SPUser iris id=$INSTANCE createinstances=3 &
         # Allow time for service to start
+        log-output "INFO: Sleeping for 2 minutes to let process finish"
         sleep 120
+        log-output "INFO: Killing initial process"
         PROCESS_ID=$(/usr/bin/ps xua | grep -v grep | grep iris | grep -v sudo | awk '{print $2}') 
         sudo kill $PROCESS_ID
         # Allow time for service to shutdown
+        log-output "INFO: Sleeping for 2 minutes to let shutdown complete"
         sleep 120
 
         log-output "INFO: Configuring cluster.iris"
 
-        sudo -u SPUser cp /instancePath/cfg/cluster.iris /instancePath/cfg/default-cluster.iris
+        sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/${TMP_DIR}/default-cluster.iris
         
-        sudo -u SPUser cat /instancePath/cfg/cluster.iris \
-         | jq '.configuration.irisInstances[0].interfaces[].address = "10.0.0.4"' \
-         | jq '.configuration.irisInstances[1].interfaces[].address = "10.0.0.5"' \
-         | jq '.configuration.irisInstances[2].interfaces[].address = "10.0.0.6"' > ./new-cluster.iris
+        sudo cat /instancePath/cfg/cluster.iris \
+         | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
+         | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
+         | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris
 
-        sudo -u SPUser cp /instancePath/cfg/new-cluster.iris /instancePath/cfg/cluster.iris
+        sudo cp ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
+
+        sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
 
     fi
 
@@ -247,13 +344,9 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
     # Copy instancePath/* to other nodes
 
     # Start instance
-    cd /instancePath/cfg && sudo -u SPUser iris console id=${INSTANCE}
+    # Change the below to a system process
+    log-output "INFO: Starting Safer Payments process"
+    cd /instancePath/cfg && sudo -u SPUser iris console id=${INSTANCE} &
 else
     log-output "INFO: License not accepted. Safer Payments not installed"
-fi
-
-# Shutdown node if standby
-if [[ $TYPE = "4" ]]; then
-    log-output "INFO: Shutting down"
-    sudo shutdown -h 0
 fi
