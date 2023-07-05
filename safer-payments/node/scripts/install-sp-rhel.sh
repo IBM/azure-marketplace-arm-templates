@@ -20,14 +20,12 @@ function usage()
 {
    echo "Sets a node for IBM Safer Payments."
    echo
-   echo "Usage: ${0} -i INSTANCE -p PARAMETERS [-a -m -s] [-h]"
+   echo "Usage: ${0} -i INSTANCE -p PARAMETERS [-a] [-m -k KEY] [-h]"
    echo "  options:"
    echo "  -i     the instance of node to deploy (1, 2, 3)"
    echo "  -p     install parameters in json format"
    echo "  -a     (optional) accept the Safer Payments license terms"
    echo "  -m     (optional) will attempt to mount CIFS drive with provided storage account, share name and key."
-   echo "  -s     (optional) the name of the Azure file share storage account"
-   echo "  -p     (optional) the Azure file share name to mount"
    echo "  -k     (optional) the Azure file storage access key."
    echo "  -h     Print this help"
    echo
@@ -120,6 +118,17 @@ sudo yum -y update
 # Mount drive if required
 if [[ $MOUNT_DRIVE == "yes" ]]; then
     log-output "INFO: Setting up drive mount"
+
+    STORAGE_ACCOUNT=$(echo $PARAMS | jq -r '.mountDetails.storageAccount')
+    SHARE=$(echo $PARAMS | jq -r '.mountDetails.shareName')
+
+    if [[ -z $STORAGE_ACCOUNT ]] || [[ -z $SHARE ]] || [[ -z $KEY ]]; then
+        log-output "ERROR: Missing parameters for setting up mount"
+        log-output "INFO: STORAGE_ACCOUNT = $STORAGE_ACCOUNT"
+        log-output "INFO: SHARE = $SHARE"
+        log-output "INFO: KEY = $KEY"
+        exit 1
+    fi
 
     sudo yum install -y keyutils cifs-utils
 
