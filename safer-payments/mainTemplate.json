@@ -565,7 +565,10 @@
             "condition": "[parameters('deployNode1')]",
             "name": "sp-node-1",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'sp-node-2')]",
+                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3')]",
+                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3-with-backup')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -643,7 +646,9 @@
             "condition": "[parameters('deployNode2')]",
             "name": "sp-node-2",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3')]",
+                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3-with-backup')]"
             ],
             "properties": {
                 "mode": "Incremental",
