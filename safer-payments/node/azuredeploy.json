@@ -2,10 +2,10 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "namePrefix": {
+        "vmName": {
             "type": "string",
             "metadata": {
-                "description": "Prefix for created resources"
+                "description": "Name of the VM"
             }
         },
         "location": {
@@ -113,14 +113,14 @@
         },
         "publicIPName": {
             "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "defaultValue": "[concat(parameters('vmName'),'-pip')]",
             "metadata": {
                 "description": "Name for the public IP address if creating."
             }
         },
         "domainName": {
             "type": "string",
-            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "defaultValue": "[toLower( concat(parameters('vmName'),uniqueString(resourceGroup().id)) )]",
             "metadata": {
                 "description": "Domain name prefix for the public IP address"
             }
@@ -173,7 +173,7 @@
         },
         "managedIdName": {
             "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'),'-vm-sp')]",
+            "defaultValue": "[concat(parameters('vmName'),'-sp')]",
             "metadata": {
                 "description": "Name of the managed identity"
             }
@@ -234,8 +234,7 @@
         }
     },
     "variables": {
-        "vmName": "[concat(parameters('namePrefix'),'-vm')]",
-        "nicName": "[concat(parameters('namePrefix'),'-nic')]",
+        "nicName": "[concat(parameters('vmName'),'-nic')]",
         "linuxConfigSSH": {
             "disablePasswordAuthentication": true,
             "ssh": {
@@ -370,7 +369,7 @@
         {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2021-03-01",
-            "name": "[variables('vmName')]",
+            "name": "[parameters('vmName')]",
             "location": "[parameters('location')]",
             "identity": {
                 "type": "userAssigned",
@@ -399,7 +398,7 @@
                     ]
                 },
                 "osProfile": {
-                    "computerName": "[variables('vmName')]",
+                    "computerName": "[parameters('vmName')]",
                     "adminUsername": "[parameters('adminUserName')]",
                     "adminPassword": "[parameters('adminPassword')]",
                     "customData": "[base64(variables('vmBootstrap'))]",
@@ -424,9 +423,9 @@
             "apiVersion": "2022-03-01",
             "condition": "[and(if(equals(variables('imageReference')[parameters('vmOSVersion')].publisher, 'RedHat'), bool('true'), bool('false')),not(parameters('mountDrive')))]",
             "location": "[parameters('location')]",
-            "name": "[concat(variables('vmName'),'/','install-sp-rhel')]",
+            "name": "[concat(parameters('vmName'),'/','install-sp-rhel')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName'))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
             ],
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
@@ -437,7 +436,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p ', replace(string(variables('inputParameters')), '\"', '\\\"'),if(parameters('acceptLicense'),' -a ',''))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p \"', replace(string(variables('inputParameters')), '\"', '\\\"'),'\"',if(parameters('acceptLicense'),' -a ',''))]"
                 }
             }
         },
@@ -446,9 +445,9 @@
             "apiVersion": "2022-03-01",
             "condition": "[and(if(equals(variables('imageReference')[parameters('vmOSVersion')].publisher, 'RedHat'), bool('true'), bool('false')),parameters('mountDrive'))]",
             "location": "[parameters('location')]",
-            "name": "[concat(variables('vmName'),'/','install-sp-rhel-with-mount')]",
+            "name": "[concat(parameters('vmName'),'/','install-sp-rhel-with-mount')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName'))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
             ],
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
@@ -459,7 +458,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p ', replace(string(variables('inputParameters')), '\"', '\\\"'),if(parameters('acceptLicense'),' -a ',''),' -m -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p \"', replace(string(variables('inputParameters')), '\"', '\\\"'),'\"',if(parameters('acceptLicense'),' -a ',''),' -m -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
                 }
             }
         }
@@ -467,7 +466,7 @@
     "outputs": {
         "vmName": {
             "type": "string",
-            "value": "[variables('vmName')]"
+            "value": "[parameters('vmName')]"
         },
         "internalIP": {
             "type": "string",

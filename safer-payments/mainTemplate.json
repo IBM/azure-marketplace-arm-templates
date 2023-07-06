@@ -123,6 +123,13 @@
                 "description": "Flag to determine whether to deploy Node 1 VM"
             }
         },
+        "node1Name": {
+            "type": "string",
+            "defaultValue": "node1-vm",
+            "metadata": {
+                "description": "VM name for node 1"
+            }
+        },
         "deployNode2": {
             "type": "bool",
             "defaultValue": true,
@@ -130,11 +137,25 @@
                 "description": "Flag to determine whether to deploy Node 2 VM"
             }
         },
+        "node2Name": {
+            "type": "string",
+            "defaultValue": "node2-vm",
+            "metadata": {
+                "description": "VM name for node 2"
+            }
+        },
         "deployNode3": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
                 "description": "Flag to determine whether to deploy Node 3 VM (DR)"
+            }
+        },
+        "node3Name": {
+            "type": "string",
+            "defaultValue": "node3-vm",
+            "metadata": {
+                "description": "VM name for node 3"
             }
         },
         "adminUserName": {
@@ -577,8 +598,8 @@
                     "contentVersion":"1.0.0.0"
                 },
                 "parameters": {
-                    "namePrefix": {
-                        "value": "node1"
+                    "vmName": {
+                        "value": "[parameters('node1Name')]"
                     },
                     "binaryPath": {
                         "value": "[parameters('binaryPath')]"
@@ -657,8 +678,8 @@
                     "contentVersion":"1.0.0.0"
                 },
                 "parameters": {
-                    "namePrefix": {
-                        "value": "node2"
+                    "vmName": {
+                        "value": "[parameters('node2Name')]"
                     },
                     "binaryPath": {
                         "value": "[parameters('binaryPath')]"
@@ -736,8 +757,8 @@
                     "contentVersion":"1.0.0.0"
                 },
                 "parameters": {
-                    "namePrefix": {
-                        "value": "node3"
+                    "vmName": {
+                        "value": "[parameters('node3Name')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
@@ -815,8 +836,8 @@
                     "contentVersion":"1.0.0.0"
                 },
                 "parameters": {
-                    "namePrefix": {
-                        "value": "node3-with-backup"
+                    "vmName": {
+                        "value": "[parameters('node3Name')]"
                     },
                     "binaryPath": {
                         "value": "[parameters('binaryPath')]"
