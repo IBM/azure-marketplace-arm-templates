@@ -275,6 +275,7 @@
         "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
         "inputParameters": {
             "binaryPath": "[parameters('binaryPath')]",
+            "adminuser": "[parameters('adminUserName')]",
             "resourceGroup": "[resourceGroup().name]",
             "nodes": [
                 {
