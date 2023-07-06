@@ -15,6 +15,13 @@
                 "description": "T Shirt size of deployment"
             }
         },
+        "acceptLicense": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to install safer payments"
+            }
+        },
         "location": {
             "type": "string",
             "defaultValue": "[resourceGroup().location]",
@@ -601,6 +608,9 @@
                     "vmName": {
                         "value": "[parameters('node1Name')]"
                     },
+                    "acceptLicense": {
+                        "value": "[parameters('acceptLicense')]"
+                    },
                     "binaryPath": {
                         "value": "[parameters('binaryPath')]"
                     },
@@ -681,6 +691,9 @@
                     "vmName": {
                         "value": "[parameters('node2Name')]"
                     },
+                    "acceptLicense": {
+                        "value": "[parameters('acceptLicense')]"
+                    },
                     "binaryPath": {
                         "value": "[parameters('binaryPath')]"
                     },
@@ -760,6 +773,9 @@
                     "vmName": {
                         "value": "[parameters('node3Name')]"
                     },
+                    "acceptLicense": {
+                        "value": "[parameters('acceptLicense')]"
+                    },
                     "location": {
                         "value": "[parameters('location')]"
                     },
@@ -838,6 +854,9 @@
                 "parameters": {
                     "vmName": {
                         "value": "[parameters('node3Name')]"
+                    },
+                    "acceptLicense": {
+                        "value": "[parameters('acceptLicense')]"
                     },
                     "binaryPath": {
                         "value": "[parameters('binaryPath')]"
