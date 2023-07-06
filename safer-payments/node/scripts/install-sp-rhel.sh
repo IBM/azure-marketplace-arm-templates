@@ -162,7 +162,7 @@ fi
 
 ######
 # Install the az cli
-if [[ ! $(/usr/bin/which az) ]]; then
+if [[ ! $(/usr/bin/which az 2> /dev/null) ]]; then
     log-output "INFO: Installing Azure CLI tools"
     sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
     if [[ $(/usr/bin/cat /etc/redhat-release | grep "8.") ]]; then
@@ -180,10 +180,10 @@ fi
 
 #######
 # Log into az cli with managed identity
-if [[ -f "/usr/bin/az" ]]; then
-    if [[ -z $(/usr/bin/az account show) ]]; then
+if [[ $(/usr/bin/which az 2> /dev/null) ]]; then
+    if [[ -z $(az account show) ]]; then
         log-output "INFO: Logging into az cli"
-        /usr/bin/az login --identity
+        az login --identity
     else
         log-output "INFO: Already logged into Azure CLI"
     fi
