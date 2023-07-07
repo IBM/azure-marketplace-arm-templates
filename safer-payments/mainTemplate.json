@@ -121,7 +121,17 @@
         },
         "managedIdName": {
             "type": "string",
-            "defaultValue": "[concat(resourceGroup().name,'-sp')]"
+            "defaultValue": "[concat(resourceGroup().name,'-sp')]",
+            "metadata": {
+                "description": "Name of the managed identity used to manage resources"
+            }
+        },
+        "vaultName": {
+            "type": "string",
+            "defaultValue": "[concat(resourceGroup().name,'-keyvault')]",
+            "metadata": {
+                "description": "Name of the key vault to store keys and certificates"
+            }
         },
         "deployNode1": {
             "type": "bool",
@@ -583,6 +593,36 @@
                     },
                     "quota": {
                         "value": "[parameters('backupStorageQuota')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "keyvault",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/keyvault/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                },
+                "parameters": {
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
                     }
                 }
             }
