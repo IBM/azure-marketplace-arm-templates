@@ -1,4 +1,13 @@
 #!/bin/bash
+###########################
+#
+# Script to install and configure a 3 node IBM Safer Payments cluster in Azure
+# Should be run on the first node in the cluster. Will create the other nodes
+# and configure for Safer Payments.
+#
+# Author: Rich Ehrhardt 
+#
+###########################
 
 function log-output() {
     MSG=${1}
@@ -20,9 +29,8 @@ function usage()
 {
    echo "Sets a node for IBM Safer Payments."
    echo
-   echo "Usage: ${0} -i INSTANCE -p PARAMETERS [-a] [-m -k KEY] [-h]"
+   echo "Usage: ${0} -p PARAMETERS [-a] [-m -k KEY] [-h]"
    echo "  options:"
-   echo "  -i     the instance of node to deploy (1, 2, 3)"
    echo "  -p     install parameters in json format"
    echo "  -a     (optional) accept the Safer Payments license terms"
    echo "  -m     (optional) will attempt to mount CIFS drive with provided storage account, share name and key."
@@ -31,10 +39,158 @@ function usage()
    echo
 }
 
+function remote-command() {
+    LOCAL_USER=${1}
+    REMOTE_USER=${2}
+    REMOTE_IP=${3}
+    REMOTE_COMMAND=${4}
+
+    sudo -u $LOCAL_USER ssh $REMOTE_USER@$REMOTE_IP $REMOTE_COMMAND
+}
+
+function setup-remote-directory() {
+    LOCAL_USER=${1}
+    REMOTE_USER=${2}
+    REMOTE_IP=${3}
+    REMOTE_DIR=${4}
+
+    sudo -u $LOCAL_USER ssh $REMOTE_USER@$REMOTE_IP << EOF >> /dev/null
+sudo mkdir -p $REMOTE_DIR
+sudo chown $REMOTE_USER:$REMOTE_USER $REMOTE_DIR
+EOF
+}
+
+function stop-safer-payments() {
+    NODE1=${1}
+    NODE2=${2}
+    NODE3=${3}
+    LOCAL_USER=${4}
+    REMOTE_USER=${5}
+
+    declare -a nodes=("$NODE1" "$NODE2" "$NODE3")
+    for node in "${nodes[@]}"; do
+        log-output "INFO: Stopping safer payments on node $node"
+        sudo -u $LOCAL_USER ssh $REMOTE_USER@$node 'sudo killall iris'
+    done
+}
+
+function start-safer-payments() {
+    NODE1=${1}
+    NODE2=${2}
+    NODE3=${3}
+    LOCAL_USER=${4}
+    REMOTE_USER=${5}
+
+    log-output "INFO: Starting safer payments on node 1"
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE1_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=1 &' &
+
+    log-output "INFO: Starting safer payments on node 2"
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE2_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=2 &' &
+
+    log-output "INFO: Starting safer payments on node 3"
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE3_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=3 &' &    
+}
+
+function remote-install-safer-payments() {
+    REMOTE_IP=${1}
+    LOCAL_USER=${2}
+    REMOTE_USER=${3}
+    BIN_PATH=${4}
+    BIN_FILE=${5}
+    INSTANCE=${6}
+
+    CONNECTION_PROPERTIES="$LOCAL_USER $REMOTE_USER $REMOTE_IP"
+
+    log-output "INFO: Extracting files on $REMOTE_IP"
+    remote-command $CONNECTION_PROPERTIES "tar xf ${BIN_PATH}/${BIN_FILE} -C ${BIN_PATH}"
+
+    zipFiles=( $(remote-command $CONNECTION_PROPERTIES "cd ${BIN_PATH} && find SaferPayments*.zip") )
+    if (( ${#zipFiles[@]} > 0 )); then 
+        remote-command $CONNECTION_PROPERTIES "cd ${BIN_PATH} && unzip ./${zipFiles[0]}"
+    else
+        log-output "ERROR: Safer Payments zip file not found in ${BIN_FILE} on ${REMOTE_IP}"
+        exit 1
+    fi
+
+    # Setup java runtime environment
+    log-output "INFO: Setting up Java Runtime Environment on $REMOTE_IP"
+    jreFiles=( $( remote-command $CONNECTION_PROPERTIES "cd ${BIN_PATH} && find ibm_jre*.vm" ) )
+    if (( ${#jreFiles[@]} > 0 )); then
+        remote-command $CONNECTION_PROPERTIES "cd ${BIN_PATH} && unzip ./${jreFiles[0]}"
+    else
+        log-output "ERROR: ibm_jre file not found in $BIN_FILE on $REMOTE_IP"
+        exit 1
+    fi
+
+    if [[ $(remote-command $CONNECTION_PROPERTIES "ls ${BIN_PATH}/vm.tar.Z") ]]; then
+        remote-command $CONNECTION_PROPERTIES "cd ${BIN_PATH} && tar xf vm.tar.Z"
+    else
+        log-output "ERROR: vm.tar.z not found in binary file on $REMOTE_IP"
+        exit 1
+    fi
+
+    remote-command $CONNECTION_PROPERTIES "chmod +x ${BIN_PATH}/jre/bin/java"
+    remote-command $CONNECTION_PROPERTIES "chmod +x ${BIN_PATH}/SaferPayments.bin"
+
+    log-output "Installing Safer Payments on $REMOTE_IP"
+
+    # Accept the license
+    remote-command $CONNECTION_PROPERTIES "sed -i 's/LICENSE_ACCEPTED=FALSE/LICENSE_ACCEPTED=TRUE/g' ${BIN_PATH}/installer.properties"
+
+    # Change installer path to be under /var (not enough space under default /opt)
+    remote-command $CONNECTION_PROPERTIES "sed -i 's/\/opt\//\/usr\//g' ${BIN_PATH}/installer.properties"
+
+    # Run Safer Payments installer
+    remote-command $CONNECTION_PROPERTIES "sudo env \"PATH=${BIN_PATH}/jre/bin:$PATH\" ${BIN_PATH}/SaferPayments.bin -i silent"
+
+    # Create user and group to run safer payments
+    remote-command $CONNECTION_PROPERTIES "sudo groupadd SPUserGroup"
+    remote-command $CONNECTION_PROPERTIES "sudo adduser SPUser -g SPUserGroup"
+
+    # Configure initial instance
+    log-output "INFO: Creating default Safer Payments instance configuration on $REMOTE_IP"
+    INSTALL_PROPERTIES=( $(remote-command $CONNECTION_PROPERTIES "cat ${BIN_PATH}/installer.properties") )
+
+    for line in ${INSTALL_PROPERTIES[@]}; do
+        if [[ $( echo $line | grep USER_INSTALL_DIR ) ]]; then
+            INSTALL_PATH=$(echo $line | grep USER_INSTALL_DIR | awk '{split($0,value,"="); print value[2]}' )
+        fi
+    done
+
+    if [[ -z $INSTALL_PATH ]]; then
+        log-output "ERROR: Install path not found in installer-properties on $REMOTE_IP"
+        exit 1
+    fi
+    remote-command $CONNECTION_PROPERTIES "sudo mkdir -p /instancePath"
+    remote-command $CONNECTION_PROPERTIES "sudo cp -R ${INSTALL_PATH}/factory_reset/* /instancePath "
+    remote-command $CONNECTION_PROPERTIES "sudo chown -R SPUser:SPUserGroup /instancePath"
+
+    log-output "INFO: Configuring initial instance $INSTANCE on $REMOTE_IP"
+    remote-command $CONNECTION_PROPERTIES "cd /instancePath/cfg && sudo -u SPUser iris id=$INSTANCE createinstances=3 &" &
+    log-output "INFO: Sleeping for 2 minutes to let process finish"
+    sleep 120
+    log-output "INFO: Killing initial process on $REMOTE_IP"
+    remote-command $CONNECTION_PROPERTIES "sudo killall iris"
+    log-output "INFO: Sleeping for 2 minutes to let shutdown complete"
+    sleep 120 
+
+    # Configure RHEL firewall
+
+    API_PORT=$(( 8001 + ( $INSTANCE - 1 ) ))
+    FLI_PORT=$(( 27921 + ( $INSTANCE - 1 ) ))
+    STAT_PORT=$(( 27931 + ( $INSTANCE - 1 ) ))
+    ECI_PORT=$(( 27941 + ( $INSTANCE - 1 ) ))
+
+    declare -a PORTS=( "$API_PORT" "$FLI_PORT" "$STAT_PORT" "$ECI_PORT" )
+    for port in ${PORTS[@]}; do
+        remote-command $CONNECTION_PROPERTIES "sudo firewall-cmd --zone=public --add-port=${port}/tcp --permanent"
+    done
+}
+
 log-output "INFO: Script started"
 
 # Get the options
-while getopts ":i:p:amsh" option; do
+while getopts ":p:amsh" option; do
    case $option in
       h) # display Help
          usage
@@ -45,8 +201,6 @@ while getopts ":i:p:amsh" option; do
          ACCEPT_LICENSE="yes";;
       m) # mount drive
          MOUNT_DRIVE="yes";;
-      i) # Instance of node to deploy
-         INSTANCE=$OPTARG;;
       k) # Storage account key for mount
          KEY=$OPTARG;;
      \?) # Invalid option
@@ -57,11 +211,6 @@ while getopts ":i:p:amsh" option; do
 done
 
 # Parse parameters and check for readiness to proceed
-if [[ -z $INSTANCE ]]; then 
-    log-output "ERROR: Instance number not provided"
-    exit 1
-fi
-
 if [[ -z $PARAMS ]]; then
     log-output "ERROR: No parameters provided"
     exit 1
@@ -69,12 +218,27 @@ fi
 
 BINARY_URL=$(echo $PARAMS | jq -r '.binaryPath' )
 RESOURCE_GROUP=$(echo $PARAMS | jq -r '.resourceGroup')
+LOCATION=$(echo $PARAMS | jq -r '.location')
+VAULT_NAME=$(echo $PARAMS | jq -r '.vaultName')
+KEY_NAME=$(echo $PARAMS | jq -r '.keyName')
+ADMINUSER=$(echo $PARAMS | jq -r '.adminUser')
 
-if [[ $INSTANCE = "1" ]]; then
-    NODE1_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "1") | .vmName')
-    NODE2_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .vmName')
-    NODE3_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .vmName')
-fi
+NODE1_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "1") | .vmName')
+NODE2_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .vmName')
+NODE3_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .vmName')
+NODE2_ZONE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .zone')
+NODE3_ZONE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .zone')
+NODE2_VMSIZE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .vmSize')
+NODE3_VMSIZE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .vmSize')
+NODE2_STORAGESKU=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .storageSKU')
+NODE3_STORAGESKU=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .storageSKU')
+NODE2_IMAGEURN="$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .imageURN')"
+NODE3_IMAGEURN="$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .imageURN')"
+NODE2_PUBLICIP=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .publicIP')
+NODE3_PUBLICIP=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .publicIP')
+VNET_NAME=$(echo $PARAMS | jq -r '.vnetName')
+SUBNET_NAME=$(echo $PARAMS | jq -r '.subnetName')
+NSG_ID=$(echo $PARAMS | jq -r '.nsgID')
 
 if [[ $ACCEPT_LICENSE ]] && [[ -z $BINARY_URL ]]; then
     log-output "ERROR: License accepted but binary path not provided"
@@ -82,23 +246,36 @@ if [[ $ACCEPT_LICENSE ]] && [[ -z $BINARY_URL ]]; then
 fi
 
 # Set Defaults
-if [[ -z $SCRIPT_DIR ]]; then export SCRIPT_DIR="$(pwd)"; fi
+if [[ -z $SCRIPT_DIR ]]; then export SCRIPT_DIR="/tmp"; fi
 if [[ -z $BIN_FILE ]]; then export BIN_FILE="Safer_Payments_6.5_mp_ml.tar"; fi
 export TIMESTAMP=$(date +"%y%m%d-%H%M%S")
-if [[ -z $TMP_DIR ]]; then export TMP_DIR="tmp-$TIMESTAMP"; fi
+if [[ -z $TMP_DIR ]]; then export TMP_DIR="sp-install-$TIMESTAMP"; fi
 if [[ -z $OUTPUT_DIR ]]; then export OUTPUT_DIR="${TMP_DIR}"; fi
 
 log-output "INFO: Setting up node as $INSTANCE"
 
 # Log parameters
 log-output "INFO: Binary path is $BINARY_URL"
-log-output "INFO: RESOURCE_GROUP is $RESOURCE_GROUP"
-
-if [[ $INSTANCE = "1" ]]; then
-    log-output "INFO: Node 1 Name is $NODE1_NAME"
-    log-output "INFO: Node 2 Name is $NODE2_NAME"
-    log-output "INFO: Node 3 Name is $NODE3_NAME"
-fi
+log-output "INFO: Resource group is $RESOURCE_GROUP"
+log-output "INFO: Location is $LOCATION"
+log-output "INFO: KeyVault name is $VAULT_NAME"
+log-output "INFO: SSH Key name is $KEY_NAME"
+log-output "INFO: Admin user is $ADMINUSER"
+log-output "INFO: Node 2 Name is $NODE2_NAME"
+log-output "INFO: Node 3 Name is $NODE3_NAME"
+log-output "INFO: Node 2 Zone is $NODE2_ZONE"
+log-output "INFO: Node 3 Zone is $NODE3_ZONE"
+log-output "INFO: Node 2 VM Size is $NODE2_VMSIZE"
+log-output "INFO: Node 3 VM Size is $NODE3_VMSIZE"
+log-output "INFO: Node 2 Storage SKU is $NODE2_STORAGESKU"
+log-output "INFO: Node 3 Storage SKU is $NODE3_STORAGESKU"
+log-output "INFO: Node 2 Image URN is $NODE2_IMAGEURN"
+log-output "INFO: Node 3 Image URN is $NODE3_IMAGEURN"
+log-output "INFO: Node 2 create public IP is $NODE2_PUBLICIP"
+log-output "INFO: Node 3 create public IP is $NODE3_PUBLICIP"
+log-output "INFO: Virtual network is $VNET_NAME"
+log-output "INFO: Subnet is $SUBNET_NAME"
+log-output "INFO: Network security group is $NSG_ID"
 
 # Wait for cloud-init to finish
 count=0
@@ -193,160 +370,192 @@ else
 fi
 
 ######
-# Get configuration parameters
-
-# IP Addresses
-if [[ $INSTANCE = "1" ]]; then
-    log-output "INFO: Getting VM IP Addresses"
-
-    NODE1_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE1_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
-    log-output "INFO: Node 1 IP address is $NODE1_IP"
-
-    NODE2_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE2_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
-    
-
-    if [[ -z $NODE2_IP ]]; then 
-        NODE2_IP="127.0.0.1"
-        log-output "INFO: $NODE2_NAME not found. Setting Node 2 IP Address to $NODE2_IP"
-    else
-        log-output "INFO: Node 2 IP address is $NODE2_IP"
-    fi
-
-    NODE3_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE3_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
-    if [[ -z $NODE3_IP ]]; then 
-        NODE3_IP="127.0.0.1"
-        log-output "INFO: $NODE3_NAME not found. Setting Node 2 IP Address to $NODE3_IP"
-    else
-        log-output "INFO: Node 3 IP address is $NODE3_IP"
-    fi
+# Create ssh key pair
+if [[ ! -f "/home/$ADMINUSER/.ssh/id_rsa.pub" ]]; then
+    log-output "INFO: Generating a new ssh key pair"
+    sudo -u $ADMINUSER /usr/bin/ssh-keygen -t rsa -b 4096 -f /home/$ADMINUSER/.ssh/id_rsa -q -N ""
+else
+    log-output "INFO: Key pair already exists"
 fi
 
-#####
-# Configure RHEL firewall
-
-# Below uses the default firewall rules
-
-if [[ $INSTANCE == "1" ]]; then
-    sudo firewall-cmd --zone=public --add-port=8001/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27921/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27931/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27941/tcp --permanent
-    sudo firewall-cmd --reload
-elif [[ $INSTANCE == "2" ]]; then
-    sudo firewall-cmd --zone=public --add-port=8002/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27922/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27932/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27942/tcp --permanent
-    sudo firewall-cmd --reload
-elif [[ $INSTANCE == "3" ]]; then
-    sudo firewall-cmd --zone=public --add-port=8003/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27923/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27933/tcp --permanent
-    sudo firewall-cmd --zone=public --add-port=27943/tcp --permanent
-    sudo firewall-cmd --reload
+if [[ -z $(az sshkey list --resource-group $RESOURCE_GROUP -o table | grep $KEY_NAME) ]]; then
+    log-output "INFO: Uploading public key $KEY_NAME to Azure"
+    az sshkey create --name "$KEY_NAME" --resource-group "$RESOURCE_GROUP" --public-key "@/home/$ADMINUSER/.ssh/id_rsa.pub"
 else
-    log-output "ERROR: Instance $INSTANCE not found"
-    exit 1
+    log-output "INFO: Public key already exists in resource group"
 fi
 
 ######
-# Download and extract safer payments binary
+# Upload keypair to vault
+if [[ -z $(az keyvault secret list --vault-name $VAULT_NAME -o table | grep ${KEY_NAME}-private ) ]]; then
+    log-output "INFO: Uploading private key ${KEY_NAME}-private to key vault $VAULT_NAME"
+    az keyvault secret set --name "${KEY_NAME}-private" --vault-name $VAULT_NAME --file "/home/$ADMINUSER/.ssh/id_rsa"
+else
+    log-output "INFO: Private key ${KEY_NAME}-private already exists in key vault $VAULT_NAME"
+fi
+
+#######
+# Copy ssh key to local VM
+if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/authorized_keys | grep "$(cat /home/$ADMINUSER/.ssh/id_rsa.pub)") ]]; then
+    log-output "INFO: Adding new public key to local authorized keys"
+    sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/id_rsa.pub >> /home/$ADMINUSER/.ssh/authorized_keys
+else
+    log-output "INFO: Local authorized keys already contains public key"
+fi
+
+######
+# Create other virtual machines
+
+# Node 2
+if [[ -z $(az vm list --resource-group $RESOURCE_GROUP -o table | grep $NODE2_NAME ) ]]; then
+    log-output "INFO: Creating virtual machine $NODE2_NAME in resource group $RESOURCE_GROUP"
+    PUBLIC_IP=$(if [[ ${NODE2_PUBLICIP} == "yes" ]]; then echo " "; else echo " --public-ip-address None"; fi)
+    az vm create --name $NODE2_NAME \
+        --resource-group $RESOURCE_GROUP \
+        --authentication-type ssh \
+        --location $LOCATION \
+        --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+        --admin-username $ADMINUSER \
+        --encryption-at-host true \
+        --size "${NODE2_VMSIZE}" \
+        --vnet-name "${VNET_NAME}" \
+        --subnet "${SUBNET_NAME}" \
+        --nsg "${NSG_ID}" \
+        --storage-sku "${NODE2_STORAGESKU}" \
+        --image "${NODE2_IMAGEURN}" \
+        --zone "${NODE2_ZONE}" ${PUBLIC_IP} 
+else
+    log-output "INFO: Virtual Machine $NODE2_NAME already exists in resource group $RESOURCE_GROUP"
+fi
+
+# Node 3
+if [[ -z $(az vm list --resource-group $RESOURCE_GROUP -o table | grep $NODE3_NAME ) ]]; then
+    log-output "INFO: Creating virtual machine $NODE3_NAME in resource group $RESOURCE_GROUP"
+    PUBLIC_IP=$(if [[ ${NODE3_PUBLICIP} == "yes" ]]; then echo " "; else echo " --public-ip-address None"; fi)
+    az vm create --name $NODE3_NAME \
+        --resource-group $RESOURCE_GROUP \
+        --authentication-type ssh \
+        --location $LOCATION \
+        --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+        --admin-username $ADMINUSER \
+        --encryption-at-host true \
+        --size "${NODE3_VMSIZE}" \
+        --vnet-name "${VNET_NAME}" \
+        --subnet "${SUBNET_NAME}" \
+        --nsg "${NSG_ID}" \
+        --storage-sku "${NODE3_STORAGESKU}" \
+        --image "${NODE3_IMAGEURN}" \
+        --zone "${NODE3_ZONE}" ${PUBLIC_IP}
+else
+    log-output "INFO: Virtual Machine $NODE3_NAME already exists in resource group $RESOURCE_GROUP"
+fi
+
+######
+# Get configuration parameters
+
+# IP Addresses
+log-output "INFO: Getting VM IP Addresses"
+
+NODE1_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE1_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
+log-output "INFO: Node 1 IP address is $NODE1_IP"
+
+NODE2_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE2_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
+log-output "INFO: Node 2 IP address is $NODE2_IP"
+
+NODE3_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE3_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
+log-output "INFO: Node 3 IP address is $NODE3_IP"
+
+# Log in to each node to add to known hosts
+if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE1_IP ) ]]; then
+    log-output "INFO: Adding local host to list of known hosts"
+    ssh -o StrictHostKeyChecking=no $ADMINUSER@$NODE1_IP "ls -lha" > /dev/null
+else
+    log-output "INFO: Local host already in list of known hosts"
+fi
+
+if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE2_IP ) ]]; then
+    log-output "INFO: Adding node 2 to list of known hosts"
+    ssh -o StrictHostKeyChecking=no $ADMINUSER@$NODE2_IP "ls -lha" > /dev/null
+else
+    log-output "INFO: Node 2 already in list of known hosts"
+fi
+
+if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE2_IP ) ]]; then
+    log-output "INFO: Adding node 3 to list of known hosts"
+    ssh -o StrictHostKeyChecking=no $ADMINUSER@$NODE3_IP "ls -lha" > /dev/null
+else
+    log-output "INFO: Node 3 host already in list of known hosts"
+fi
 
 if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
+    ######
+    # Extract and confirm binaries
+   
     # Download the binary
-    log-output "INFO: Downloading the Safer Payments binary"
-    wget -O ${SCRIPT_DIR}/${BIN_FILE} "$BINARY_URL"
-
-    # Extract the files
-    log-output "INFO: Extracting the files from the binary"
-    mkdir -p ${SCRIPT_DIR}/${TMP_DIR}
-    tar xf ${SCRIPT_DIR}/${BIN_FILE} -C ${SCRIPT_DIR}/${TMP_DIR}
-
-    # Get zip file and unzip
-    zipFiles=( $( cd ${SCRIPT_DIR}/${TMP_DIR} && find SaferPayments*.zip ) )
-    if (( ${#zipFiles[@]} > 0 )); then 
-        cd ${SCRIPT_DIR}/${TMP_DIR} && unzip ./${zipFiles[0]}
+    if [[ ! -f ${SCRIPT_DIR}/${BIN_FILE} ]]; then
+        log-output "INFO: Downloading the Safer Payments binary"
+        wget -O ${SCRIPT_DIR}/${BIN_FILE} "$BINARY_URL"
     else
-        log-output "ERROR: Safer Payments zip file not found in ${BIN_FILE}"
-        exit 1
+        log-output "INFO: Binary already downloaded"
     fi
 
-    #######
-    # Setup the Java Runtime Environment
+    ####### Setup nodes
 
-    log-output "INFO: Setting up the Java Runtime Environment"
-    jreFiles=( $( cd ${SCRIPT_DIR}/${TMP_DIR} && find ibm_jre*.vm ) )
-    if (( ${#jreFiles[@]} > 0 )); then
-        cd ${SCRIPT_DIR}/${TMP_DIR} && unzip ./${jreFiles[0]}
+    # Create temporary directories
+    setup-remote-directory $ADMINUSER $ADMINUSER $NODE2_IP /tmp/iris
+    setup-remote-directory $ADMINUSER $ADMINUSER $NODE3_IP /tmp/iris
+
+    # Copy safer payments binary to other nodes
+
+    sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE2_IP:/tmp/iris
+    sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE3_IP:/tmp/iris
+
+    # Install safer payments on each node
+    remote-install-safer-payments $NODE1_IP $ADMINUSER $ADMINUSER ${SCRIPT_DIR} $BIN_FILE 1
+    remote-install-safer-payments $NODE2_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 2
+    remote-install-safer-payments $NODE2_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 3
+
+    # Create configuration
+    if [[ ! -d "/instancePath/cfg" ]]; then
+
+        log-output "INFO: Configuring cluster.iris"
+
+        sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/${TMP_DIR}/default-cluster.iris
+        
+        sudo cat /instancePath/cfg/cluster.iris \
+            | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
+            | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
+            | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris
+
+        sudo cp ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
+
+        sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
     else
-        log-output "ERROR: ibm_jre file not found"
-        exit 1
+        log-output "INFO: Safer Payments instance configuration already exists"
     fi
-
-    if [[ -f ${SCRIPT_DIR}/${TMP_DIR}/vm.tar.Z ]]; then
-        tar xf vm.tar.Z
-    else
-        log-output "ERROR: vm.tar.z not found in binary file"
-        exit 1
-    fi
-
-    chmod +x ${SCRIPT_DIR}/${TMP_DIR}/jre/bin/java
-    chmod +x ${SCRIPT_DIR}/${TMP_DIR}/SaferPayments.bin
-
-    #######
-    # Run safer payments installation
-
-    log-output "INFO: Installing Safer Payments"
-    # Accept the license
-    sed -i 's/LICENSE_ACCEPTED=FALSE/LICENSE_ACCEPTED=TRUE/g' ${SCRIPT_DIR}/${TMP_DIR}/installer.properties
-
-    # Change install path to be under /usr
-    sed -i 's/\/opt\//\/usr\//g' ${SCRIPT_DIR}/${TMP_DIR}/installer.properties
-
-    sudo env "PATH=${SCRIPT_DIR}/${TMP_DIR}/jre/bin:$PATH" ${SCRIPT_DIR}/${TMP_DIR}/SaferPayments.bin -i silent
-
-    # Create user and group to run safer payments
-    sudo groupadd SPUserGroup
-    sudo adduser SPUser -g SPUserGroup
-
-    # Run safer payments postrequisites
-    INSTALL_PATH=$(cat ${SCRIPT_DIR}/${TMP_DIR}/installer.properties | grep USER_INSTALL_DIR | awk '{split($0,value,"="); print value[2]}')
-    sudo mkdir -p /instancePath
-    sudo cp -R ${INSTALL_PATH}/factory_reset/* /instancePath 
-    sudo chown -R SPUser:SPUserGroup /instancePath
-
-    # Configure safer payments as a service
-
-    log-output "INFO: Configuring initial instance $INSTANCE"
-    cd /instancePath/cfg && sudo -u SPUser iris id=$INSTANCE createinstances=3 &
-    # Allow time for service to start
-    log-output "INFO: Sleeping for 2 minutes to let process finish"
-    sleep 120
-    log-output "INFO: Killing initial process"
-    PROCESS_ID=$(/usr/bin/ps xua | grep -v grep | grep iris | grep -v sudo | awk '{print $2}') 
-    sudo kill $PROCESS_ID
-    # Allow time for service to shutdown
-    log-output "INFO: Sleeping for 2 minutes to let shutdown complete"
-    sleep 120
-
-    log-output "INFO: Configuring cluster.iris"
-
-    sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/${TMP_DIR}/default-cluster.iris
-    
-    sudo cat /instancePath/cfg/cluster.iris \
-        | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
-        | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
-        | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris
-
-    sudo cp ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
-
-    sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
 
     # Start instance
     # Change the below to a system process
-    log-output "INFO: Starting Safer Payments process"
-    cd /instancePath/cfg && sudo -u SPUser iris console id=${INSTANCE} &
+    #log-output "INFO: Starting Safer Payments process"
+    #cd /instancePath/cfg && sudo -u SPUser iris console id=${INSTANCE} &
+
+    # Copy configuration to remote nodes
+    declare -a NODES=( "$NODE2_IP" "$NODE3_IP" )
+    for node in ${NODES[@]}; do
+        CONNECTION_PROPERTIES="$ADMINUSER $ADMINUSER $node"
+        sudo -u $ADMINUSER "scp /instancePath/cfg/cluster.iris $ADMINUSER@${node}:/tmp/iris/"
+        sudo -u $ADMINUSER "scp /instancePath/cfg/settings.iris $ADMINUSER@${node}:/tmp/iris/"
+        sudo -u $ADMINUSER "scp /instancePath/cfg/inbound* $ADMINUSER@${node}:/tmp/iris/"
+        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/cluster.iris /instancePath/cfg/"
+        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/settings.iris /instancePath/cfg/"
+        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/inbound* /instancePath/cfg/"
+        remote-command $CONNECTION_PROPERTIES "sudo rm /instancePath/fli/*"
+    done
+
+    # Start services
+    start-safer-payments $NODE1_IP $NODE2_IP $NODE3_IP $ADMINUSER $ADMINUSER
+
 else
     log-output "INFO: License not accepted. Safer Payments not installed"
 fi
