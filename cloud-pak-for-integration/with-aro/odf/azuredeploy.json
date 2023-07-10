@@ -68,6 +68,18 @@
                 "description": "Whether to create new nodes for ODF storage cluster or use existing nodes"
             }
         },
+        "storageSizePerNode": {
+            "type": "string",
+            "allowedValues": [
+                "1Ti",
+                "2Ti",
+                "3Ti"
+            ],
+            "defaultValue": "2Ti",
+            "metadata": {
+                "description": "Size of the storage to provision on each node for the storage cluster (total cluster size will be 3 times this amount)"
+            }
+        },
         "branch": {
             "type": "string",
             "defaultValue": "main",
@@ -120,6 +132,10 @@
                     {
                         "name": "EXISTING_NODES",
                         "value": "[parameters('existingNodes')]"
+                    },
+                    {
+                        "name": "STORAGE_SIZE",
+                        "value": "[parameters('storageSizePerNode')]"
                     }
                 ],
                 "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-aro/odf/scripts/deploy-odf.sh'))]",
