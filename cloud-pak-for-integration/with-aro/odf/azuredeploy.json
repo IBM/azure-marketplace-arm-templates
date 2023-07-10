@@ -58,6 +58,16 @@
                 "description": "Name of the ARO cluster"
             }
         },
+        "existingNodes": {
+            "type": "string",
+            "allowedValues": [
+                "yes",
+                "no"
+            ],
+            "metadata": {
+                "description": "Whether to create new nodes for ODF storage cluster or use existing nodes"
+            }
+        },
         "branch": {
             "type": "string",
             "defaultValue": "main",
@@ -106,6 +116,10 @@
                     {
                         "name": "ARO_CLUSTER",
                         "value": "[parameters('aroClusterName')]"
+                    },
+                    {
+                        "name": "EXISTING_NODES",
+                        "value": "[parameters('existingNodes')]"
                     }
                 ],
                 "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-aro/odf/scripts/deploy-odf.sh'))]",
