@@ -176,7 +176,7 @@ function remote-install-safer-payments() {
 
     # Configure RHEL firewall
 
-    API_PORT=$(( 8001 + ( $INSTANCE - 1 ) ))
+    API_PORT=$(( 8001 ))
     FLI_PORT=$(( 27921 + ( $INSTANCE - 1 ) ))
     STAT_PORT=$(( 27931 + ( $INSTANCE - 1 ) ))
     ECI_PORT=$(( 27941 + ( $INSTANCE - 1 ) ))
@@ -586,7 +586,9 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
     sudo cat /instancePath/cfg/cluster.iris \
         | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
         | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
-        | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/new-cluster.iris
+        | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' \
+        | sed 's/8002/8001/g' \
+        | sed 's/8003/8001/g' > ${SCRIPT_DIR}/new-cluster.iris
 
     sudo cp ${SCRIPT_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
 
