@@ -82,13 +82,13 @@ function start-safer-payments() {
     REMOTE_USER=${5}
 
     log-output "INFO: Starting safer payments on node 1"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE1_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=1 &' &
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE1_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=1 2>&1 > /dev/null &' &
 
     log-output "INFO: Starting safer payments on node 2"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE2_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=2 &' &
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE2_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=2 2>&1 > /dev/null &' &
 
     log-output "INFO: Starting safer payments on node 3"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE3_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=3 &' &    
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE3_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=3 2>&1 > /dev/null &' &    
 }
 
 function remote-install-safer-payments() {
@@ -185,6 +185,7 @@ function remote-install-safer-payments() {
     for port in ${PORTS[@]}; do
         remote-command $CONNECTION_PROPERTIES "sudo firewall-cmd --zone=public --add-port=${port}/tcp --permanent"
     done
+    remote-command $CONNECTION_PROPERTIES "sudo firewall-cmd --reload"
 }
 
 log-output "INFO: Script started"
@@ -409,21 +410,38 @@ fi
 # Node 2
 if [[ -z $(az vm list --resource-group $RESOURCE_GROUP -o table | grep $NODE2_NAME ) ]]; then
     log-output "INFO: Creating virtual machine $NODE2_NAME in resource group $RESOURCE_GROUP"
-    PUBLIC_IP=$(if [[ ${NODE2_PUBLICIP} == "yes" ]]; then echo " "; else echo " --public-ip-address None"; fi)
-    az vm create --name $NODE2_NAME \
-        --resource-group $RESOURCE_GROUP \
-        --authentication-type ssh \
-        --location $LOCATION \
-        --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
-        --admin-username $ADMINUSER \
-        --encryption-at-host true \
-        --size "${NODE2_VMSIZE}" \
-        --vnet-name "${VNET_NAME}" \
-        --subnet "${SUBNET_NAME}" \
-        --nsg "${NSG_ID}" \
-        --storage-sku "${NODE2_STORAGESKU}" \
-        --image "${NODE2_IMAGEURN}" \
-        --zone "${NODE2_ZONE}" ${PUBLIC_IP} 
+    if [[ ${NODE2_PUBLICIP} == "yes" ]]; then 
+        az vm create --name $NODE2_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --authentication-type ssh \
+            --location $LOCATION \
+            --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+            --admin-username $ADMINUSER \
+            --encryption-at-host true \
+            --size "${NODE2_VMSIZE}" \
+            --vnet-name "${VNET_NAME}" \
+            --subnet "${SUBNET_NAME}" \
+            --nsg "${NSG_ID}" \
+            --storage-sku "${NODE2_STORAGESKU}" \
+            --image "${NODE2_IMAGEURN}" \
+            --zone "${NODE2_ZONE}" 
+    else
+        az vm create --name $NODE2_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --authentication-type ssh \
+            --location $LOCATION \
+            --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+            --admin-username $ADMINUSER \
+            --encryption-at-host true \
+            --size "${NODE2_VMSIZE}" \
+            --vnet-name "${VNET_NAME}" \
+            --subnet "${SUBNET_NAME}" \
+            --nsg "${NSG_ID}" \
+            --storage-sku "${NODE2_STORAGESKU}" \
+            --image "${NODE2_IMAGEURN}" \
+            --zone "${NODE2_ZONE}" \
+            --public-ip-address ""
+    fi
 else
     log-output "INFO: Virtual Machine $NODE2_NAME already exists in resource group $RESOURCE_GROUP"
 fi
@@ -431,21 +449,38 @@ fi
 # Node 3
 if [[ -z $(az vm list --resource-group $RESOURCE_GROUP -o table | grep $NODE3_NAME ) ]]; then
     log-output "INFO: Creating virtual machine $NODE3_NAME in resource group $RESOURCE_GROUP"
-    PUBLIC_IP=$(if [[ ${NODE3_PUBLICIP} == "yes" ]]; then echo " "; else echo " --public-ip-address None"; fi)
-    az vm create --name $NODE3_NAME \
-        --resource-group $RESOURCE_GROUP \
-        --authentication-type ssh \
-        --location $LOCATION \
-        --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
-        --admin-username $ADMINUSER \
-        --encryption-at-host true \
-        --size "${NODE3_VMSIZE}" \
-        --vnet-name "${VNET_NAME}" \
-        --subnet "${SUBNET_NAME}" \
-        --nsg "${NSG_ID}" \
-        --storage-sku "${NODE3_STORAGESKU}" \
-        --image "${NODE3_IMAGEURN}" \
-        --zone "${NODE3_ZONE}" ${PUBLIC_IP}
+    if [[ ${NODE3_PUBLICIP} == "yes" ]]; then
+        az vm create --name $NODE3_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --authentication-type ssh \
+            --location $LOCATION \
+            --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+            --admin-username $ADMINUSER \
+            --encryption-at-host true \
+            --size "${NODE3_VMSIZE}" \
+            --vnet-name "${VNET_NAME}" \
+            --subnet "${SUBNET_NAME}" \
+            --nsg "${NSG_ID}" \
+            --storage-sku "${NODE3_STORAGESKU}" \
+            --image "${NODE3_IMAGEURN}" \
+            --zone "${NODE3_ZONE}" 
+    else
+        az vm create --name $NODE3_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --authentication-type ssh \
+            --location $LOCATION \
+            --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+            --admin-username $ADMINUSER \
+            --encryption-at-host true \
+            --size "${NODE3_VMSIZE}" \
+            --vnet-name "${VNET_NAME}" \
+            --subnet "${SUBNET_NAME}" \
+            --nsg "${NSG_ID}" \
+            --storage-sku "${NODE3_STORAGESKU}" \
+            --image "${NODE3_IMAGEURN}" \
+            --zone "${NODE3_ZONE}" \
+            --public-ip-address ""
+    fi
 else
     log-output "INFO: Virtual Machine $NODE3_NAME already exists in resource group $RESOURCE_GROUP"
 fi
@@ -457,13 +492,28 @@ fi
 log-output "INFO: Getting VM IP Addresses"
 
 NODE1_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE1_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
-log-output "INFO: Node 1 IP address is $NODE1_IP"
+if [[ -z $NODE1_IP ]]; then
+    log-output "ERROR: No IP Address found for $NODE1_NAME"
+    exit 1
+else
+    log-output "INFO: $NODE1_NAME IP address is $NODE1_IP"
+fi
 
 NODE2_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE2_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
-log-output "INFO: Node 2 IP address is $NODE2_IP"
+if [[ -z $NODE2_IP ]]; then
+    log-output "ERROR: No IP Address found for $NODE2_NAME"
+    exit 1
+else
+    log-output "INFO: $NODE2_NAME IP address is $NODE2_IP"
+fi
 
 NODE3_IP=$(az vm list-ip-addresses -g $RESOURCE_GROUP -n $NODE3_NAME | jq -r '.[].virtualMachine.network.privateIpAddresses[0]' )
-log-output "INFO: Node 3 IP address is $NODE3_IP"
+if [[ -z $NODE3_IP ]]; then
+    log-output "ERROR No IP Address found for $NODE3_NAME"
+    exit 1
+else
+    log-output "INFO: $NODE3_NAME IP address is $NODE3_IP"
+fi
 
 # Log in to each node to add to known hosts
 if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE1_IP ) ]]; then
@@ -480,7 +530,7 @@ else
     log-output "INFO: Node 2 already in list of known hosts"
 fi
 
-if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE2_IP ) ]]; then
+if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE3_IP ) ]]; then
     log-output "INFO: Adding node 3 to list of known hosts"
     ssh -o StrictHostKeyChecking=no $ADMINUSER@$NODE3_IP "ls -lha" > /dev/null
 else
@@ -506,47 +556,49 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
     setup-remote-directory $ADMINUSER $ADMINUSER $NODE2_IP /tmp/iris
     setup-remote-directory $ADMINUSER $ADMINUSER $NODE3_IP /tmp/iris
 
-    # Copy safer payments binary to other nodes
-
-    sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE2_IP:/tmp/iris
-    sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE3_IP:/tmp/iris
-
     # Install safer payments on each node
-    remote-install-safer-payments $NODE1_IP $ADMINUSER $ADMINUSER ${SCRIPT_DIR} $BIN_FILE 1
-    remote-install-safer-payments $NODE2_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 2
-    remote-install-safer-payments $NODE2_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 3
-
-    # Create configuration
-    if [[ ! -d "/instancePath/cfg" ]]; then
-
-        log-output "INFO: Configuring cluster.iris"
-
-        sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/${TMP_DIR}/default-cluster.iris
-        
-        sudo cat /instancePath/cfg/cluster.iris \
-            | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
-            | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
-            | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris
-
-        sudo cp ${SCRIPT_DIR}/${TMP_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
-
-        sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
+    if [[ -z $(sudo -u $ADMINUSER ssh $ADMINUSER@$NODE1_IP "/usr/bin/which iris" 2> /dev/null) ]]; then
+        remote-install-safer-payments $NODE1_IP $ADMINUSER $ADMINUSER ${SCRIPT_DIR} $BIN_FILE 1
     else
-        log-output "INFO: Safer Payments instance configuration already exists"
+        log-output "INFO: Safer Payments already installed on $NODE1_NAME"
     fi
 
-    # Start instance
-    # Change the below to a system process
-    #log-output "INFO: Starting Safer Payments process"
-    #cd /instancePath/cfg && sudo -u SPUser iris console id=${INSTANCE} &
+    if [[ -z $(sudo -u $ADMINUSER ssh $ADMINUSER@$NODE2_IP "/usr/bin/which iris" 2> /dev/null) ]]; then
+        sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE2_IP:/tmp/iris
+        remote-install-safer-payments $NODE2_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 2
+    else
+        log-output "INFO: Safer Payments already installed on $NODE2_NAME"
+    fi
+
+    if [[ -z $(sudo -u $ADMINUSER ssh $ADMINUSER@$NODE3_IP "/usr/bin/which iris" 2> /dev/null) ]]; then    
+        sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE3_IP:/tmp/iris
+        remote-install-safer-payments $NODE3_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 3
+    else
+        log-output "INFO: Safer Payments already installed on $NODE3_NAME"
+    fi
+
+    # Create configuration
+
+    log-output "INFO: Configuring cluster.iris"
+
+    sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/default-cluster.iris
+    
+    sudo cat /instancePath/cfg/cluster.iris \
+        | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
+        | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
+        | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' > ${SCRIPT_DIR}/new-cluster.iris
+
+    sudo cp ${SCRIPT_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
+
+    sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
 
     # Copy configuration to remote nodes
     declare -a NODES=( "$NODE2_IP" "$NODE3_IP" )
     for node in ${NODES[@]}; do
         CONNECTION_PROPERTIES="$ADMINUSER $ADMINUSER $node"
-        sudo -u $ADMINUSER "scp /instancePath/cfg/cluster.iris $ADMINUSER@${node}:/tmp/iris/"
-        sudo -u $ADMINUSER "scp /instancePath/cfg/settings.iris $ADMINUSER@${node}:/tmp/iris/"
-        sudo -u $ADMINUSER "scp /instancePath/cfg/inbound* $ADMINUSER@${node}:/tmp/iris/"
+        sudo -u $ADMINUSER scp /instancePath/cfg/cluster.iris $ADMINUSER@${node}:/tmp/iris/
+        sudo -u $ADMINUSER scp /instancePath/cfg/settings.iris $ADMINUSER@${node}:/tmp/iris/
+        sudo -u $ADMINUSER scp /instancePath/cfg/inbound* $ADMINUSER@${node}:/tmp/iris/
         remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/cluster.iris /instancePath/cfg/"
         remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/settings.iris /instancePath/cfg/"
         remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/inbound* /instancePath/cfg/"
