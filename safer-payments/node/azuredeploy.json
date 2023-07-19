@@ -185,18 +185,6 @@
                 "description": "Flag to determine whether to create a new managed identity"
             }
         },
-        "instanceNumber": {
-            "type": "string",
-            "defaultValue": "1",
-            "allowedValues": [
-                "1",
-                "2",
-                "3"
-            ],
-            "metadata": {
-                "description": "Safer Payments instance number to be configured."
-            }
-        },
         "binaryPath": {
             "type": "string",
             "defaultValue": "https://github.com/IBM/",
@@ -437,7 +425,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p \"', replace(string(variables('inputParameters')), '\"', '\\\"'),'\"',if(parameters('acceptLicense'),' -a ',''))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -p \"', replace(string(variables('inputParameters')), '\"', '\\\"'),'\"',if(parameters('acceptLicense'),' -a ',''))]"
                 }
             }
         },
@@ -459,7 +447,7 @@
                     "fileUris": [
                         "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -i ',parameters('instanceNumber'),' -p \"', replace(string(variables('inputParameters')), '\"', '\\\"'),'\"',if(parameters('acceptLicense'),' -a ',''),' -m -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
+                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -p \"', replace(string(variables('inputParameters')), '\"', '\\\"'),'\"',if(parameters('acceptLicense'),' -a ',''),' -m -k ',if(parameters('mountDrive'),listKeys(variables('backupStorageAccountId'), '2019-04-01').keys[0].value,null()))]"
                 }
             }
         }

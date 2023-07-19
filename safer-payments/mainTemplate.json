@@ -303,6 +303,20 @@
                 "description": "Availability zone for Node/VM 3"
             }
         },
+        "loadBalancerName": {
+            "type": "string",
+            "defaultValue": "[concat(resourceGroup().name,'-loadbalancer')]",
+            "metadata": {
+                "description" : "Name of the load balancer"
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(uniqueString(resourceGroup().id)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address of the load balancer"
+            }
+        },
         "deployBackupStorage": {
             "type": "bool",
             "defaultValue": true,
@@ -763,6 +777,15 @@
                                     "securityType": "[parameters('securityType')]",
                                     "imageReference": "[variables('imageReference')[parameters('jumpboxOsVersion')]]",
                                     "publicIP": "[parameters('jumpboxPublicIp')]"
+                                },
+                                "loadBalancer": {
+                                    "name": "[parameters('loadBalancerName')]",
+                                    "publicIpName": "[concat(parameters('loadBalancerName'),'-pip')]",
+                                    "domainName": "[parameters('domainName')]",
+                                    "frontendIpName": "[concat(parameters('loadBalancerName'),'-frontend')]",
+                                    "backendPoolName": "[concat(parameters('loadBalancerName'),'-backendpool')]",
+                                    "probeName": "[concat(parameters('loadBalancerName'),'-probe')]",
+                                    "ruleName": "[concat(parameters('loadBalancerName'),'-rule')]"
                                 },
                                 "nodes": {
                                     "node1": {
