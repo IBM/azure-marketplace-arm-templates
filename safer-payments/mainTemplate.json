@@ -57,6 +57,54 @@
                 "description": "VM subnet address space"
             }
         },
+        "jumpboxName": {
+            "type": "string",
+            "defaultValue": "[concat(resourceGroup().name,'-vm-jumpbox')]",
+            "metadata": {
+                "description": "Name of the jumpbox VM"
+            }
+        },
+        "jumpboxVmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3",
+            "allowedValues": [
+                "Standard_D2s_v3",
+                "Standard_D4s_v3",
+                "Standard_D8s_v3"
+            ]
+        },
+        "jumpboxStorageSku": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "jumpboxOsVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 8.6",
+            "allowedValues": [
+                "RHEL 8.6"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "jumpboxPublicIp": {
+            "type": "bool",
+            "defaultValue": "true",
+            "metadata": {
+                "description": "Flag to determine whether to create a public IP for the jumpbox"
+            }
+        },
         "firewallSubnetName": {
             "type": "string",
             "defaultValue": "AzureFirewallSubnet",
@@ -126,11 +174,25 @@
                 "description": "Name of the managed identity used to manage resources"
             }
         },
+        "deployKeyVault": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy a new key vault"
+            }
+        },
         "vaultName": {
             "type": "string",
             "defaultValue": "[concat(resourceGroup().name,'-keyvault')]",
             "metadata": {
                 "description": "Name of the key vault to store keys and certificates"
+            }
+        },
+        "keyName": {
+            "type": "string",
+            "defaultValue": "[concat(resourceGroup().name,'-ssh-key')]",
+            "metadata": {
+                "description": "Name of the ssh key for the nodes that will be created"
             }
         },
         "deployNode1": {
@@ -147,25 +209,11 @@
                 "description": "VM name for node 1"
             }
         },
-        "deployNode2": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description": "Flag to determine whether to deploy Node 2 VM"
-            }
-        },
         "node2Name": {
             "type": "string",
             "defaultValue": "node2-vm",
             "metadata": {
                 "description": "VM name for node 2"
-            }
-        },
-        "deployNode3": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description": "Flag to determine whether to deploy Node 3 VM (DR)"
             }
         },
         "node3Name": {
@@ -185,7 +233,7 @@
         "adminPassword": {
             "type": "secureString",
             "metadata": {
-                "description": "SSH Key or password for the Virtual Machine."
+                "description": "Initial SSH Key or password for node 1."
             }
         },
         "authType": {
@@ -196,7 +244,7 @@
                 "password"
             ],
             "metadata": {
-                "description": "Type of VM authentication. SSH Key or Password"
+                "description": "Type of VM authentication for initial node 1 configuration. SSH Key or Password"
             }
         },
         "securityType": {
@@ -332,34 +380,47 @@
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
         "scriptOffset": "/safer-payments/node/scripts/",
         "deployScript": "install-sp-rhel.sh",
+        "imageReference": {
+            "RHEL 8.6": {
+                "publisher": "RedHat",
+                "offer": "RHEL",
+                "sku": "8_6",
+                "version": "latest"
+            }
+        },
         "tshirtSize": {
             "dev": {   // Only for dev work
                 "vmSize": "Standard_D2s_v3",
                 "vmDiskType": "Standard_LRS",
                 "vmOSVersion": "RHEL 8.6",
+                "imageURN": "RedHat:RHEL:8_6:latest",
                 "dataDiskSize": 100
             },
             "small": {  // 4 cores, 70GB RAM, 200GB Disk
                 "vmSize": "Standard_E16-4as_v5",
                 "vmDiskType": "Premium_LRS",
                 "vmOSVersion": "RHEL 8.6",
+                "imageURN": "RedHat:RHEL:8_6:latest",
                 "dataDiskSize": 200
             },
             "medium": {  // 4 cores, 70GB RAM, 300GB Disk
                 "vmSize": "Standard_E16-4as_v5",
                 "vmDiskType": "Premium_LRS",
                 "vmOSVersion": "RHEL 8.6",
+                "imageURN": "RedHat:RHEL:8_6:latest",
                 "dataDiskSize": 300
             },
             "large": {  // 8 cores, 70GB RAM, 400GB Disk
                 "vmSize": "Standard_E16-8as_v5",
                 "vmDiskType": "Premium_LRS",
                 "vmOSVersion": "RHEL 8.6",
+                "imageURN": "RedHat:RHEL:8_6:latest",
                 "dataDiskSize": 400
             }
         },
         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+        "storageAccountName": "[format('backup{0}', substring(uniqueString(resourceGroup().id),1,5))]"
     },
     "resources": [
         {
@@ -468,7 +529,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployBastion')]",
-            "name": "bastion",
+            "name": "deployBastion",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ],
@@ -501,7 +562,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployFirewall')]",
-            "name": "firewall",
+            "name": "deployFirewall",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ],
@@ -534,7 +595,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployBackupStorage')]",
-            "name": "backup-fileshare",
+            "name": "deployBackupFileshare",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ],
@@ -546,7 +607,7 @@
                 },
                 "parameters": {
                     "storageAccountName": {
-                        "value": "[format('drbackup{0}', substring(uniqueString(resourceGroup().id),1,5))]"
+                        "value": "[variables('storageAccountName')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
@@ -581,10 +642,12 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "keyvault",
+            "name": "deployKeyvault",
+            "condition": "[parameters('deployKeyVault')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]"
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -612,64 +675,23 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployNode1')]",
-            "name": "sp-node-1",
+            "name": "deployJumpBox",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'sp-node-2')]",
-                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3')]",
-                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3-with-backup')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployBackupFileshare')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployKeyvault')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]"
             ],
             "properties": {
                 "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/node/azuredeploy.json'))]",
-                    "contentVersion":"1.0.0.0"
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
                 },
                 "parameters": {
-                    "vmName": {
-                        "value": "[parameters('node1Name')]"
-                    },
-                    "acceptLicense": {
-                        "value": "[parameters('acceptLicense')]"
-                    },
-                    "binaryPath": {
-                        "value": "[parameters('binaryPath')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "vnetName": {
-                        "value": "[parameters('vnetName')]"
-                    },
-                    "subnetName": {
-                        "value": "[parameters('vmSubnetName')]"
-                    },
-                    "adminUserName": {
-                        "value": "[parameters('adminUserName')]"
-                    },
-                    "adminPassword": {
-                        "value": "[parameters('adminPassword')]"
-                    },
-                    "authType": {
-                        "value": "[parameters('authType')]"
-                    },
-                    "securityType": {
-                        "value": "[parameters('securityType')]"
-                    },
-                    "vmSize": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]"
-                    },
-                    "vmDiskType": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]"
-                    },
-                    "vmZone": {
-                        "value": "[parameters('node1AvailabilityZone')]"
-                    },
-                    "vmOSVersion": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
-                    },
-                    "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP-node1')]"
+                    "baseURL": {
+                        "value": "[variables('baseUrl')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -680,272 +702,235 @@
                     "scriptName": {
                         "value": "[variables('deployScript')]"
                     },
-                    "createManagedIdentity": {
-                        "value": false
-                    },
-                    "managedIdName": {
-                        "value": "[parameters('managedIdName')]"
-                    },
-                    "instanceNumber": {
-                        "value": "1"
+                    "inputParameters" : {
+                            "value": {
+                                "binaryPath": "[parameters('binaryPath')]",
+                                "acceptLicense": "[parameters('acceptLicense')]",
+                                "adminUser": "[parameters('adminUserName')]",
+                                "location": "[parameters('location')]",
+                                "resourceGroup": "[resourceGroup().name]",
+                                "keyName": "[parameters('keyName')]",
+                                "vaultName": "[parameters('vaultName')]",
+                                "vnetName": "[parameters('vnetName')]",
+                                "subnetName": "[parameters('vmSubnetName')]",
+                                "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName'))]",
+                                "managedIdName": "[parameters('managedIdName')]",
+                                "jumpbox": {  
+                                    "name": "[parameters('jumpboxName')]",
+                                    "size": "[parameters('jumpboxVmSize')]",
+                                    "storageSKU": "[parameters('jumpboxStorageSku')]",
+                                    "adminUserName": "[parameters('adminUserName')]",
+                                    "adminPassword": "[parameters('adminPassword')]",
+                                    "authType": "[parameters('authType')]",
+                                    "securityType": "[parameters('securityType')]",
+                                    "imageReference": "[variables('imageReference')[parameters('jumpboxOsVersion')]]",
+                                    "publicIP": "[parameters('jumpboxPublicIp')]"
+                                },
+                                "nodes": {
+                                    "node1": {
+                                        "instance": "1",
+                                        "vmName": "[parameters('node1Name')]",
+                                        "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
+                                        "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
+                                        "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
+                                        "zone": "[parameters('node1AvailabilityZone')]",
+                                        "publicIP": "[parameters('createVMPublicIP-node1')]"
+                                    },
+                                    "node2": {
+                                        "instance": "2",
+                                        "vmName": "[parameters('node2Name')]",
+                                        "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
+                                        "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
+                                        "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
+                                        "zone": "[parameters('node2AvailabilityZone')]",
+                                        "publicIP": "[parameters('createVMPublicIP-node2')]"
+                                    },
+                                    "node3": {
+                                        "instance": "3",
+                                        "vmName": "[parameters('node3Name')]",
+                                        "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
+                                        "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
+                                        "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
+                                        "zone": "[parameters('node3AvailabilityZone')]",
+                                        "publicIP": "[parameters('createVMPublicIP-node3')]"
+                                    }
+                                },
+                                "mountDetails": {
+                                    "storageAccount": "[variables('storageAccountName')]",
+                                    "shareName": "[parameters('backupStorageShareName')]",
+                                    "storageKey": "[if(parameters('deployBackupStorage'), listKeys(variables('storageAccountName'), '2019-04-01').keys[0].value, null())]"
+                                }
+                            }
                     }
-                }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "branch": {
+                            "type": "string"
+                        },
+                        "scriptOffset": {
+                            "type": "string"
+                        },
+                        "scriptName": {
+                            "type": "string"
+                        },
+                        "baseURL": {
+                            "type": "string"
+                        },
+                        "inputParameters": {
+                            "type": "secureObject"
+                        }
+                    },
+                    "variables": {
+                        "vnetId": "[resourceId(parameters('inputParameters').resourceGroup,'Microsoft.Network/virtualNetworks',parameters('inputParameters').vnetName)]",
+                        "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('inputParameters').subnetName)]",
+                        "nicName": "[concat(parameters('inputParameters').jumpbox.name,'-nic')]",
+                        "publicIpName": "[concat(parameters('inputParameters').jumpbox.name,'-pip')]",
+                        "publicIP": {
+                            "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+                        },
+                        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - yum update -y')]",
+                        "securityProfile": {
+                            "uefiSettings": {
+                                "secureBootEnabled": true,
+                                "vTpmEnabled": true
+                            },
+                            "securityType": "[parameters('inputParameters').jumpbox.securityType]"
+                        },
+                        "linuxConfigSSH": {
+                            "disablePasswordAuthentication": true,
+                            "ssh": {
+                                "publicKeys": [
+                                    {
+                                        "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('inputParameters').jumpbox.adminUserName)]",
+                                        "keyData": "[parameters('inputParameters').jumpbox.adminPassword]"
+                                    }
+                                ]
+                            }
+                        },
+                        "linuxConfigPWD": {
+                            "disablePasswordAuthentication": false
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2022-07-01",
+                            "name": "[variables('nicName')]",
+                            "location": "[parameters('inputParameters').location]",
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "ipconfig1",
+                                        "properties": {
+                                            "subnet": {
+                                                "id": "[variables('subnetId')]"
+                                            },
+                                            "publicIPAddress": "[if(parameters('inputParameters').jumpbox.publicIP,variables('publicIP'),json('null'))]",
+                                            "privateIPAllocationMethod": "Dynamic"
+                                        }
+                                    }
+                                ]
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.Network/publicIPAddresses",
+                            "apiVersion": "2022-07-01",
+                            "condition": "[parameters('inputParameters').jumpbox.publicIP]",
+                            "name": "[variables('publicIPName')]",
+                            "location": "[parameters('inputParameters').location]",
+                            "sku": {
+                                "name": "Standard",
+                                "tier": "Regional"
+                            },
+                            "zones": [
+                                "1",
+                                "2",
+                                "3"
+                            ],
+                            "properties": {
+                                "publicIPAllocationMethod": "Static",
+                                "deleteOption": "Delete",
+                                "publicIPAddressVersion": "IPv4"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Compute/virtualMachines",
+                            "apiVersion": "2021-03-01",
+                            "name": "[parameters('inputParameters').jumpbox.name]",
+                            "location": "[parameters('inputParameters').location]",
+                            "identity": {
+                                "type": "userAssigned",
+                                "userAssignedIdentities": {
+                                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('inputParameters').managedIdName)]": {}
+                                }
+                            },
+                            "properties": {
+                                "hardwareProfile": {
+                                    "vmSize": "[parameters('inputParameters').jumpbox.size]"
+                                },
+                                "storageProfile": {
+                                    "osDisk": {
+                                        "createOption": "FromImage",
+                                        "managedDisk": {
+                                            "storageAccountType": "[parameters('inputParameters').jumpbox.storageSKU]"
+                                        }
+                                    },
+                                    "imageReference": "[parameters('inputParameters').jumpbox.imageReference]"
+                                },
+                                "networkProfile": {
+                                    "networkInterfaces": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                                        }
+                                    ]
+                                },
+                                "osProfile": {
+                                    "computerName": "[parameters('inputParameters').jumpbox.name]",
+                                    "adminUsername": "[parameters('inputParameters').jumpbox.adminUserName]",
+                                    "adminPassword": "[parameters('inputParameters').jumpbox.adminPassword]",
+                                    "customData": "[base64(variables('vmBootstrap'))]",
+                                    "linuxConfiguration": "[if(equals(parameters('inputParameters').jumpbox.authType, 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
+                                },
+                                "securityProfile": "[if(equals(parameters('inputParameters').jumpbox.securityType, 'TrustedLaunch'),variables('securityProfile'),json('null'))]",
+                                "diagnosticsProfile": {
+                                    "bootDiagnostics": {
+                                        "enabled": true
+                                    }
+                                }
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.Compute/virtualMachines/extensions",
+                            "apiVersion": "2022-03-01",
+                            "location": "[parameters('inputParameters').location]",
+                            "name": "[concat(parameters('inputParameters').jumpbox.name,'/','install-sp-rhel')]",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Compute/virtualMachines', parameters('inputParameters').jumpbox.name)]"
+                            ],
+                            "properties": {
+                                "publisher": "Microsoft.Azure.Extensions",
+                                "type": "CustomScript",
+                                "typeHandlerVersion": "2.0",
+                                "autoUpgradeMinorVersion": true,
+                                "protectedSettings": {
+                                    "fileUris": [
+                                        "[uri(parameters('baseURL'),concat(parameters('branch'),parameters('scriptOffset'),parameters('scriptName')))]"
+                                    ],
+                                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -p \"', replace(string(parameters('inputParameters')), '\"', '\\\"'),'\"',if(parameters('inputParameters').acceptLicense,' -a ',''))]"
+                                }
+                            }
+                        }
+                    ]
             }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2021-04-01",
-            "condition": "[parameters('deployNode2')]",
-            "name": "sp-node-2",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3')]",
-                "[resourceId('Microsoft.Resources/deployments', 'sp-node-3-with-backup')]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/node/azuredeploy.json'))]",
-                    "contentVersion":"1.0.0.0"
-                },
-                "parameters": {
-                    "vmName": {
-                        "value": "[parameters('node2Name')]"
-                    },
-                    "acceptLicense": {
-                        "value": "[parameters('acceptLicense')]"
-                    },
-                    "binaryPath": {
-                        "value": "[parameters('binaryPath')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "vnetName": {
-                        "value": "[parameters('vnetName')]"
-                    },
-                    "subnetName": {
-                        "value": "[parameters('vmSubnetName')]"
-                    },
-                    "adminUserName": {
-                        "value": "[parameters('adminUserName')]"
-                    },
-                    "adminPassword": {
-                        "value": "[parameters('adminPassword')]"
-                    },
-                    "authType": {
-                        "value": "[parameters('authType')]"
-                    },
-                    "securityType": {
-                        "value": "[parameters('securityType')]"
-                    },
-                    "vmSize": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]"
-                    },
-                    "vmDiskType": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]"
-                    },
-                    "vmZone": {
-                        "value": "[parameters('node2AvailabilityZone')]"
-                    },
-                    "vmOSVersion": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
-                    },
-                    "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP-node2')]"
-                    },
-                    "branch": {
-                        "value": "[parameters('branch')]"
-                    },
-                    "scriptOffset": {
-                        "value": "[variables('scriptOffset')]"
-                    },
-                    "scriptName": {
-                        "value": "[variables('deployScript')]"
-                    },
-                    "createManagedIdentity": {
-                        "value": false
-                    },
-                    "managedIdName": {
-                        "value": "[parameters('managedIdName')]"
-                    },
-                    "instanceNumber": {
-                        "value": "2"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2021-04-01",
-            "condition": "[and(parameters('deployNode3'),not(parameters('deployBackupStorage')))]",
-            "name": "sp-node-3",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'backup-fileshare')]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/node/azuredeploy.json'))]",
-                    "contentVersion":"1.0.0.0"
-                },
-                "parameters": {
-                    "vmName": {
-                        "value": "[parameters('node3Name')]"
-                    },
-                    "acceptLicense": {
-                        "value": "[parameters('acceptLicense')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "binaryPath": {
-                        "value": "[parameters('binaryPath')]"
-                    },
-                    "vnetName": {
-                        "value": "[parameters('vnetName')]"
-                    },
-                    "subnetName": {
-                        "value": "[parameters('vmSubnetName')]"
-                    },
-                    "adminUserName": {
-                        "value": "[parameters('adminUserName')]"
-                    },
-                    "adminPassword": {
-                        "value": "[parameters('adminPassword')]"
-                    },
-                    "authType": {
-                        "value": "[parameters('authType')]"
-                    },
-                    "securityType": {
-                        "value": "[parameters('securityType')]"
-                    },
-                    "vmSize": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]"
-                    },
-                    "vmDiskType": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]"
-                    },
-                    "vmZone": {
-                        "value": "[parameters('node3AvailabilityZone')]"
-                    },
-                    "vmOSVersion": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
-                    },
-                    "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP-node3')]"
-                    },
-                    "branch": {
-                        "value": "[parameters('branch')]"
-                    },
-                    "scriptOffset": {
-                        "value": "[variables('scriptOffset')]"
-                    },
-                    "scriptName": {
-                        "value": "[variables('deployScript')]"
-                    },
-                    "createManagedIdentity": {
-                        "value": false
-                    },
-                    "managedIdName": {
-                        "value": "[parameters('managedIdName')]"
-                    },
-                    "instanceNumber": {
-                        "value": "3"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2021-04-01",
-            "condition": "[and(parameters('deployNode3'),parameters('deployBackupStorage'))]",
-            "name": "sp-node-3-with-backup",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'backup-fileshare')]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/node/azuredeploy.json'))]",
-                    "contentVersion":"1.0.0.0"
-                },
-                "parameters": {
-                    "vmName": {
-                        "value": "[parameters('node3Name')]"
-                    },
-                    "acceptLicense": {
-                        "value": "[parameters('acceptLicense')]"
-                    },
-                    "binaryPath": {
-                        "value": "[parameters('binaryPath')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "vnetName": {
-                        "value": "[parameters('vnetName')]"
-                    },
-                    "subnetName": {
-                        "value": "[parameters('vmSubnetName')]"
-                    },
-                    "adminUserName": {
-                        "value": "[parameters('adminUserName')]"
-                    },
-                    "adminPassword": {
-                        "value": "[parameters('adminPassword')]"
-                    },
-                    "authType": {
-                        "value": "[parameters('authType')]"
-                    },
-                    "securityType": {
-                        "value": "[parameters('securityType')]"
-                    },
-                    "vmSize": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]"
-                    },
-                    "vmDiskType": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]"
-                    },
-                    "vmZone": {
-                        "value": "[parameters('node3AvailabilityZone')]"
-                    },
-                    "vmOSVersion": {
-                        "value": "[variables('tshirtSize')[parameters('tshirtSize')].vmOSVersion]"
-                    },
-                    "createPublicIP": {
-                        "value": "[parameters('createVMPublicIP-node3')]"
-                    },
-                    "branch": {
-                        "value": "[parameters('branch')]"
-                    },
-                    "scriptOffset": {
-                        "value": "[variables('scriptOffset')]"
-                    },
-                    "scriptName": {
-                        "value": "[variables('deployScript')]"
-                    },
-                    "createManagedIdentity": {
-                        "value": false
-                    },
-                    "managedIdName": {
-                        "value": "[parameters('managedIdName')]"
-                    },
-                    "instanceNumber": {
-                        "value": "3"
-                    },
-                    "mountDrive": {
-                        "value": true
-                    },
-                    "storageAccount": {
-                        "value": "[if(parameters('deployBackupStorage'),reference(resourceId('Microsoft.Resources/deployments','backup-fileshare'), '2021-04-01').outputs['storageAccountName'].value, '')]"
-                    },
-                    "shareName": {
-                        "value": "[parameters('backupStorageShareName')]"
-                    }
-                }
             }
         }
     ]
