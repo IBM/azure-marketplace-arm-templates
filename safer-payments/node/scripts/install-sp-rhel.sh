@@ -82,13 +82,13 @@ function start-safer-payments() {
     REMOTE_USER=${5}
 
     log-output "INFO: Starting safer payments on node 1"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE1_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=1 2>&1 > /dev/null &' &
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE1_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=1 & ' > /dev/null &
 
     log-output "INFO: Starting safer payments on node 2"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE2_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=2 2>&1 > /dev/null &' &
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE2_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=2 & ' > /dev/null &
 
     log-output "INFO: Starting safer payments on node 3"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE3_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=3 2>&1 > /dev/null &' &    
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE3_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=3 & ' > /dev/null &    
 }
 
 function remote-install-safer-payments() {
@@ -100,6 +100,18 @@ function remote-install-safer-payments() {
     INSTANCE=${6}
 
     CONNECTION_PROPERTIES="$LOCAL_USER $REMOTE_USER $REMOTE_IP"
+
+    # Wait for cloud-init to finish if new VM
+    count=0
+    while [[ $(remote-command $CONNECTION_PROPERTIES "/usr/bin/ps xua | grep cloud-init | grep -v grep") ]]; do
+        log-output "INFO: Waiting for cloud init to finish. Waited $count minutes. Will wait 15 mintues."
+        sleep 60
+        count=$(( $count + 1 ))
+        if (( $count > 15 )); then
+            log-output "ERROR: Timeout waiting for cloud-init to finish"
+            exit 1;
+        fi
+    done
 
     log-output "INFO: Extracting files on $REMOTE_IP"
     remote-command $CONNECTION_PROPERTIES "tar xf ${BIN_PATH}/${BIN_FILE} -C ${BIN_PATH}"
@@ -224,19 +236,24 @@ VAULT_NAME=$(echo $PARAMS | jq -r '.vaultName')
 KEY_NAME=$(echo $PARAMS | jq -r '.keyName')
 ADMINUSER=$(echo $PARAMS | jq -r '.adminUser')
 
-NODE1_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "1") | .vmName')
-NODE2_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .vmName')
-NODE3_NAME=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .vmName')
-NODE2_ZONE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .zone')
-NODE3_ZONE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .zone')
-NODE2_VMSIZE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .vmSize')
-NODE3_VMSIZE=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .vmSize')
-NODE2_STORAGESKU=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .storageSKU')
-NODE3_STORAGESKU=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .storageSKU')
-NODE2_IMAGEURN="$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .imageURN')"
-NODE3_IMAGEURN="$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .imageURN')"
-NODE2_PUBLICIP=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "2") | .publicIP')
-NODE3_PUBLICIP=$(echo $PARAMS | jq -r '.nodes[] | select(.instance == "3") | .publicIP')
+NODE1_NAME=$(echo $PARAMS | jq -r '.nodes.node1.vmName')
+NODE2_NAME=$(echo $PARAMS | jq -r '.nodes.node2.vmName')
+NODE3_NAME=$(echo $PARAMS | jq -r '.nodes.node3.vmName')
+NODE1_ZONE=$(echo $PARAMS | jq -r '.nodes.node1.zone')
+NODE2_ZONE=$(echo $PARAMS | jq -r '.nodes.node2.zone')
+NODE3_ZONE=$(echo $PARAMS | jq -r '.nodes.node3.zone')
+NODE1_VMSIZE=$(echo $PARAMS | jq -r '.nodes.node1.vmSize')
+NODE2_VMSIZE=$(echo $PARAMS | jq -r '.nodes.node2.vmSize')
+NODE3_VMSIZE=$(echo $PARAMS | jq -r '.nodes.node3.vmSize')
+NODE1_STORAGESKU=$(echo $PARAMS | jq -r '.nodes.node1.storageSKU')
+NODE2_STORAGESKU=$(echo $PARAMS | jq -r '.nodes.node2.storageSKU')
+NODE3_STORAGESKU=$(echo $PARAMS | jq -r '.nodes.node3.storageSKU')
+NODE1_IMAGEURN="$(echo $PARAMS | jq -r '.nodes.node1.imageURN')"
+NODE2_IMAGEURN="$(echo $PARAMS | jq -r '.nodes.node2.imageURN')"
+NODE3_IMAGEURN="$(echo $PARAMS | jq -r '.nodes.node3.imageURN')"
+NODE1_PUBLICIP=$(echo $PARAMS | jq -r '.nodes.node1.publicIP')
+NODE2_PUBLICIP=$(echo $PARAMS | jq -r '.nodes.node2.publicIP')
+NODE3_PUBLICIP=$(echo $PARAMS | jq -r '.nodes.node3.publicIP')
 VNET_NAME=$(echo $PARAMS | jq -r '.vnetName')
 SUBNET_NAME=$(echo $PARAMS | jq -r '.subnetName')
 NSG_ID=$(echo $PARAMS | jq -r '.nsgID')
@@ -262,16 +279,22 @@ log-output "INFO: Location is $LOCATION"
 log-output "INFO: KeyVault name is $VAULT_NAME"
 log-output "INFO: SSH Key name is $KEY_NAME"
 log-output "INFO: Admin user is $ADMINUSER"
+log-output "INFO: Node 1 Name is $NODE1_NAME"
 log-output "INFO: Node 2 Name is $NODE2_NAME"
 log-output "INFO: Node 3 Name is $NODE3_NAME"
+log-output "INFO: Node 1 Zone is $NODE1_ZONE"
 log-output "INFO: Node 2 Zone is $NODE2_ZONE"
 log-output "INFO: Node 3 Zone is $NODE3_ZONE"
+log-output "INFO: Node 1 VM Size is $NODE1_VMSIZE"
 log-output "INFO: Node 2 VM Size is $NODE2_VMSIZE"
 log-output "INFO: Node 3 VM Size is $NODE3_VMSIZE"
+log-output "INFO: Node 1 Storage SKU is $NODE1_STORAGESKU"
 log-output "INFO: Node 2 Storage SKU is $NODE2_STORAGESKU"
 log-output "INFO: Node 3 Storage SKU is $NODE3_STORAGESKU"
+log-output "INFO: Node 1 Image URN is $NODE1_IMAGEURN"
 log-output "INFO: Node 2 Image URN is $NODE2_IMAGEURN"
 log-output "INFO: Node 3 Image URN is $NODE3_IMAGEURN"
+log-output "INFO: Node 1 create public IP is $NODE1_PUBLICIP"
 log-output "INFO: Node 2 create public IP is $NODE2_PUBLICIP"
 log-output "INFO: Node 3 create public IP is $NODE3_PUBLICIP"
 log-output "INFO: Virtual network is $VNET_NAME"
@@ -405,7 +428,46 @@ else
 fi
 
 ######
-# Create other virtual machines
+# Create the virtual machines
+
+# Node 1
+if [[ -z $(az vm list --resource-group $RESOURCE_GROUP -o table | grep $NODE1_NAME ) ]]; then
+    log-output "INFO: Creating virtual machine $NODE1_NAME in resource group $RESOURCE_GROUP"
+    if [[ ${NODE1_PUBLICIP} == "yes" ]]; then 
+        az vm create --name $NODE1_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --authentication-type ssh \
+            --location $LOCATION \
+            --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+            --admin-username $ADMINUSER \
+            --encryption-at-host true \
+            --size "${NODE1_VMSIZE}" \
+            --vnet-name "${VNET_NAME}" \
+            --subnet "${SUBNET_NAME}" \
+            --nsg "${NSG_ID}" \
+            --storage-sku "${NODE1_STORAGESKU}" \
+            --image "${NODE1_IMAGEURN}" \
+            --zone "${NODE1_ZONE}" 
+    else
+        az vm create --name $NODE1_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --authentication-type ssh \
+            --location $LOCATION \
+            --ssh-key-value /home/$ADMINUSER/.ssh/id_rsa.pub \
+            --admin-username $ADMINUSER \
+            --encryption-at-host true \
+            --size "${NODE1_VMSIZE}" \
+            --vnet-name "${VNET_NAME}" \
+            --subnet "${SUBNET_NAME}" \
+            --nsg "${NSG_ID}" \
+            --storage-sku "${NODE1_STORAGESKU}" \
+            --image "${NODE1_IMAGEURN}" \
+            --zone "${NODE1_ZONE}" \
+            --public-ip-address ""
+    fi
+else
+    log-output "INFO: Virtual Machine $NODE1_NAME already exists in resource group $RESOURCE_GROUP"
+fi
 
 # Node 2
 if [[ -z $(az vm list --resource-group $RESOURCE_GROUP -o table | grep $NODE2_NAME ) ]]; then
@@ -516,26 +578,18 @@ else
 fi
 
 # Log in to each node to add to known hosts
-if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE1_IP ) ]]; then
-    log-output "INFO: Adding local host to list of known hosts"
-    ssh -o StrictHostKeyChecking=no $ADMINUSER@$NODE1_IP "ls -lha" > /dev/null
-else
-    log-output "INFO: Local host already in list of known hosts"
+declare -a NODE_IPS=( "$NODE1_IP" "$NODE2_IP" "$NODE3_IP" )
+if [[ ! -f /home/$ADMINUSER/.ssh/known_hosts ]]; then
+    sudo -u $ADMINUSER /usr/bin/touch /home/$ADMINUSER/.ssh/known_hosts
 fi
-
-if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE2_IP ) ]]; then
-    log-output "INFO: Adding node 2 to list of known hosts"
-    ssh -o StrictHostKeyChecking=no $ADMINUSER@$NODE2_IP "ls -lha" > /dev/null
-else
-    log-output "INFO: Node 2 already in list of known hosts"
-fi
-
-if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $NODE3_IP ) ]]; then
-    log-output "INFO: Adding node 3 to list of known hosts"
-    ssh -o StrictHostKeyChecking=no $ADMINUSER@$NODE3_IP "ls -lha" > /dev/null
-else
-    log-output "INFO: Node 3 host already in list of known hosts"
-fi
+for node_ip in ${NODE_IPS[@]}; do
+    if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $node_ip ) ]]; then
+        log-output "INFO: Adding $node_ip to list of known hosts"
+        ssh -o StrictHostKeyChecking=no $ADMINUSER@$node_ip "ls -lha" > /dev/null 2>&1
+    else
+        log-output "INFO: $node_ip already in list of known hosts"
+    fi
+done
 
 if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
@@ -553,25 +607,33 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
     ####### Setup nodes
 
     # Create temporary directories
+    setup-remote-directory $ADMINUSER $ADMINUSER $NODE1_IP /tmp/iris
     setup-remote-directory $ADMINUSER $ADMINUSER $NODE2_IP /tmp/iris
     setup-remote-directory $ADMINUSER $ADMINUSER $NODE3_IP /tmp/iris
 
     # Install safer payments on each node
     if [[ -z $(sudo -u $ADMINUSER ssh $ADMINUSER@$NODE1_IP "/usr/bin/which iris" 2> /dev/null) ]]; then
-        remote-install-safer-payments $NODE1_IP $ADMINUSER $ADMINUSER ${SCRIPT_DIR} $BIN_FILE 1
+        log-output "INFO: Copying Safer Payments binary to $NODE1_NAME"
+        sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE1_IP:/tmp/iris
+        log-output "INFO: Installing Safer Payments on $NODE1_NAME"
+        remote-install-safer-payments $NODE1_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 1
     else
         log-output "INFO: Safer Payments already installed on $NODE1_NAME"
     fi
 
     if [[ -z $(sudo -u $ADMINUSER ssh $ADMINUSER@$NODE2_IP "/usr/bin/which iris" 2> /dev/null) ]]; then
+        log-output "INFO: Copying Safer Payments binary to $NODE2_NAME"
         sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE2_IP:/tmp/iris
+        log-output "INFO: Installing Safer Payments on $NODE2_NAME"
         remote-install-safer-payments $NODE2_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 2
     else
         log-output "INFO: Safer Payments already installed on $NODE2_NAME"
     fi
 
     if [[ -z $(sudo -u $ADMINUSER ssh $ADMINUSER@$NODE3_IP "/usr/bin/which iris" 2> /dev/null) ]]; then    
+        log-output "INFO: Copying Safer Payments binary to $NODE3_NAME"
         sudo -u $ADMINUSER scp ${SCRIPT_DIR}/${BIN_FILE} $ADMINUSER@$NODE3_IP:/tmp/iris
+        log-output "INFO: Installing Safer Payments on $NODE3_NAME"
         remote-install-safer-payments $NODE3_IP $ADMINUSER $ADMINUSER /tmp/iris $BIN_FILE 3
     else
         log-output "INFO: Safer Payments already installed on $NODE3_NAME"
@@ -581,30 +643,38 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
     log-output "INFO: Configuring cluster.iris"
 
-    sudo cp /instancePath/cfg/cluster.iris ${SCRIPT_DIR}/default-cluster.iris
+    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/cluster.iris ${SCRIPT_DIR}/default-cluster.iris
     
-    sudo cat /instancePath/cfg/cluster.iris \
+    cat ${SCRIPT_DIR}/default-cluster.iris \
         | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
         | jq --arg IP $NODE2_IP '.configuration.irisInstances[1].interfaces[].address = $IP' \
         | jq --arg IP $NODE3_IP '.configuration.irisInstances[2].interfaces[].address = $IP' \
-        | sed 's/8002/8001/g' \
-        | sed 's/8003/8001/g' > ${SCRIPT_DIR}/new-cluster.iris
+        | sed 's/8002/8002/g' \
+        | sed 's/8003/8003/g' > ${SCRIPT_DIR}/new-cluster.iris
 
-    sudo cp ${SCRIPT_DIR}/new-cluster.iris /instancePath/cfg/cluster.iris
+    scp ${SCRIPT_DIR}/new-cluster.iris $ADMINUSER@$NODE1_IP:/tmp/iris
+    remote-command $ADMINUSER $ADMINUSER $NODE1_IP "sudo cp /tmp/iris/new-cluster.iris /instancePath/cfg/cluster.iris"
+    remote-command $ADMINUSER $ADMINUSER $NODE1_IP "sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris"
 
-    sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris
+    log-output "INFO: Copying node1 configuration to local"
+    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/cluster.iris ${SCRIPT_DIR} > /dev/null 2>&1
+    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/settings.iris ${SCRIPT_DIR} > /dev/null 2>&1
+    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/inbound* ${SCRIPT_DIR} > /dev/null 2>&1
 
     # Copy configuration to remote nodes
     declare -a NODES=( "$NODE2_IP" "$NODE3_IP" )
     for node in ${NODES[@]}; do
         CONNECTION_PROPERTIES="$ADMINUSER $ADMINUSER $node"
-        sudo -u $ADMINUSER scp /instancePath/cfg/cluster.iris $ADMINUSER@${node}:/tmp/iris/
-        sudo -u $ADMINUSER scp /instancePath/cfg/settings.iris $ADMINUSER@${node}:/tmp/iris/
-        sudo -u $ADMINUSER scp /instancePath/cfg/inbound* $ADMINUSER@${node}:/tmp/iris/
-        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/cluster.iris /instancePath/cfg/"
-        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/settings.iris /instancePath/cfg/"
-        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/inbound* /instancePath/cfg/"
-        remote-command $CONNECTION_PROPERTIES "sudo rm /instancePath/fli/*"
+        log-output "INFO: Copying node 1 configuration from local to node at $node" 
+        
+        scp ${SCRIPT_DIR}/cluster.iris $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
+        scp ${SCRIPT_DIR}/settings.iris $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
+        scp ${SCRIPT_DIR}/inbound* $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
+
+        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/cluster.iris /instancePath/cfg/" > /dev/null 2>&1
+        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/settings.iris /instancePath/cfg/" > /dev/null 2>&1
+        remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/inbound* /instancePath/cfg/" > /dev/null 2>&1
+        remote-command $CONNECTION_PROPERTIES "sudo rm /instancePath/fli/*" > /dev/null 2>&1
     done
 
     # Start services
