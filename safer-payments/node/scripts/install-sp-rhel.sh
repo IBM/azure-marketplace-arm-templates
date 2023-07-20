@@ -599,7 +599,7 @@ fi
 for node_ip in ${NODE_IPS[@]}; do
     if [[ -z $(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/known_hosts | grep $node_ip ) ]]; then
         log-output "INFO: Adding $node_ip to list of known hosts"
-        ssh -o StrictHostKeyChecking=no $ADMINUSER@$node_ip "ls -lha" > /dev/null 2>&1
+        sudo -u $ADMINUSER ssh -o StrictHostKeyChecking=no $ADMINUSER@$node_ip "ls -lha"  > /dev/null 2>&1
     else
         log-output "INFO: $node_ip already in list of known hosts"
     fi
