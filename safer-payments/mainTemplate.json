@@ -312,7 +312,7 @@
         },
         "domainName": {
             "type": "string",
-            "defaultValue": "[toLower( concat(uniqueString(resourceGroup().id)) )]",
+            "defaultValue": "[toLower( concat('sp',uniqueString(resourceGroup().id)) )]",
             "metadata": {
                 "description": "Domain name prefix for the public IP address of the load balancer"
             }

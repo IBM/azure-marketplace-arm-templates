@@ -683,7 +683,7 @@ if [[ -z $(az network lb list --resource-group $RESOURCE_GROUP -o table | grep $
     fi
 
     # Add VMs for backend pool
-    declare nodes=( "$NODE1_NAME" "$NODE2_NAME" "$NODE3_NAME" )
+    declare NODES=( "$NODE1_NAME" "$NODE2_NAME" "$NODE3_NAME" )
     for node in ${NODES[@]}; do
         log-output "INFO: Adding $node to backend pool $LB_BACKEND_NAME"
         nic=$(az vm nic list -g $RESOURCE_GROUP --vm-name $node --query '[0].id' -o tsv | awk -F'/' '{print $9}')
@@ -694,11 +694,11 @@ if [[ -z $(az network lb list --resource-group $RESOURCE_GROUP -o table | grep $
             --nic-name $nic \
             --resource-group $RESOURCE_GROUP \
             --lb-name $LB_NAME > /dev/null 2>&1
+        if (( $? != 0 )); then
+            log-output "ERROR: Failed to add $node to backend pool $LB_BACKEND_NAME in $LB_NAME"
+            exit 1
+        fi
     done
-    if (( $? != 0 )); then
-        log-output "ERROR: Failed to add $node to backend pool $LB_BACKEND_NAME in $LB_NAME"
-        exit 1
-    fi
 else
     log-output "INFO: Load balancer $LB_NAME already exists in $RESOURCE_GROUP"
 fi
@@ -755,7 +755,7 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
     log-output "INFO: Configuring cluster.iris"
 
-    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/cluster.iris ${SCRIPT_DIR}/default-cluster.iris
+    sudo -u $ADMINUSER scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/cluster.iris ${SCRIPT_DIR}/default-cluster.iris
     
     cat ${SCRIPT_DIR}/default-cluster.iris \
         | jq --arg IP $NODE1_IP '.configuration.irisInstances[0].interfaces[].address = $IP' \
@@ -764,14 +764,14 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
         | sed 's/8002/8002/g' \
         | sed 's/8003/8003/g' > ${SCRIPT_DIR}/new-cluster.iris
 
-    scp ${SCRIPT_DIR}/new-cluster.iris $ADMINUSER@$NODE1_IP:/tmp/iris
+    sudo -u $ADMINUSER scp ${SCRIPT_DIR}/new-cluster.iris $ADMINUSER@$NODE1_IP:/tmp/iris
     remote-command $ADMINUSER $ADMINUSER $NODE1_IP "sudo cp /tmp/iris/new-cluster.iris /instancePath/cfg/cluster.iris"
     remote-command $ADMINUSER $ADMINUSER $NODE1_IP "sudo chown SPUser:SPUserGroup /instancePath/cfg/cluster.iris"
 
     log-output "INFO: Copying node1 configuration to local"
-    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/cluster.iris ${SCRIPT_DIR} > /dev/null 2>&1
-    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/settings.iris ${SCRIPT_DIR} > /dev/null 2>&1
-    scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/inbound* ${SCRIPT_DIR} > /dev/null 2>&1
+    sudo -u $ADMINUSER scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/cluster.iris ${SCRIPT_DIR} > /dev/null 2>&1
+    sudo -u $ADMINUSER scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/settings.iris ${SCRIPT_DIR} > /dev/null 2>&1
+    sudo -u $ADMINUSER scp $ADMINUSER@$NODE1_IP:/instancePath/cfg/inbound* ${SCRIPT_DIR} > /dev/null 2>&1
 
     # Copy configuration to remote nodes
     declare -a NODES=( "$NODE2_IP" "$NODE3_IP" )
@@ -779,9 +779,9 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
         CONNECTION_PROPERTIES="$ADMINUSER $ADMINUSER $node"
         log-output "INFO: Copying node 1 configuration from local to node at $node" 
         
-        scp ${SCRIPT_DIR}/cluster.iris $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
-        scp ${SCRIPT_DIR}/settings.iris $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
-        scp ${SCRIPT_DIR}/inbound* $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
+        sudo -u $ADMINUSER scp ${SCRIPT_DIR}/cluster.iris $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
+        sudo -u $ADMINUSER scp ${SCRIPT_DIR}/settings.iris $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
+        sudo -u $ADMINUSER scp ${SCRIPT_DIR}/inbound* $ADMINUSER@$node:/tmp/iris > /dev/null 2>&1
 
         remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/cluster.iris /instancePath/cfg/" > /dev/null 2>&1
         remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/settings.iris /instancePath/cfg/" > /dev/null 2>&1
@@ -789,6 +789,10 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
         remote-command $CONNECTION_PROPERTIES "sudo rm /instancePath/fli/*" > /dev/null 2>&1
     done
 
+    # Stop any running Safer Payments
+    stop-safer-payments $NODE1_IP $NODE2_IP $NODE3_IP $ADMINUSER $ADMINUSER
+    sleep 60
+    
     # Start services
     start-safer-payments $NODE1_IP $NODE2_IP $NODE3_IP $ADMINUSER $ADMINUSER
 
