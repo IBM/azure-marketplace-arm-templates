@@ -45,6 +45,13 @@
                 "description": "Name for the ARO cluster"
             }
         },
+        "aroVersion": {
+            "type": "string",
+            "defaultValue": "4.10.54",
+            "metadata": {
+                "description": "Version of ARO to deploy. Format 4.x.x"
+            }
+        },
         "spClientId" : {
             "type": "string",
             "metadata": {
@@ -356,6 +363,9 @@
                     },
                     "clusterName": {
                         "value": "[parameters('clusterName')]"
+                    },
+                    "aroVersion": {
+                        "value": "[parameters('aroVersion')]"
                     },
                     "spClientId" : {
                         "value": "[parameters('spClientId')]"
