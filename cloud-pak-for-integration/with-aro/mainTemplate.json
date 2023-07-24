@@ -47,7 +47,6 @@
         },
         "aroVersion": {
             "type": "string",
-            "defaultValue": "4.10.54",
             "metadata": {
                 "description": "Version of ARO to deploy. Format 4.x.x"
             }
