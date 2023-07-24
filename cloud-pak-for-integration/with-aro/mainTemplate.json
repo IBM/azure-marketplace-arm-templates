@@ -551,5 +551,19 @@
             }
         }
     ],
-    "outputs": {}
+    "outputs": {
+        "aroClusterURL": {
+            "type": "string",
+            "value": "[uri(concat('https://console-openshift-console.apps.',parameters('domain'),'.',parameters('location'),'.aroapp.io/'),'')]"
+        },
+        "aroClusterCredentials": {
+            "type": "string",
+            "value": "[concat('Use \"az aro list-credentials -g ',resourceGroup().name,' -n ',reference(resourceId('Microsoft.Resources/deployments','aro'),'2021-04-01').outputs['clusterName'].value,'\" to obtain credentials')]"
+        },
+        "platformNavigatorURL": {
+            "type": "string",
+            "condition": "[equals(parameters('acceptLicense'),'accept')]",
+            "value": "[uri(concat('https://cp4i-navigator-pn-',parameters('namespace'),'.apps.',parameters('domain'),'.',parameters('location'),'.aroapp.io/'),'')]"
+        }
+    }
 }
