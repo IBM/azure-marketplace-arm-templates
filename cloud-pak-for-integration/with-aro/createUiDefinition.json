@@ -152,6 +152,15 @@
 						"visible": true
 					},
 					{
+						"name": "versionInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[if(or(equals(steps('openshift').aroVersion, ''),startsWith(steps('openshift').aroVersion,'4.10'),startsWith(steps('openshift').aroVersion,'4.12')),false,true)]",
+						"options": {
+							"icon": "Warning",
+							"text": "Cloud Pak for Integration is only supported on version 4.10 or 4.12 versions of OpenShift."
+						}
+					},
+					{
 						"name": "masterNodes",
 						"type": "Microsoft.Compute.SizeSelector",
 						"label": "Master VM Size",
@@ -281,6 +290,44 @@
 						  "hideCertificate": false
 						},
 						"visible": true
+					},
+					{
+						"name": "checkDomainName",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('openshift').domainName,'&api-version=2022-11-01')]"
+						}
+					},
+					{
+						"name": "domainName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Domain name for cluster",
+						"defaultValue": "",
+						"toolTip": "Enter a domain name for the OpenShift cluster.",
+						"visible": true,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"isValid": "[steps('openshift').checkDomainName.available]",
+									"message": "Domain name is not available"
+								},
+								{
+									"regex": "^[a-z][a-z0-9-_]{3,32}$",
+									"message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
+								}
+							]
+						}
+					},
+					{
+						"name": "domainInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[if( equals(steps('openshift').domainName, '') , false, true )]",
+						"options": {
+							"icon": "Info",
+							"text": "[concat('The OpenShift cluster will be available at https://console-openshift-console.apps.',steps('openshift').domainName,'.',location(),'.aroapp.io/')]"
+						}
 					},
 					{
 						"name": "rpObjectId",
@@ -463,7 +510,8 @@
 			"workerSize": "[steps('openshift').workerNodes]",
 			"workerCount": "[steps('openshift').workerCount]",
             "storageSizePerNode": "[steps('openshift').odfNodeSize]",
-			"aroVersion": "[steps('openshift').aroVersion]"
+			"aroVersion": "[steps('openshift').aroVersion]",
+			"domain": "[steps('openshift').domainName]"
          }
     }
 }
