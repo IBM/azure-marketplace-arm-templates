@@ -1,0 +1,562 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "config": {
+            "isWizard": false,
+            "basics": {
+                "resourceGroup": {
+                    "constraints": {
+                        "validations": [
+                            {
+                                "permission": "Microsoft.Network.virtualNetworks/create",
+								"message": "Must be able to create a virtual network in the resource group"
+                            },
+                            {
+                                "permission": "Microsoft.Network.publicIPAddress/create",
+								"message": "Must be able to create a virtual network in the resource group"
+                            },
+                            {
+								"permission": "Microsoft.ManagedIdentity/userAssignedIdentities/create",
+								"message": "Must be able to create a user assigned identity in the resource group"
+							},
+                            {
+                                "permission": "Microsoft.Compute/virtualMachines",
+                                "message": "Must be able to create virtual machines"
+                            }
+                        ]
+                    },
+                    "allowExisting": true
+                },
+                "location": {
+                    "visible": true,
+                    "resourceTypes": [
+                        "Microsoft.Resources/deployments",
+                        "Microsoft.Network/virtualNetworks",
+                        "Microsoft.Network/networkSecurityGroups",
+                        "Microsoft.ManagedIdentity/userAssignedIdentities",
+                        "Microsoft.Authorization/roleAssignments",
+                        "Microsoft.Network/publicIPAddresses",
+                        "Microsoft.Compute/virtualMachines"
+                    ]
+                }
+            }
+        },
+        "basics": [
+        ],
+        "steps": [
+            {
+                "name": "networking",
+                "label": "Virtual Network",
+                "elements": [
+                    {
+                        "name": "vnet",
+                        "type": "Microsoft.Network.VirtualNetworkCombo",
+                        "label": {
+                            "virtualNetwork": "Virtual Network",
+                            "subnets": "Subnets"
+                        },
+                        "toolTip": {
+                            "virtualNetwork": "Select an existing VNet or enter the name of a new one",
+                            "subnets": "The name and CIDR for the subnet"
+                        },
+                        "defaultValue": {
+                            "name": "vnet",
+                            "addressPrefixSize": "/20"
+                        },
+                        "constraints": {
+                            "minAddressPrefixSize": "/20"
+                        },
+                        "options": {
+                            "hideExisting": false
+                        },
+                        "subnets": {
+                            "vmSubnet": {
+                                "label": "Virtual Machine Subnet",
+                                "defaultValue": {
+                                    "name": "vm-subnet",
+                                    "addressPrefixSize": "/24"
+                                },
+                                "constraints": {
+                                    "minAddressCount": 3,
+                                    "minAddressPrefixSize": "/26",
+                                    "requireContiguousAddresses": false
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "saferPayments",
+                "label": "Safer Payments",
+                "elements": [
+                    {
+                        "name": "binaryPath",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "URL to the Safer Payments binary",
+                        "defaultValue": "",
+                        "toolTip": "The URL to the Safer Payments binary",
+                        "visible": true,
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "tshirtSize",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Size of each VM in cluster",
+                        "placeholder": "",
+                        "defaultValue": ["Medium"],
+                        "toolTip": "The size of each VM in the cluster will be the same as this setting.",
+                        "visible": true,
+                        "multiLine": true,
+                        "multiselect": false,
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Developer",
+                                    "description": "Standard_D2s_v3 with 2 cores, 4GB RAM and 100GB Disk",
+                                    "value": "dev"
+                                },
+                                {
+                                    "label": "Small",
+                                    "description": "Standard_E16-4as_v5 with 4 cores, 70GB RAM and 200GB Disk",
+                                    "value": "small"
+                                },
+                                {
+                                    "label": "Medium",
+                                    "description": "Standard_E16-4as_v5 with 4 cores, 70GB RAM and 300GB Disk",
+                                    "value": "medium"
+                                },
+                                {
+                                    "label": "Large",
+                                    "description": "Standard_E16-8as_v5 with 8 cores, 70GB RAM and 400GB Disk",
+                                    "value": "large"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "acceptLicense",
+                        "type": "Microsoft.Common.OptionsGroup",
+                        "label": "Accept the terms of the Safer Payments License Agreement",
+                        "toolTip": "Acceptance of the license is required to install the Safer Payments software",
+                        "defaultValue": "Decline",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "allowedValues": [
+                                {
+                                    "label": "Decline",
+                                    "value": "decline"
+                                },
+                                {
+                                    "label": "Accept",
+                                    "value": "accept"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "adminUserName",
+                        "type": "Microsoft.Compute.UserNameTextBox",
+                        "label": "Administrator username for the jumpbox and instance nodes",
+                        "toolTip": "Credentials for the instances nodes will be created and stored in the keyvault",
+                        "defaultValue": "azureuser",
+                        "osPlatform": "Linux",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-z0-9A-Z]{1,30}$",
+                            "validationMessage": "Only alphanumeric characters are allowed, and the value must be 1-30 characters long."
+                        }
+                    },
+                    {
+                        "name": "node1",
+                        "label": "Instance 1",
+                        "type": "Microsoft.Common.Section",
+                        "visible": true,
+                        "elements": [
+                            {
+                                "name": "node1Name",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "VM name for instance 1",
+                                "toolTip": "Name for the VM that will host instance 1",
+                                "defaultValue": "node1-vm",
+                                "visible": true,
+                                "constraints":{
+                                    "regex": "^[a-z0-9A-Z-]{3,50}$",
+                                    "validationMessage": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 50 characters long."
+                                }
+                            },
+                            {
+                                "name": "node1AvailabilityZone",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "Availability Zone for Instance 1 VM",
+                                "toolTip": "Should have isntances in separate availability zones",
+                                "defaultValue": ["Zone 1"],
+                                "visible": true,
+                                "multiLine": false,
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Zone 1",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "label": "Zone 2",
+                                            "value": "2"
+                                        },
+                                        {
+                                            "label": "Zone 3",
+                                            "value": "3"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "name": "node1PublicIP",
+                                "label": "Public IP Address for Node1",
+                                "type": "Microsoft.Common.CheckBox",
+                                "visible": true,
+                                "toolTip": "Select whether a public IP address will be added to instance 1",
+                                "constraints": {
+                                    "required": false
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "node2",
+                        "label": "Instance 2",
+                        "type": "Microsoft.Common.Section",
+                        "visible": true,
+                        "elements": [
+                            {
+                                "name": "node2Name",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "VM name for instance 2",
+                                "toolTip": "Name for the VM that will host instance 2",
+                                "defaultValue": "node2-vm",
+                                "visible": true,
+                                "constraints":{
+                                    "regex": "^[a-z0-9A-Z-]{3,50}$",
+                                    "validationMessage": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 50 characters long."
+                                }
+                            },
+                            {
+                                "name": "node2AvailabilityZone",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "Availability Zone for Instance 2 VM",
+                                "toolTip": "Should have isntances in separate availability zones",
+                                "defaultValue": ["Zone 2"],
+                                "visible": true,
+                                "multiLine": false,
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Zone 1",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "label": "Zone 2",
+                                            "value": "2"
+                                        },
+                                        {
+                                            "label": "Zone 3",
+                                            "value": "3"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "name": "node2PublicIP",
+                                "label": "Public IP Address for Node1",
+                                "type": "Microsoft.Common.CheckBox",
+                                "visible": true,
+                                "toolTip": "Select whether a public IP address will be added to instance 2",
+                                "constraints": {
+                                    "required": false
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "node3",
+                        "label": "Instance 3",
+                        "type": "Microsoft.Common.Section",
+                        "visible": true,
+                        "elements": [
+                            {
+                                "name": "node3Name",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "VM name for instance 3",
+                                "toolTip": "Name for the VM that will host instance 3",
+                                "defaultValue": "node3-vm",
+                                "visible": true,
+                                "constraints":{
+                                    "regex": "^[a-z0-9A-Z-]{3,50}$",
+                                    "validationMessage": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 50 characters long."
+                                }
+                            },
+                            {
+                                "name": "node3AvailabilityZone",
+                                "type": "Microsoft.Common.DropDown",
+                                "label": "Availability Zone for Instance 3 VM",
+                                "toolTip": "Should have isntances in separate availability zones",
+                                "defaultValue": ["Zone 3"],
+                                "visible": true,
+                                "multiLine": false,
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Zone 1",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "label": "Zone 2",
+                                            "value": "2"
+                                        },
+                                        {
+                                            "label": "Zone 3",
+                                            "value": "3"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "name": "node3PublicIP",
+                                "label": "Public IP Address for Node3",
+                                "type": "Microsoft.Common.CheckBox",
+                                "visible": true,
+                                "toolTip": "Select whether a public IP address will be added to instance 1",
+                                "constraints": {
+                                    "required": false
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "keyVault",
+                        "label": "Key Vault",
+                        "type": "Microsoft.Common.Section",
+                        "elements": [
+                            {
+                                "name": "checkVaultName",
+                                "type": "Microsoft.Solutions.ArmApiControl",
+                                "request": {
+                                    "method": "POST",
+                                    "path": "[concat(subscription().id, '/providers/Microsoft.KeyVault/checkNameAvailability?api-version=2022-07-01')]",
+                                    "body": {
+                                        "name": "[ steps('saferPayments').keyVault.vaultName ]",
+                                        "type": "Microsoft.KeyVault/vaults"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "vaultName",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Name for new key vault",
+                                "toolTip": "The key vault will store the credentials for the safer payments virtual machines",
+                                "defaultValue": "[ concat( resourceGroup().name, '-keyvault' ) ]",
+                                "visible": true,
+                                "constraints":{
+                                    "required": true,
+                                    "validations": [
+                                        {
+                                            "regex": "^[a-z0-9A-Z-]{3,64}$",
+                                            "message": "Only alphanumeric characters are allowed and value must be between 3 and 64 characters in length"
+                                        },
+                                        {
+                                            "isValid": "[ steps('saferPayments').keyVault.checkVaultName.nameAvailable ]",
+                                            "message": "Key vault name is not available"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "name": "keyName",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Name for new ssh key in the vault",
+                                "toolTip": "The name of the key that will store the credentials for the safer payments virtual machines",
+                                "defaultValue": "safer-payments-ssh-key",
+                                "visible": true,
+                                "constraints":{
+                                    "required": true,
+                                    "validations": [
+                                        {
+                                            "regex": "^[a-z0-9A-Z-]{3,64}$",
+                                            "message": "Only alphanumeric characters are allowed and value must be between 3 and 64 characters in length"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "jumpboxSection",
+                "label": "Jumpbox",
+                "elements": [
+                    {
+                        "name": "jumpboxName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Name of the jumpbox virtual machine",
+                        "toolTip": "This VM will bootstrap the safer payments cluster",
+                        "defaultValue": "jumpbox-vm",
+                        "constraints": {
+                            "regex": "^[a-z0-9A-Z-]{3,50}$",
+                            "validationMessage": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 50 characters long."
+                        }
+                    },
+                    {
+                        "name": "jumpboxCredentials",
+                        "type": "Microsoft.Compute.CredentialsCombo",
+                        "osPlatform": "Linux",
+                        "visible": true,
+                        "options": {
+                            "hideConfirmation": false,
+                            "hidePassword": false
+                        },
+                        "label": {
+                            "authenticationType": "Authentication Type",
+                            "password": "Password",
+                            "confirmPassword": "Confirm Password",
+                            "sshPublicKey": "SSH public key"
+                        },
+                        "toolTip": {
+                            "authenticationType": "Select the type of authentication. SSH key is recommended.",
+                            "password": "",
+                            "sshPublicKey": ""
+                        },
+                        "constraints": {
+                            "required": true,
+                            "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                            "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+                        }
+                    },
+                    {
+                        "name": "jumpboxPublicIP",
+                        "label": {
+                            "publicIpAddress": "Public IP address for Jumpbox",
+                            "domainNameLabel": "nodomain"
+                        },
+                        "type": "Microsoft.Network.PublicIpAddressCombo",
+                        "toolTip": {
+                            "publicIpAddress": "Public IP address for jump box",
+                            "domainNameLabel": ""
+                        },
+                        "defaultValue": {
+                            "publicIpAddressName": "jumpbox-pip",
+                            "domainNameLabel": ""
+                        },
+                        "constraints": {
+                            "required": {
+                                "domainNameLabel": false
+                            }
+                        },
+                        "options": {
+                            "hideNone": false,
+                            "hideDomainNameLabel": true,
+                            "hideExisting": false
+                        },
+                        "visible": true
+                    }
+                ]
+            },
+            {
+                "name": "frontEnd",
+                "label": "Front End",
+                "elements": [
+                    {
+                        "name": "loadBalancer",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Load Balancer",
+                        "elements": [
+                            {
+                                "name": "loadBalancerName",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Name for the load balancer",
+                                "defaultValue": "loadbalancer",
+                                "visible": true,
+                                "constraints":{
+                                    "required": false,
+                                    "regex": "^[a-z0-9A-Z-]{3,50}$",
+                                    "validationMessage": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 50 characters long."
+                                }
+                            },
+                            {
+                                "name": "loadBalancerIp",
+                                "label": {
+                                    "publicIpAddress": "Front End IP Address",
+                                    "domainNameLabel": "Front End Domain Name"
+                                },
+                                "type": "Microsoft.Network.PublicIpAddressCombo",
+                                "visible": true,
+                                "toolTip": {
+                                    "publicIpAddress": "This will be the public IP address for application access",
+                                    "domainNameLabel": "This will be the domain name for the public IP"
+                                },
+                                "defaultValue": {
+                                    "publicIpAddressName": "safer-payments-pip",
+                                    "domainNameLabel": ""
+                                },
+                                "constraints": {
+                                    "required": {
+                                        "domainNameLabel": false
+                                    }
+                                },
+                                "options": {
+                                    "hideExisting": false,
+                                    "hideDomainNameLabel": false,
+                                    "hideNone": true
+                                }
+                            },
+                            {
+                                "name": "domainNameInfo",
+                                "type": "Microsoft.Common.InfoBox",
+                                "visible": "[ if( equals( steps('frontEnd').loadBalancer.loadBalancerIp.domainNameLabel, '' ), false, true ) ]",
+                                "options": {
+                                    "icon": "Info",
+                                    "text": "[ concat( 'The Safer Payments application will be available at http://', steps('frontEnd').loadBalancer.loadBalancerIp.domainNameLabel, '.',location(),'.cloadapp.azure.com:8001' ) ]"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "binaryPath": "[ steps('saferPayments').binaryPath ]",
+            "tshirtSize": "[ steps('saferPayments').tshirtSize ]",
+            "acceptLicense": "[ steps('saferPayments').acceptLicense ]",
+            "location": "[ location() ]",
+            "vnetName": "[ steps('networking').vnet.name ]",
+            "vnetCidr": "[ first( steps('networking').vnet.addressPrefixes ) ]",
+            "vmSubnetName": "[ steps('networking').vnet.subnets.vmSubnet.name ]",
+            "vmSubnetCidr": "[ steps('networking').vnet.subnets.vmSubnet.addressPrefix ]",
+            "jumpboxName": "[ steps('saferPayments').jumpboxSection.jumpboxName ]",
+            "jumpboxPublicIP": "[ if( equals( steps('saferPayments').jumpboxSection.jumpboxPublicIP,newOrExistingOrNone , 'none' ), false, true ) ]",
+            "node1Name": "[ steps('saferPayments').node1.node1Name ]",
+            "node2Name": "[ steps('saferPayments').node2.node2Name ]",
+            "node3Name": "[ steps('saferPayments').node3.node3Name ]",
+            "adminUserName": "[ steps('saferPayments').adminUserName ]",
+            "adminPassword": "[ steps('saferPayments').jumpboxCredentials.password ]",
+            "authType": "[ steps('saferPayments').jumpboxCredentials.authenticationType ]",
+            "createVMPublicIP-node1": "[ steps('saferPayments').node1.node1PublicIP ]",
+            "createVMPublicIP-node2": "[ steps('saferPayments').node2.node2PublicIP ]",
+            "createVMPublicIP-node3": "[ steps('saferPayments').node3.node3PublicIP ]",
+            "node1AvailabilityZone": "[ steps('saferPayments').node1.node1AvailabilityZone ]",
+            "node2AvailabilityZone" : "[ steps('saferPayments').node2.node2AvailabilityZone ]",
+            "node3AvailabilityZone" : "[ steps('saferPayments').node2.node3AvailabilityZone ]",
+            "loadBalancerName": "[ steps('frontEnd').loadBalancer.loadBalancerName ]",
+            "domainName": "[ steps('frontEnd').loadBalancer.loadBalancerIp.domainNameLabel ]",
+            "vaultName": "[ steps('saferPayments').keyVault.vaultName ]",
+            "keyName": "[ steps('saferPayments').keyVault.keytName ]",
+            "deployKeyVault": ""
+        }
+    }
+}
