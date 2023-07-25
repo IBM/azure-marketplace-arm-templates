@@ -66,7 +66,7 @@
                             "addressPrefixSize": "/20"
                         },
                         "constraints": {
-                            "minAddressPrefixSize": "/20"
+                            "minAddressPrefixSize": "/22"
                         },
                         "options": {
                             "hideExisting": false
@@ -77,6 +77,30 @@
                                 "defaultValue": {
                                     "name": "vm-subnet",
                                     "addressPrefixSize": "/24"
+                                },
+                                "constraints": {
+                                    "minAddressCount": 5,
+                                    "minAddressPrefixSize": "/26",
+                                    "requireContiguousAddresses": false
+                                }
+                            },
+                            "bastionSubnet": {
+                                "label": "Bastion Host Subnet",
+                                "defaultValue": {
+                                    "name": "AzureBastionSubnet",
+                                    "addressPrefixSize": "/24"
+                                },
+                                "constraints": {
+                                    "minAddressCount": 3,
+                                    "minAddressPrefixSize": "/26",
+                                    "requireContiguousAddresses": false
+                                }
+                            },
+                            "firewallSubnet": {
+                                "label": "Azure Firewall Subnet",
+                                "defaultValue": {
+                                    "name": "AzureFirewallSubnet",
+                                    "addressPrefixSize": "/26"
                                 },
                                 "constraints": {
                                     "minAddressCount": 3,
@@ -398,7 +422,7 @@
                 ]
             },
             {
-                "name": "jumpboxSection",
+                "name": "jumpbox",
                 "label": "Jumpbox",
                 "elements": [
                     {
@@ -472,6 +496,33 @@
                 "label": "Front End",
                 "elements": [
                     {
+                        "name": "bastion",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Bastion Service",
+                        "elements": [
+                            {
+                                "name": "deployBastion",
+                                "type": "Microsoft.Common.OptionsGroup",
+                                "label": "Deploy Azure bastion service",
+                                "toolTip": "Allows access to deployed virtual machines",
+                                "defaultValue": "Do not deploy Bastion",
+                                "visible": true,
+                                "constraints": {
+                                    "allowedValues": [
+                                        {
+                                            "label": "Deploy Bastion",
+                                            "value": true
+                                        },
+                                        {
+                                            "label": "Do not deploy Bastion",
+                                            "value": false
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
                         "name": "loadBalancer",
                         "type": "Microsoft.Common.Section",
                         "label": "Load Balancer",
@@ -480,7 +531,7 @@
                                 "name": "loadBalancerName",
                                 "type": "Microsoft.Common.TextBox",
                                 "label": "Name for the load balancer",
-                                "defaultValue": "loadbalancer",
+                                "defaultValue": "safer-payments-lb",
                                 "visible": true,
                                 "constraints":{
                                     "required": false,
@@ -544,8 +595,8 @@
             "node2Name": "[ steps('saferPayments').node2.node2Name ]",
             "node3Name": "[ steps('saferPayments').node3.node3Name ]",
             "adminUserName": "[ steps('saferPayments').adminUserName ]",
-            "adminPassword": "[ steps('saferPayments').jumpboxCredentials.password ]",
-            "authType": "[ steps('saferPayments').jumpboxCredentials.authenticationType ]",
+            "adminPassword": "[ steps('jumpbox').jumpboxCredentials.password ]",
+            "authType": "[ steps('jumpbox').jumpboxCredentials.authenticationType ]",
             "createVMPublicIP-node1": "[ steps('saferPayments').node1.node1PublicIP ]",
             "createVMPublicIP-node2": "[ steps('saferPayments').node2.node2PublicIP ]",
             "createVMPublicIP-node3": "[ steps('saferPayments').node3.node3PublicIP ]",
@@ -556,6 +607,7 @@
             "domainName": "[ steps('frontEnd').loadBalancer.loadBalancerIp.domainNameLabel ]",
             "vaultName": "[ steps('saferPayments').keyVault.vaultName ]",
             "keyName": "[ steps('saferPayments').keyVault.keytName ]",
+            "deployBastion": "[ steps('frontEnd').bastion.deployBastion ]",
             "deployKeyVault": ""
         }
     }
