@@ -82,13 +82,13 @@ function start-safer-payments() {
     REMOTE_USER=${5}
 
     log-output "INFO: Starting safer payments on node 1"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE1_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=1 & ' > /dev/null &
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE1_IP 'sudo systemctl start iris'
 
     log-output "INFO: Starting safer payments on node 2"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE2_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=2 & ' > /dev/null &
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE2_IP 'sudo systemctl start iris'
 
     log-output "INFO: Starting safer payments on node 3"
-    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE3_IP 'cd /instancePath/cfg && sudo -u SPUser iris console id=3 & ' > /dev/null &    
+    sudo -u $LOCAL_USER ssh $ADMINUSER@$NODE3_IP 'sudo systemctl start iris' 
 }
 
 function remote-install-safer-payments() {
@@ -198,6 +198,47 @@ function remote-install-safer-payments() {
         remote-command $CONNECTION_PROPERTIES "sudo firewall-cmd --zone=public --add-port=${port}/tcp --permanent"
     done
     remote-command $CONNECTION_PROPERTIES "sudo firewall-cmd --reload"
+}
+
+function configure-service() {
+    REMOTE_IP=${1}
+    LOCAL_USER=${2}
+    REMOTE_USER=${3}
+    INSTANCE_ID=${4}
+
+    CONNECTION_PROPERTIES="$LOCAL_USER $REMOTE_USER $REMOTE_IP"
+
+    if [[ -z $SCRIPT_DIR ]]; then SCRIPT_DIR="/tmp"; fi
+
+    if [[ -f /${SCRIPT_DIR}/iris.service ]]; then rm /${SCRIPT_DIR}/iris.service; fi
+
+    cat << EOF >> /${SCRIPT_DIR}/iris.service
+[Unit]
+Description=Safer Payments Service
+After=network.target
+[Service]
+Type=simple
+User=SPUser
+ExecStart=/usr/bin/iris rootpath=/instancePath id=${INSTANCE_ID}
+Restart=no
+TimeoutSec=0
+TimeoutStartSec=0
+TimeoutStopSec=0
+SendSIGKILL=no
+KillSignal=SIGTERM
+LimitNOFILE=32768
+LimitNPROC=8192
+LimitRTPRIO=20
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo -u $LOCAL_USER scp /${SCRIPT_DIR}/iris.service $REMOTE_USER@$REMOTE_IP:/tmp/iris/
+
+    remote-command $CONNECTION_PROPERTIES "sudo cp /tmp/iris/iris.service /etc/systemd/system/iris.service"
+    remote-command $CONNECTION_PROPERTIES "sudo systemctl daemon-reload"
+    remote-command $CONNECTION_PROPERTIES "sudo systemctl enable iris"
+
 }
 
 log-output "INFO: Script started"
@@ -792,6 +833,11 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
     # Stop any running Safer Payments
     stop-safer-payments $NODE1_IP $NODE2_IP $NODE3_IP $ADMINUSER $ADMINUSER
     sleep 60
+
+    # Configure Safer Payments as a service on each node
+    configure-service $NODE1_IP $ADMINUSER $ADMINUSER 1
+    configure-service $NODE2_IP $ADMINUSER $ADMINUSER 2
+    configure-service $NODE3_IP $ADMINUSER $ADMINUSER 3
     
     # Start services
     start-safer-payments $NODE1_IP $NODE2_IP $NODE3_IP $ADMINUSER $ADMINUSER
