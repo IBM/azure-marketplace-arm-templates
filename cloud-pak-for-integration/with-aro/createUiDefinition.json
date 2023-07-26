@@ -18,11 +18,11 @@
 								"message": "Must be able to create an OpenShift cluster in the resource group"
 							},
                             {
-								"permission": "Microsoft.Network.virtualNetworks/create",
+								"permission": "Microsoft.Network/virtualNetworks/create",
 								"message": "Must be able to create a virtual network in the resource group"
 							},
                             {
-								"permission": "Microsoft.Network.publicIPAddress/create",
+								"permission": "Microsoft.Network/publicIPAddress/create",
 								"message": "Must be able to create a virtual network in the resource group"
 							}
 						]
@@ -35,10 +35,10 @@
 						"Microsoft.Resources/deploymentScripts",
                         "Microsoft.Resources/deployments",
 						"Microsoft.ManagedIdentity/userAssignedIdentities",
-                        "Microsoft.Authorization.roleAssignments",
+                        "Microsoft.Authorization/roleAssignments",
 						"Microsoft.Storage/storageAccounts",
-                        "Microsoft.Network.virtualNetworks",
-                        "Microsoft.Network.publicIPAddress",
+                        "Microsoft.Network/virtualNetworks",
+                        "Microsoft.Network/publicIPAddress",
                         "Microsoft.RedHatOpenShift/OpenShiftClusters"
 					]
 				}
