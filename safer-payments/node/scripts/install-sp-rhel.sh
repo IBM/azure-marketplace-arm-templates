@@ -649,100 +649,100 @@ done
 #######
 # Create load balancer
 
-if [[ -z $(az network lb list --resource-group $RESOURCE_GROUP -o table | grep $LB_NAME) ]]; then
+# if [[ -z $(az network lb list --resource-group $RESOURCE_GROUP -o table | grep $LB_NAME) ]]; then
     
-    # Create public IP for the load balancer
-    if [[ -z $(az network public-ip list --resource-group $RESOURCE_GROUP -o table | grep $LB_PIP_NAME) ]]; then
-        log-output "INFO: Creating public IP $LB_PIP_NAME in $RESOURCE_GROUP for the load balancer"
-        az network public-ip create \
-            --resource-group $RESOURCE_GROUP \
-            --name $LB_PIP_NAME \
-            --dns-name $LB_DOMAIN_NAME \
-            --sku Standard \
-            --zone 1 2 3 > /dev/null 2>&1
-        if (( $? != 0 )); then 
-            log-output "ERROR: Failed to create public ip $LB_PIP_NAME in $RESOURCE_GROUP"
-            exit 1
-        fi
-    else
-        log-output "INFO: Public IP $LB_PIP_NAME already exists in $RESOURCE_GROUP"
-    fi
+#     # Create public IP for the load balancer
+#     if [[ -z $(az network public-ip list --resource-group $RESOURCE_GROUP -o table | grep $LB_PIP_NAME) ]]; then
+#         log-output "INFO: Creating public IP $LB_PIP_NAME in $RESOURCE_GROUP for the load balancer"
+#         az network public-ip create \
+#             --resource-group $RESOURCE_GROUP \
+#             --name $LB_PIP_NAME \
+#             --dns-name $LB_DOMAIN_NAME \
+#             --sku Standard \
+#             --zone 1 2 3 > /dev/null 2>&1
+#         if (( $? != 0 )); then 
+#             log-output "ERROR: Failed to create public ip $LB_PIP_NAME in $RESOURCE_GROUP"
+#             exit 1
+#         fi
+#     else
+#         log-output "INFO: Public IP $LB_PIP_NAME already exists in $RESOURCE_GROUP"
+#     fi
 
-    # Create the load balancer
-    log-output "INFO: Creating load balancer front end $LB_NAME in $RESOURCE_GROUP"
-    az network lb create \
-        --resource-group $RESOURCE_GROUP \
-        --name $LB_NAME \
-        --sku Standard \
-        --public-ip-address $LB_PIP_NAME \
-        --frontend-ip-name $LB_FRONTEND_NAME \
-        --backend-pool-name $LB_BACKEND_NAME > /dev/null 2>&1
-    if (( $? != 0 )); then
-        log-output "ERROR: Failed to create load balancer $LB_NAME in $RESOURCE_GROUP"
-        exit 1
-    fi
+#     # Create the load balancer
+#     log-output "INFO: Creating load balancer front end $LB_NAME in $RESOURCE_GROUP"
+#     az network lb create \
+#         --resource-group $RESOURCE_GROUP \
+#         --name $LB_NAME \
+#         --sku Standard \
+#         --public-ip-address $LB_PIP_NAME \
+#         --frontend-ip-name $LB_FRONTEND_NAME \
+#         --backend-pool-name $LB_BACKEND_NAME > /dev/null 2>&1
+#     if (( $? != 0 )); then
+#         log-output "ERROR: Failed to create load balancer $LB_NAME in $RESOURCE_GROUP"
+#         exit 1
+#     fi
 
-    # Create the health probe
-    if [[ -z $(az network lb probe list --lb-name $LB_NAME --resource-group $RESOURCE_GROUP -o table | grep $LB_PROBE_NAME) ]]; then
-        log-output "INFO: Creating health probe $LB_PROBE_NAME for $LB_NAME in $RESOURCE_GROUP"
-        az network lb probe create \
-            --resource-group $RESOURCE_GROUP \
-            --lb-name $LB_NAME \
-            --name $LB_PROBE_NAME \
-            --protocol tcp \
-            --port 8001 > /dev/null 2>&1
-        if (( $? != 0 )); then
-            log-output "ERROR: Failed to create load balancer probe $LB_PROBE_NAME for $LB_NAME in $RESOURCE_GROUP"
-            exit 1
-        fi
-    else
-        log-output "INFO: Health probe $LB_PROBE_NAME already exists for $LB_NAME in $RESOURCE_GROUP"
-    fi
+#     # Create the health probe
+#     if [[ -z $(az network lb probe list --lb-name $LB_NAME --resource-group $RESOURCE_GROUP -o table | grep $LB_PROBE_NAME) ]]; then
+#         log-output "INFO: Creating health probe $LB_PROBE_NAME for $LB_NAME in $RESOURCE_GROUP"
+#         az network lb probe create \
+#             --resource-group $RESOURCE_GROUP \
+#             --lb-name $LB_NAME \
+#             --name $LB_PROBE_NAME \
+#             --protocol tcp \
+#             --port 8001 > /dev/null 2>&1
+#         if (( $? != 0 )); then
+#             log-output "ERROR: Failed to create load balancer probe $LB_PROBE_NAME for $LB_NAME in $RESOURCE_GROUP"
+#             exit 1
+#         fi
+#     else
+#         log-output "INFO: Health probe $LB_PROBE_NAME already exists for $LB_NAME in $RESOURCE_GROUP"
+#     fi
 
-    # Create load balancer rule
-    if [[ -z $(az network lb rule list --lb-name $LB_NAME --resource-group $RESOURCE_GROUP -o table | grep $LB_RULE_NAME) ]]; then
-        log-output "INFO: Creating load balancer rule $LB_RULE_NAME for $LB_NAME in $RESOURCE_GROUP"
-        az network lb rule create \
-            --name $LB_RULE_NAME \
-            --resource-group $RESOURCE_GROUP \
-            --lb-name $LB_NAME \
-            --protocol tcp \
-            --frontend-port 8001 \
-            --backend-port 8001 \
-            --frontend-ip-name $LB_FRONTEND_NAME \
-            --backend-pool-name $LB_BACKEND_NAME \
-            --probe-name $LB_PROBE_NAME \
-            --disable-outbound-snat true \
-            --idle-timeout 15 \
-            --enable-tcp-reset true > /dev/null 2>&1
-        if (( $? != 0 )); then
-            log-output "ERROR: Failed to create load balancer rule $LB_RULE_NAME for $LB_NAME in $RESOURCE_GROUP"
-            exit 1
-        fi
-    else
-        log-output "INFO: Load balancer rule $LB_RULE_NAME for $LB_NAME already exists in $RESOURCE_GROUP"
-    fi
+#     # Create load balancer rule
+#     if [[ -z $(az network lb rule list --lb-name $LB_NAME --resource-group $RESOURCE_GROUP -o table | grep $LB_RULE_NAME) ]]; then
+#         log-output "INFO: Creating load balancer rule $LB_RULE_NAME for $LB_NAME in $RESOURCE_GROUP"
+#         az network lb rule create \
+#             --name $LB_RULE_NAME \
+#             --resource-group $RESOURCE_GROUP \
+#             --lb-name $LB_NAME \
+#             --protocol tcp \
+#             --frontend-port 8001 \
+#             --backend-port 8001 \
+#             --frontend-ip-name $LB_FRONTEND_NAME \
+#             --backend-pool-name $LB_BACKEND_NAME \
+#             --probe-name $LB_PROBE_NAME \
+#             --disable-outbound-snat true \
+#             --idle-timeout 15 \
+#             --enable-tcp-reset true > /dev/null 2>&1
+#         if (( $? != 0 )); then
+#             log-output "ERROR: Failed to create load balancer rule $LB_RULE_NAME for $LB_NAME in $RESOURCE_GROUP"
+#             exit 1
+#         fi
+#     else
+#         log-output "INFO: Load balancer rule $LB_RULE_NAME for $LB_NAME already exists in $RESOURCE_GROUP"
+#     fi
 
-    # Add VMs for backend pool
-    declare NODES=( "$NODE1_NAME" "$NODE2_NAME" "$NODE3_NAME" )
-    for node in ${NODES[@]}; do
-        log-output "INFO: Adding $node to backend pool $LB_BACKEND_NAME"
-        nic=$(az vm nic list -g $RESOURCE_GROUP --vm-name $node --query '[0].id' -o tsv | awk -F'/' '{print $9}')
-        ip_config=$(az network nic show -o json -n $nic -g $RESOURCE_GROUP --query 'ipConfigurations[0].name' -o tsv)
-        az network nic ip-config address-pool add \
-            --address-pool $LB_BACKEND_NAME \
-            --ip-config-name $ip_config \
-            --nic-name $nic \
-            --resource-group $RESOURCE_GROUP \
-            --lb-name $LB_NAME > /dev/null 2>&1
-        if (( $? != 0 )); then
-            log-output "ERROR: Failed to add $node to backend pool $LB_BACKEND_NAME in $LB_NAME"
-            exit 1
-        fi
-    done
-else
-    log-output "INFO: Load balancer $LB_NAME already exists in $RESOURCE_GROUP"
-fi
+#     # Add VMs for backend pool
+#     declare NODES=( "$NODE1_NAME" "$NODE2_NAME" "$NODE3_NAME" )
+#     for node in ${NODES[@]}; do
+#         log-output "INFO: Adding $node to backend pool $LB_BACKEND_NAME"
+#         nic=$(az vm nic list -g $RESOURCE_GROUP --vm-name $node --query '[0].id' -o tsv | awk -F'/' '{print $9}')
+#         ip_config=$(az network nic show -o json -n $nic -g $RESOURCE_GROUP --query 'ipConfigurations[0].name' -o tsv)
+#         az network nic ip-config address-pool add \
+#             --address-pool $LB_BACKEND_NAME \
+#             --ip-config-name $ip_config \
+#             --nic-name $nic \
+#             --resource-group $RESOURCE_GROUP \
+#             --lb-name $LB_NAME > /dev/null 2>&1
+#         if (( $? != 0 )); then
+#             log-output "ERROR: Failed to add $node to backend pool $LB_BACKEND_NAME in $LB_NAME"
+#             exit 1
+#         fi
+#     done
+# else
+#     log-output "INFO: Load balancer $LB_NAME already exists in $RESOURCE_GROUP"
+# fi
 
 if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
@@ -835,8 +835,13 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
     sleep 60
 
     # Configure Safer Payments as a service on each node
+    log-output "INFO: Configuring Safer Payments service on node 1"
     configure-service $NODE1_IP $ADMINUSER $ADMINUSER 1
+
+    log-output "INFO: Configuring Safer Payments service on node 2"
     configure-service $NODE2_IP $ADMINUSER $ADMINUSER 2
+
+    log-output "INFO: Configuring Safer Payments service on node 3"
     configure-service $NODE3_IP $ADMINUSER $ADMINUSER 3
     
     # Start services
@@ -845,3 +850,5 @@ if [[ $ACCEPT_LICENSE == "yes" ]]; then
 else
     log-output "INFO: License not accepted. Safer Payments not installed"
 fi
+
+log-output "INFO: Script completed"
