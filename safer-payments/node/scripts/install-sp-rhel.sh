@@ -324,7 +324,11 @@ log-output "INFO: Setting up node as $INSTANCE"
 log-output "INFO: Binary path is $BINARY_URL"
 log-output "INFO: Resource group is $RESOURCE_GROUP"
 log-output "INFO: Location is $LOCATION"
-log-output "INFO: KeyVault name is $VAULT_NAME"
+if [[ $VAULT_NAME != "" ]]; then 
+    log-output "INFO: KeyVault name is $VAULT_NAME"
+else
+    log-output "INFO: Vault name not set. Will not upload SSH key to Vault"
+fi
 log-output "INFO: SSH Key name is $KEY_NAME"
 log-output "INFO: Admin user is $ADMINUSER"
 log-output "INFO: Node 1 Name is $NODE1_NAME"
@@ -466,11 +470,13 @@ fi
 
 ######
 # Upload keypair to vault
-if [[ -z $(az keyvault secret list --vault-name $VAULT_NAME -o table | grep ${KEY_NAME}-private ) ]]; then
-    log-output "INFO: Uploading private key ${KEY_NAME}-private to key vault $VAULT_NAME"
-    az keyvault secret set --name "${KEY_NAME}-private" --vault-name $VAULT_NAME --file "/home/$ADMINUSER/.ssh/id_rsa"
-else
-    log-output "INFO: Private key ${KEY_NAME}-private already exists in key vault $VAULT_NAME"
+if [[ $VAULT_NAME != "" ]]; then
+    if [[ -z $(az keyvault secret list --vault-name $VAULT_NAME -o table | grep ${KEY_NAME}-private ) ]]; then
+        log-output "INFO: Uploading private key ${KEY_NAME}-private to key vault $VAULT_NAME"
+        az keyvault secret set --name "${KEY_NAME}-private" --vault-name $VAULT_NAME --file "/home/$ADMINUSER/.ssh/id_rsa"
+    else
+        log-output "INFO: Private key ${KEY_NAME}-private already exists in key vault $VAULT_NAME"
+    fi
 fi
 
 #######

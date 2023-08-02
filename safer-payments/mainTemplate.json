@@ -762,7 +762,7 @@
                                 "location": "[parameters('location')]",
                                 "resourceGroup": "[resourceGroup().name]",
                                 "keyName": "[parameters('keyName')]",
-                                "vaultName": "[parameters('vaultName')]",
+                                "vaultName": "[if(parameters('deployKeyVault'),parameters('vaultName'), '' )]",
                                 "vnetName": "[parameters('vnetName')]",
                                 "subnetName": "[parameters('vmSubnetName')]",
                                 "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName'))]",
