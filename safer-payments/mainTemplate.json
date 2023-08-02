@@ -195,30 +195,30 @@
                 "description": "Name of the ssh key for the nodes that will be created"
             }
         },
-        "deployNode1": {
+        "deployJumpbox": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": "Flag to determine whether to deploy Node 1 VM"
+                "description": "Flag to determine whether to deploy Jumpbox (debug only)"
             }
         },
         "node1Name": {
             "type": "string",
-            "defaultValue": "node1-vm",
+            "defaultValue": "[concat(resourceGroup().name,'-node1-vm')]",
             "metadata": {
                 "description": "VM name for node 1"
             }
         },
         "node2Name": {
             "type": "string",
-            "defaultValue": "node2-vm",
+            "defaultValue": "[concat(resourceGroup().name,'-node2-vm')]",
             "metadata": {
                 "description": "VM name for node 2"
             }
         },
         "node3Name": {
             "type": "string",
-            "defaultValue": "node3-vm",
+            "defaultValue": "[concat(resourceGroup().name,'-node3-vm')]",
             "metadata": {
                 "description": "VM name for node 3"
             }
@@ -726,7 +726,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "condition": "[parameters('deployNode1')]",
+            "condition": "[parameters('deployJumpbox')]",
             "name": "deployJumpBox",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
