@@ -4,8 +4,6 @@
     "parameters": {
         "namePrefix": {
             "type": "string",
-            "minLength": 2,
-            "maxLength": 10,
             "metadata": {
                 "description": "Prefix for resource names"
             }
@@ -38,7 +36,7 @@
         }
     },
     "variables": {
-        "publicIpAddressName": "[concat(parameters('namePrefix'), '-bastion-public-ip')]",
+        "publicIpAddressName": "[concat(parameters('namePrefix'), '-bastion-pip')]",
         "bastionNSGName": "[concat(parameters('namePrefix'), '-bastion-nsg')]",
         "bastionHostName": "[concat(parameters('namePrefix'), '-bastion-vm')]"
     },
@@ -217,5 +215,11 @@
                 "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('bastionSubnetName'))]"
             ]
         }
-    ]
+    ],
+    "outputs": {
+        "publicIP": {
+            "type": "string",
+            "value": "[reference( resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName')), '2022-11-01' ).ipAddress]"
+        }
+    }
 }
