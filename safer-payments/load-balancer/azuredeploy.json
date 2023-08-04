@@ -427,6 +427,11 @@
             "type": "string",
             "condition": "[if( equals( parameters('publicOrPrivate'), 'Public' ), true(), false() )]",
             "value": "[reference(parameters('publicIpName')).dnsSettings.fqdn]"
+        },
+        "privateIP": {
+            "type": "string",
+            "condition": "[if( equals( parameters('publicOrPrivate'), 'Private' ), true(), false() )]",
+            "value": "[reference( resourceId('Microsoft.Network/loadBalancers', parameters('lbName')), '2022-11-01' ).frontendIPConfigurations[0].properties.privateIPAddress]"
         }
     }
 }

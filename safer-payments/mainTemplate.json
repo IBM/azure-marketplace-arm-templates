@@ -825,9 +825,66 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployLoadBalancer')]",
-            "name": "deployLoadBalancer",
+            "name": "getNicParameters",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployCluster')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "node1Name": {
+                        "value": "[parameters('node1Name')]"
+                    },
+                    "node2Name": {
+                        "value": "[parameters('node2Name')]"
+                    },
+                    "node3Name": {
+                        "value": "[parameters('node3Name')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "node1Name": {
+                            "type": "string"
+                        },
+                        "node2Name": {
+                            "type": "string"
+                        },
+                        "node3Name": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [],
+                    "outputs": {
+                        "nic1Id": {
+                            "type": "string",
+                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node1Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                        },
+                        "nic2Id": {
+                            "type": "string",
+                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node2Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                        },
+                        "nic3Id": {
+                            "type": "string",
+                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node3Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployLoadBalancer')]",
+            "name": "deployLoadBalancer",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployCluster')]",
+                "[resourceId('Microsoft.Resources/deployments', 'getNicParameters')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -858,23 +915,28 @@
                         "value": "[parameters('domainName')]"
                     },
                     "nic1Id": {
-                        "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node1Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                        "value": "[reference('getNicParameters').outputs['nic1Id'].value]"
                     },
                     "nic2Id": {
-                        "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node2Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                        "value": "[reference('getNicParameters').outputs['nic2Id'].value]"
                     },
                     "nic3Id": {
-                        "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node3Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                        "value": "[reference('getNicParameters').outputs['nic3Id'].value]"
                     }
                 }
             }
         }
     ],
     "outputs": {
-        "saferPaymentsUrl": {
+        "saferPaymentsPublicUrl": {
             "type": "string",
-            "condition": "[and(parameters('deployLoadBalancer'),parameters('deployCluster'))]",
+            "condition": "[and(parameters('deployLoadBalancer'),parameters('deployCluster'),parameters('lbPublic'))]",
             "value": "[concat('http://',reference('deployLoadBalancer').outputs['fqdn'].value,':8001/')]"
+        },
+        "saferPaymentsPrivateUrl": {
+            "type": "string",
+            "condition": "[and(parameters('deployLoadBalancer'),parameters('deployCluster'),not(parameters('lbPublic')))]",
+            "value": "[concat('http://',reference('deployLoadBalancer').outputs['privateIP'].value,':8001/')]"
         }
     }
 }
