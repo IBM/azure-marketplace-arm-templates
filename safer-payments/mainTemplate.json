@@ -357,8 +357,7 @@
             }
         },
         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
-        "storageAccountName": "[format('backup{0}', substring(uniqueString(resourceGroup().id),1,5))]"
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
     },
     "resources": [
         {
@@ -517,7 +516,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "[concat('-bastion')]"
+                        "value": "[concat(resourceGroup().name,'-bastion')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
@@ -573,7 +572,6 @@
             "name": "deployCluster",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployBackupFileshare')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployKeyvault')]",
                 "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]",
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]",
@@ -871,5 +869,12 @@
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "saferPaymentsUrl": {
+            "type": "string",
+            "condition": "[and(parameters('deployLoadBalancer'),parameters('deployCluster'))]",
+            "value": "[concat('http://',reference('deployLoadBalancer').outputs['fqdn'].value,':8001/')]"
+        }
+    }
 }

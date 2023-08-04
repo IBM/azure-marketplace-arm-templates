@@ -36,9 +36,9 @@
         }
     },
     "variables": {
-        "publicIpAddressName": "[concat(parameters('namePrefix'), '-bastion-pip')]",
-        "bastionNSGName": "[concat(parameters('namePrefix'), '-bastion-nsg')]",
-        "bastionHostName": "[concat(parameters('namePrefix'), '-bastion-vm')]"
+        "publicIpAddressName": "[concat(parameters('namePrefix'), '-pip')]",
+        "bastionNSGName": "[concat(parameters('namePrefix'), '-nsg')]",
+        "bastionHostName": "[concat(parameters('namePrefix'), '-vm')]"
     },
     "resources": [
         {
