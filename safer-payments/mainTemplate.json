@@ -293,77 +293,11 @@
                 "description": "Availability zone for Node/VM 3"
             }
         },
-        "loadBalancerName": {
-            "type": "string",
-            "defaultValue": "[concat(resourceGroup().name,'-loadbalancer')]",
-            "metadata": {
-                "description" : "Name of the load balancer"
-            }
-        },
         "domainName": {
             "type": "string",
-            "defaultValue": "[toLower( concat('sp',uniqueString(resourceGroup().id)) )]",
+            "defaultValue": "[toLower( concat('sp-',tolower(substring(resourceGroup().id, 1, 5)) ) )]",
             "metadata": {
                 "description": "Domain name prefix for the public IP address of the load balancer"
-            }
-        },
-        "deployBackupStorage": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description" : "Flag to determine whether to deploy a private NFS file share for backups at the DR site."
-            }
-        },
-        "backupStorageShareName": {
-            "type": "string",
-            "defaultValue": "backup",
-            "minLength": 3,
-            "maxLength": 63,
-            "metadata": {
-                "description": "Name of the file share to be created for backups"
-            }
-        },
-        "backupStorageEndpointName": {
-            "type": "string",
-            "defaultValue": "backup-endpoint",
-            "metadata": {
-                "description": "Name of the private endpoint for the storage"
-            }
-        },
-        "backupStorageFileType": {
-            "type": "string",
-            "defaultValue": "Standard_LRS",
-            "allowedValues": [
-                "Premium_LRS",
-                "Premium_ZRS",
-                "Standard_LRS",
-                "Standard_ZRS"
-            ],
-            "metadata": {
-                "description": "Type of storage account. If storage account already exists, this value must match existing storage account."
-            }            
-        },
-        "backupStorageQuota": {
-            "type": "int",
-            "defaultValue": 5120,
-            "minValue": 1,
-            "maxValue": 5120,
-            "metadata": {
-                "description": "Size in GB of the backup storage quota - 5120GB (5TB)max"
-            }
-        },
-        "backupStorageSubnetName": {
-            "type": "string",
-            "defaultValue": "backup-subnet",
-            "metadata": {
-                "description": "Name of the subnet for the backup storage"
-            }
-        },
-        "backupStorageSubnetCidr": {
-            "type": "string",
-            "defaultValue": "10.0.3.0/26",
-            "metadata": {
-                "description": "Subnet CIDR for the backup storage"
             }
         },
         "branch": {
@@ -583,7 +517,7 @@
                 },
                 "parameters": {
                     "namePrefix": {
-                        "value": "primary"
+                        "value": "[concat('-bastion')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
@@ -596,54 +530,6 @@
                     },
                     "bastionSubnetName": {
                         "value": "[parameters('bastionSubnetName')]"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2021-04-01",
-            "condition": "[parameters('deployBackupStorage')]",
-            "name": "deployBackupFileshare",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/file-share/azuredeploy.json'))]",
-                    "contentVersion":"1.0.0.0"
-                },
-                "parameters": {
-                    "storageAccountName": {
-                        "value": "[variables('storageAccountName')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "vnetName": {
-                        "value": "[parameters('vnetName')]"
-                    },
-                    "createSubnet": {
-                        "value": true
-                    },
-                    "subnetName": {
-                        "value": "[parameters('backupStorageSubnetName')]"
-                    },
-                    "subnetCidr": {
-                        "value": "[parameters('backupStorageSubnetCidr')]"
-                    },
-                    "fileType": {
-                        "value": "[parameters('backupStorageFileType')]"
-                    },
-                    "privateStorageEndpointName": {
-                        "value": "[parameters('backupStorageEndpointName')]"
-                    },
-                    "fileShareName": {
-                        "value": "[parameters('backupStorageShareName')]"
-                    },
-                    "quota": {
-                        "value": "[parameters('backupStorageQuota')]"
                     }
                 }
             }
@@ -712,64 +598,59 @@
                         "value": "[variables('deployScript')]"
                     },
                     "inputParameters" : {
-                            "value": {
-                                "binaryPath": "[parameters('binaryPath')]",
-                                "acceptLicense": "[parameters('acceptLicense')]",
-                                "adminUser": "[parameters('adminUserName')]",
-                                "location": "[parameters('location')]",
-                                "resourceGroup": "[resourceGroup().name]",
-                                "keyName": "[parameters('keyName')]",
-                                "vaultName": "[if(parameters('deployKeyVault'),parameters('vaultName'), '' )]",
-                                "vnetName": "[parameters('vnetName')]",
-                                "subnetName": "[parameters('vmSubnetName')]",
-                                "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName'))]",
-                                "managedIdName": "[parameters('managedIdName')]",
-                                "jumpbox": {  
-                                    "name": "[parameters('jumpboxName')]",
-                                    "size": "[parameters('jumpboxVmSize')]",
-                                    "storageSKU": "[parameters('jumpboxStorageSku')]",
-                                    "adminUserName": "[parameters('adminUserName')]",
-                                    "adminPassword": "[parameters('adminPassword')]",
-                                    "authType": "[parameters('authType')]",
-                                    "securityType": "[parameters('securityType')]",
-                                    "imageReference": "[variables('imageReference')[parameters('jumpboxOsVersion')]]",
-                                    "publicIP": "[parameters('jumpboxPublicIp')]"
+                        "value": {
+                            "binaryPath": "[parameters('binaryPath')]",
+                            "acceptLicense": "[parameters('acceptLicense')]",
+                            "adminUser": "[parameters('adminUserName')]",
+                            "location": "[parameters('location')]",
+                            "resourceGroup": "[resourceGroup().name]",
+                            "keyName": "[parameters('keyName')]",
+                            "vaultName": "[if(parameters('deployKeyVault'),parameters('vaultName'), '' )]",
+                            "vnetName": "[parameters('vnetName')]",
+                            "subnetName": "[parameters('vmSubnetName')]",
+                            "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName'))]",
+                            "managedIdName": "[parameters('managedIdName')]",
+                            "jumpbox": {  
+                                "name": "[parameters('jumpboxName')]",
+                                "size": "[parameters('jumpboxVmSize')]",
+                                "storageSKU": "[parameters('jumpboxStorageSku')]",
+                                "adminUserName": "[parameters('adminUserName')]",
+                                "adminPassword": "[parameters('adminPassword')]",
+                                "authType": "[parameters('authType')]",
+                                "securityType": "[parameters('securityType')]",
+                                "imageReference": "[variables('imageReference')[parameters('jumpboxOsVersion')]]",
+                                "publicIP": "[parameters('jumpboxPublicIp')]"
+                            },
+                            "nodes": {
+                                "node1": {
+                                    "instance": "1",
+                                    "vmName": "[parameters('node1Name')]",
+                                    "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
+                                    "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
+                                    "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
+                                    "zone": "[parameters('node1AvailabilityZone')]",
+                                    "publicIP": "[parameters('createVMPublicIP-node1')]"
                                 },
-                                "nodes": {
-                                    "node1": {
-                                        "instance": "1",
-                                        "vmName": "[parameters('node1Name')]",
-                                        "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
-                                        "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
-                                        "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
-                                        "zone": "[parameters('node1AvailabilityZone')]",
-                                        "publicIP": "[parameters('createVMPublicIP-node1')]"
-                                    },
-                                    "node2": {
-                                        "instance": "2",
-                                        "vmName": "[parameters('node2Name')]",
-                                        "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
-                                        "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
-                                        "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
-                                        "zone": "[parameters('node2AvailabilityZone')]",
-                                        "publicIP": "[parameters('createVMPublicIP-node2')]"
-                                    },
-                                    "node3": {
-                                        "instance": "3",
-                                        "vmName": "[parameters('node3Name')]",
-                                        "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
-                                        "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
-                                        "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
-                                        "zone": "[parameters('node3AvailabilityZone')]",
-                                        "publicIP": "[parameters('createVMPublicIP-node3')]"
-                                    }
+                                "node2": {
+                                    "instance": "2",
+                                    "vmName": "[parameters('node2Name')]",
+                                    "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
+                                    "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
+                                    "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
+                                    "zone": "[parameters('node2AvailabilityZone')]",
+                                    "publicIP": "[parameters('createVMPublicIP-node2')]"
                                 },
-                                "mountDetails": {
-                                    "storageAccount": "[variables('storageAccountName')]",
-                                    "shareName": "[parameters('backupStorageShareName')]",
-                                    "storageKey": "[if(parameters('deployBackupStorage'), listKeys(variables('storageAccountName'), '2019-04-01').keys[0].value, null())]"
+                                "node3": {
+                                    "instance": "3",
+                                    "vmName": "[parameters('node3Name')]",
+                                    "vmSize": "[variables('tshirtSize')[parameters('tshirtSize')].vmSize]",
+                                    "storageSKU": "[variables('tshirtSize')[parameters('tshirtSize')].vmDiskType]",
+                                    "imageURN": "[variables('tshirtSize')[parameters('tshirtSize')].imageURN]",
+                                    "zone": "[parameters('node3AvailabilityZone')]",
+                                    "publicIP": "[parameters('createVMPublicIP-node3')]"
                                 }
                             }
+                        }
                     }
                 },
                 "template": {
@@ -939,6 +820,54 @@
                             }
                         }
                     ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployLoadBalancer')]",
+            "name": "deployLoadBalancer",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployCluster')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/load-balancer/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "publicOrPrivate": {
+                        "value": "[if( parameters('lbPublic'), 'Public', 'Private' )]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "privateSubnetName": {
+                        "value": "[parameters('vmSubnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]"
+                    },
+                    "domainName": {
+                        "value": "[parameters('domainName')]"
+                    },
+                    "nic1Id": {
+                        "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node1Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                    },
+                    "nic2Id": {
+                        "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node2Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                    },
+                    "nic3Id": {
+                        "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node3Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                    }
                 }
             }
         }

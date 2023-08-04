@@ -361,51 +361,6 @@ done
 # Updating OS
 sudo yum -y update
 
-# Mount drive if required
-if [[ $MOUNT_DRIVE == "yes" ]]; then
-    log-output "INFO: Setting up drive mount"
-
-    STORAGE_ACCOUNT=$(echo $PARAMS | jq -r '.mountDetails.storageAccount')
-    SHARE=$(echo $PARAMS | jq -r '.mountDetails.shareName')
-
-    if [[ -z $STORAGE_ACCOUNT ]] || [[ -z $SHARE ]] || [[ -z $KEY ]]; then
-        log-output "ERROR: Missing parameters for setting up mount"
-        log-output "INFO: STORAGE_ACCOUNT = $STORAGE_ACCOUNT"
-        log-output "INFO: SHARE = $SHARE"
-        log-output "INFO: KEY = $KEY"
-        exit 1
-    fi
-
-    sudo yum install -y keyutils cifs-utils
-
-    sudo mkdir -p /mnt/${SHARE}
-
-    if [[ ! -d "/etc/smbcredentials" ]]; then
-        sudo mkdir /etc/smbcredentials
-    fi
-
-    if [[ ! -f "/etc/smbcredentials/${STORAGE_ACCOUNT}.cred" ]]; then
-        log-output "INFO: Setting up credentials for drive"
-        sudo touch /etc/smbcredentials/${STORAGE_ACCOUNT}.cred
-        sudo chmod 600 /etc/smbcredentials/${STORAGE_ACCOUNT}.cred
-        echo "username=${STORAGE_ACCOUNT}" | sudo tee -a /etc/smbcredentials/${STORAGE_ACCOUNT}.cred > /dev/null
-        echo "password=${KEY}" | sudo tee -a /etc/smbcredentials/${STORAGE_ACCOUNT}.cred > /dev/null
-    fi
-
-    if [[ ! $(cat /etc/fstab | grep "${STORAGE_ACCOUNT}.file.core.windows.net/${SHARE}" ) ]]; then
-        echo "//${STORAGE_ACCOUNT}.file.core.windows.net/${SHARE} /mnt/${SHARE} cifs nofail,credentials=/etc/smbcredentials/${STORAGE_ACCOUNT}.cred,dir_mode=0777,file_mode=0777,serverino,nosharesock,actimeo=30" | sudo tee -a /etc/fstab > /dev/null
-    else
-        log-output "INFO: Drive already defined in fstab"
-    fi
-
-    if [[ ! $(mount | grep "${STORAGE_ACCOUNT}.file.core.windows.net/${SHARE}" ) ]]; then
-        log-output "INFO: Mounting $SHARE from ${STORAGE_ACCOUNT}"
-        sudo mount -a | log-output
-    else
-        log-output "INFO: Drive already mounted"
-    fi
-fi
-
 ######
 # Install the az cli
 if [[ ! $(/usr/bin/which az 2> /dev/null) ]]; then
