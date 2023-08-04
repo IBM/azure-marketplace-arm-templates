@@ -105,30 +105,6 @@
                 "description": "Flag to determine whether to create a public IP for the jumpbox"
             }
         },
-        "firewallSubnetName": {
-            "type": "string",
-            "defaultValue": "AzureFirewallSubnet",
-            "allowedValues": [
-                "AzureFirewallSubnet"
-            ],
-            "metadata": {
-                "description": "Firewall subnet name"
-            }
-        },
-        "firewallSubnetCidr": {
-            "type": "string",
-            "defaultValue": "10.0.1.0/26",
-            "metadata": {
-                "description": "Firewall subnet address space"
-            }
-        },
-        "deployFirewall": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description": "Flag to determine whether to deploy the firewall"
-            }
-        },
         "bastionSubnetCidr": {
             "type": "string",
             "defaultValue": "10.0.2.0/26",
@@ -195,11 +171,25 @@
                 "description": "Name of the ssh key for the nodes that will be created"
             }
         },
-        "deployJumpbox": {
+        "deployCluster": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
                 "description": "Flag to determine whether to deploy Jumpbox (debug only)"
+            }
+        },
+        "deployLoadBalancer": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the load balancer (debug only)"
+            }
+        },
+        "lbPublic": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Create a public access for the load balancer. Will only be accessible from within the VNet if not."
             }
         },
         "node1Name": {
@@ -613,39 +603,6 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "condition": "[parameters('deployFirewall')]",
-            "name": "deployFirewall",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/safer-payments/firewall/azuredeploy.json'))]",
-                    "contentVersion":"1.0.0.0"
-                },
-                "parameters": {
-                    "namePrefix": {
-                        "value": "primary"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "vnetName": {
-                        "value": "[parameters('vnetName')]"
-                    },
-                    "firewallSubnetCIDR": {
-                        "value": "[parameters('firewallSubnetCidr')]"
-                    },
-                    "firewallSubnetName": {
-                        "value": "[parameters('firewallSubnetName')]"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2021-04-01",
             "condition": "[parameters('deployBackupStorage')]",
             "name": "deployBackupFileshare",
             "dependsOn": [
@@ -726,8 +683,8 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "condition": "[parameters('deployJumpbox')]",
-            "name": "deployJumpBox",
+            "condition": "[parameters('deployCluster')]",
+            "name": "deployCluster",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployBackupFileshare')]",
@@ -777,15 +734,6 @@
                                     "securityType": "[parameters('securityType')]",
                                     "imageReference": "[variables('imageReference')[parameters('jumpboxOsVersion')]]",
                                     "publicIP": "[parameters('jumpboxPublicIp')]"
-                                },
-                                "loadBalancer": {
-                                    "name": "[parameters('loadBalancerName')]",
-                                    "publicIpName": "[concat(parameters('loadBalancerName'),'-pip')]",
-                                    "domainName": "[parameters('domainName')]",
-                                    "frontendIpName": "[concat(parameters('loadBalancerName'),'-frontend')]",
-                                    "backendPoolName": "[concat(parameters('loadBalancerName'),'-backendpool')]",
-                                    "probeName": "[concat(parameters('loadBalancerName'),'-probe')]",
-                                    "ruleName": "[concat(parameters('loadBalancerName'),'-rule')]"
                                 },
                                 "nodes": {
                                     "node1": {
@@ -991,7 +939,7 @@
                             }
                         }
                     ]
-            }
+                }
             }
         }
     ]
