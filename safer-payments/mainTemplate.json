@@ -1,6 +1,7 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
+    // Push supplied public key to nodes 1, 2, 3
     "parameters": {
         "tshirtSize": {
             "type": "string",
@@ -817,7 +818,14 @@
                                 }
                             }
                         }
-                    ]
+                    ],
+                    "outputs": {
+                        "publicIP": {
+                            "type": "string",
+                            "condition": "[parameters('inputParameters').jumpbox.publicIP]",
+                            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPName')),'2022-07-01').ipAddress]"
+                        }
+                    }
                 }
             }
         },
@@ -937,6 +945,11 @@
             "type": "string",
             "condition": "[and(parameters('deployLoadBalancer'),parameters('deployCluster'),not(parameters('lbPublic')))]",
             "value": "[concat('http://',reference('deployLoadBalancer').outputs['privateIP'].value,':8001/')]"
+        },
+        "jumpboxPublicIp": {
+            "type": "string",
+            "condition": "[parameters('jumpboxPublicIp')]",
+            "value": "[reference('deployCluster').outputs['publicIP'].value]"
         }
     }
 }
