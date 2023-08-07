@@ -1,6 +1,7 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
+    // Add public IP name parameter for load balancer
     "parameters": {
         "tshirtSize": {
             "type": "string",
@@ -67,11 +68,9 @@
         "jumpboxVmSize": {
             "type": "string",
             "defaultValue": "Standard_D2s_v3",
-            "allowedValues": [
-                "Standard_D2s_v3",
-                "Standard_D4s_v3",
-                "Standard_D8s_v3"
-            ]
+            "metadata": {
+                "description": "Size of the jumpbox"
+            }
         },
         "jumpboxStorageSku": {
             "type": "string",
@@ -190,6 +189,13 @@
             "defaultValue": true,
             "metadata": {
                 "description": "Create a public access for the load balancer. Will only be accessible from within the VNet if not."
+            }
+        },
+        "lbPublicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(resourceGroup().name, '-lb-pip')]",
+            "metadata": {
+                "description": "Name of the public IP resource"
             }
         },
         "node1Name": {
@@ -908,6 +914,9 @@
                     },
                     "publicOrPrivate": {
                         "value": "[if( parameters('lbPublic'), 'Public', 'Private' )]"
+                    },
+                    "lbPublicIPName": {
+                        "value": "[parameters('lbPublicIPName')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
