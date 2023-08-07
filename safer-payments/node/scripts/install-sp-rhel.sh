@@ -593,6 +593,18 @@ for node_ip in ${NODE_IPS[@]}; do
     fi
 done
 
+# Copy jumpbox public key to authorized keys on other virtual machines
+declare -a NODE_IPS=( "$NODE1_IP" "$NODE2_IP" "$NODE3_IP" )
+JUMPBOX_KEY=$(sudo -u $ADMINUSER cat /home/$ADMINUSER/.ssh/authorized_keys | head -n 1)
+for node_ip in ${NODE_IPS[@]}; do
+    if [[ -z $(sudo -u $ADMINUSER ssh $ADMINUSER@$node_ip "cat /home/$ADMINUSER/.ssh/authorized_keys | grep \"$JUMPBOX_KEY\"") ]]; then
+        log-output "INFO: Copying jumpbox key to authorized list on $node_ip"
+        sudo -u $ADMINUSER ssh $ADMINUSER@$node_ip "echo $JUMPBOX_KEY >> /home/$ADMINUSER/.ssh/authorized_keys"
+    else
+        log-output "INFO: Jumpbox key already set as authorized key on $node_ip"
+    fi
+done
+
 if [[ $ACCEPT_LICENSE == "yes" ]]; then
 
     ######
