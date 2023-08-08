@@ -6,8 +6,8 @@ source common.sh
 # Check environment variables
 ENV_VAR_NOT_SET=""
 
-if [[ -z $ARO_CLUSTER ]]; then ENV_VAR_NOT_SET="ARO_CLUSTER"; fi
-if [[ -z $RESOURCE_GROUP ]]; then ENV_VAR_NOT_SET="RESOURCE_GROUP"; fi
+if [[ -z $API_SERVER ]]; then ENV_VAR_NOT_SET="API_SERVER"; fi
+if [[ -z $OCP_PASSWORD ]]; then ENV_VAR_NOT_SET="OCP_PASSWORD"; fi
 
 if [[ -n $ENV_VAR_NOT_SET ]]; then
     log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
@@ -16,6 +16,7 @@ fi
 
 ######
 # Set defaults
+if [[ -z $OCP_USERNAME ]]; then OCP_USERNAME="kubeadmin"; fi
 if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
 if [[ -z $CLIENT_ID ]]; then CLIENT_ID=""; fi
 if [[ -z $CLIENT_SECRET ]]; then CLIENT_SECRET=""; fi
@@ -33,8 +34,9 @@ if [[ -z $VERSION ]]; then export VERSION="2022.2.1"; fi
 if [[ -z $LICENSE_ID ]]; then export LICENSE_ID="L-RJON-CD3JKX"; fi
 
 # Log values set
-log-output "INFO: ARO Cluster is set to : $ARO_CLUSTER"
-log-output "INFO: Resource group is set to : $RESOURCE_GROUP"
+log-output "INFO: OCP IPI Cluster API is set to : $API_SERVER"
+log-output "INFO: OCP Username is set to : $OCP_USERNAME"
+if [[ -z $OCP_PASSWORD ]]; then log-output "INFO: OCP Password is set"; fi
 log-output "INFO: License acceptance is set to : $LICENSE"
 log-output "INFO: Software version is set to : $VERSION"
 log-output "INFO: Software license is set to : $LICENSE_ID"
@@ -111,23 +113,13 @@ if [[ ! -f ${BIN_DIR}/oc ]] || [[ ! -f ${BIN_DIR}/kubectl ]]; then
     cli-download $BIN_DIR $TMP_DIR
 fi
 
-#######
-# Login to Azure CLI
-az account show > /dev/null 2>&1
-if (( $? != 0 )); then
-    # Login with service principal details
-    az-login $CLIENT_ID $CLIENT_SECRET $TENANT_ID $SUBSCRIPTION_ID
-else
-    log-output "INFO: Using existing Azure CLI login"
-fi
-
 #####
 # Wait for cluster operators to be available
-wait_for_cluster_operators $ARO_CLUSTER $RESOURCE_GROUP $BIN_DIR
+wait_for_cluster_operators $API_SERVER $OCP_USERNAME $OCP_PASSWORD $BIN_DIR
 
 #######
 # Login to cluster
-oc-login $ARO_CLUSTER $BIN_DIR $RESOURCE_GROUP
+oc-login $API_SERVER $OCP_USERNAME $OCP_PASSWORD $BIN_DIR
 
 ######
 # Create namespace if it does not exist
