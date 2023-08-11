@@ -69,11 +69,11 @@ function oc-login() {
         OCP_USERNAME=${2}
     fi
 
-    if [[ -z ${3} ]] || [[ -z $OCP_USERNAME ]]; then
+    if [[ -z ${3} ]] || [[ -z $OCP_PASSWORD ]]; then
         log-output "ERROR: OCP_PASSWORD not passed to function oc-login"
         exit 1
     elif [[ ${3} != "" ]]; then
-        OCP_USERNAME=${3}
+        OCP_PASSWORD=${3}
     fi
 
     if [[ -z ${4} ]] || [[ -z $BIN_DIR ]]; then
@@ -334,11 +334,11 @@ function wait_for_cluster_operators() {
         OCP_USERNAME=${2}
     fi
 
-    if [[ -z ${3} ]] || [[ -z $OCP_USERNAME ]]; then
+    if [[ -z ${3} ]] || [[ -z $OCP_PASSWORD ]]; then
         log-output "ERROR: OCP_PASSWORD not passed to function oc-login"
         exit 1
     elif [[ ${3} != "" ]]; then
-        OCP_USERNAME=${3}
+        OCP_PASSWORD=${3}
     fi
 
     if [[ -z ${4} ]] || [[ -z $BIN_DIR ]]; then
