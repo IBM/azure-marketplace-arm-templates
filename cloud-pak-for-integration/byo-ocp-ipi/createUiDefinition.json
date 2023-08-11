@@ -54,6 +54,7 @@
 						"name": "ocpApiServer",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Cluster API URL",
+						"toolTip": "The API server URL for the cluster for the installation.",
 						"placeholder": "https://mycluster.mydown.com:6443",
 						"multiLine": false,
 						"visible": true,
