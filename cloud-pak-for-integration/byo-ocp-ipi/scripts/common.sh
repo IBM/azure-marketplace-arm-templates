@@ -87,7 +87,7 @@ function oc-login() {
 
         # Below loop added to allow authentication service to start on new clusters
         count=0
-        while ! ${BIN_DIR}/oc login $API_SERVER -u $OCP_USERNAME -p $OCP_PASSWORD 1> /dev/null 2> /dev/null ; do
+        while ! ${BIN_DIR}/oc login $API_SERVER -u $OCP_USERNAME -p $OCP_PASSWORD --insecure-skip-tls-verify=true 1> /dev/null 2> /dev/null ; do
             log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
             sleep 60
             count=$(( $count + 1 ))
@@ -106,7 +106,7 @@ function oc-login() {
 
             # Below loop added to allow authentication service to start on new clusters
             count=0
-            while ! ${BIN_DIR}/oc login $API_SERVER -u $OCP_USERNAME -p $OCP_PASSWORD > /dev/null 2>&1 ; do
+            while ! ${BIN_DIR}/oc login $API_SERVER -u $OCP_USERNAME -p $OCP_PASSWORD --insecure-skip-tls-verify=true > /dev/null 2>&1 ; do
                 log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
                 sleep 60
                 count=$(( $count + 1 ))
