@@ -129,7 +129,7 @@
         },
         "deployBastion": {
             "type": "bool",
-            "defaultValue": true,
+            "defaultValue": false,
             "metadata": {
                 "description": "Flag to determine whether to deploy the bastion service"
             }
@@ -199,7 +199,7 @@
         },
         "lbPublic": {
             "type": "bool",
-            "defaultValue": true,
+            "defaultValue": false,
             "metadata": {
                 "description": "Create a public access for the load balancer. Will only be accessible from within the VNet if not."
             }
