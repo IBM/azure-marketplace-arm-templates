@@ -915,7 +915,7 @@
                     "publicOrPrivate": {
                         "value": "[if( parameters('lbPublic'), 'Public', 'Private' )]"
                     },
-                    "lbPublicIPName": {
+                    "publicIpName": {
                         "value": "[parameters('lbPublicIPName')]"
                     },
                     "vnetName": {
