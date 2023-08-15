@@ -335,7 +335,7 @@
     },
     "variables": {
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
-        "scriptOffset": "/safer-payments/node/scripts/",
+        "scriptOffset": "/safer-payments/scripts/",
         "deployScript": "install-sp-rhel.sh",
         "imageReference": {
             "RHEL 8.6": {
@@ -700,11 +700,17 @@
                         },
                         "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - yum update -y')]",
                         "securityProfile": {
-                            "uefiSettings": {
-                                "secureBootEnabled": true,
-                                "vTpmEnabled": true
+                            "Standard": {
+                                "encryptionAtHost": true
                             },
-                            "securityType": "[parameters('inputParameters').jumpbox.securityType]"
+                            "TrustedLaunch": {
+                                "encryptionAtHost": true,
+                                "uefiSettings": {
+                                    "secureBootEnabled": true,
+                                    "vTpmEnabled": true
+                                },
+                                "securityType": "[parameters('inputParameters').jumpbox.securityType]"
+                            }
                         },
                         "linuxConfigSSH": {
                             "disablePasswordAuthentication": true,
@@ -804,7 +810,7 @@
                                     "customData": "[base64(variables('vmBootstrap'))]",
                                     "linuxConfiguration": "[if(equals(parameters('inputParameters').jumpbox.authType, 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
                                 },
-                                "securityProfile": "[if(equals(parameters('inputParameters').jumpbox.securityType, 'TrustedLaunch'),variables('securityProfile'),json('null'))]",
+                                "securityProfile": "[variables('securityProfile')[parameters('inputParameters').jumpbox.securityType] ]",
                                 "diagnosticsProfile": {
                                     "bootDiagnostics": {
                                         "enabled": true

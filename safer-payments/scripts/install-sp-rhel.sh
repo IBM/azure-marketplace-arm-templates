@@ -144,8 +144,6 @@ function remote-install-safer-payments() {
     remote-command $CONNECTION_PROPERTIES "chmod +x ${BIN_PATH}/jre/bin/java"
     remote-command $CONNECTION_PROPERTIES "chmod +x ${BIN_PATH}/SaferPayments.bin"
 
-    log-output "Installing Safer Payments on $REMOTE_IP"
-
     # Accept the license
     remote-command $CONNECTION_PROPERTIES "sed -i 's/LICENSE_ACCEPTED=FALSE/LICENSE_ACCEPTED=TRUE/g' ${BIN_PATH}/installer.properties"
 
