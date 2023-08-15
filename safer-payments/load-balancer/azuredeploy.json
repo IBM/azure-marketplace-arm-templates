@@ -4,6 +4,7 @@
     "parameters": {
         "namePrefix": {
             "type": "string",
+            "defaultValue": "mylb",
             "metadata": {
                 "description": "Name prefix for created resources"
             }
