@@ -27,7 +27,7 @@
                             }
                         ]
                     },
-                    "allowExisting": false
+                    "allowExisting": true
                 },
                 "location": {
                     "visible": true,
@@ -98,7 +98,7 @@
                             "minAddressPrefixSize": "/22"
                         },
                         "options": {
-                            "hideExisting": true
+                            "hideExisting": false
                         },
                         "subnets": {
                             "vmSubnet": {
@@ -651,7 +651,7 @@
                                 "name": "loadBalancerName",
                                 "type": "Microsoft.Common.TextBox",
                                 "label": "Name for the load balancer",
-                                "defaultValue": "safer-payments-lb",
+                                "defaultValue": "[concat( resourceGroup().name, '-lb' )]",
                                 "visible": "[steps('frontEnd').loadBalancer.deployLoadBalancer]",
                                 "constraints":{
                                     "required": false,
@@ -715,6 +715,7 @@
             "tshirtSize": "[ steps('saferPayments').tshirtSize ]",
             "acceptLicense": "[ steps('saferPayments').acceptLicense ]",
             "location": "[ location() ]",
+            "createVnet": "[ if( equals( steps('networking').vnet.newOrExisting, 'new' ), true, false ) ]",
             "vnetName": "[ steps('networking').vnet.name ]",
             "vnetCidr": "[ first( steps('networking').vnet.addressPrefixes ) ]",
             "vmSubnetName": "[ steps('networking').vnet.subnets.vmSubnet.name ]",
@@ -729,7 +730,7 @@
             "node2Name": "[ steps('saferPayments').node2.node2Name ]",
             "node3Name": "[ steps('saferPayments').node3.node3Name ]",
             "adminUserName": "[ steps('saferPayments').authentication.adminUserName ]",
-            "adminPassword": "[ steps('saferPayments').authentication.password.password ]",
+            "adminPassword": "[ if( equals( steps('saferPayments').authentication.password.authenticationType, 'password' ), steps('saferPayments').authentication.password.password , steps('saferPayments').authentication.password.sshPublicKey ) ]",
             "authType": "[ steps('saferPayments').authentication.password.authenticationType ]",
             "createVMPublicIP-node1": "[ steps('saferPayments').node1.node1PublicIP ]",
             "createVMPublicIP-node2": "[ steps('saferPayments').node2.node2PublicIP ]",
@@ -738,8 +739,8 @@
             "node2AvailabilityZone" : "[ steps('saferPayments').node2.node2AvailabilityZone ]",
             "node3AvailabilityZone" : "[ steps('saferPayments').node3.node3AvailabilityZone ]",
             "loadBalancerName": "[ steps('frontEnd').loadBalancer.loadBalancerName ]",
-            "lbPublic": "[ steps('frontEnd').loadBalancer.loadBalancerIp.name ]",
-            "lbPublicIPName": "[ steps('frontEnd').loadBalancer.loadBalancerIp.domainNameLabel ]",
+            "lbPublic": "[ steps('frontEnd').loadBalancer.lbPublicIP  ]",
+            "lbPublicIPName": "[ steps('frontEnd').loadBalancer.loadBalancerIp.name ]",
             "domainName": "[ steps('frontEnd').loadBalancer.loadBalancerIp.domainNameLabel ]",
             "vaultName": "[ steps('saferPayments').keyVault.vaultName ]",
             "keyName": "[ steps('saferPayments').keyVault.keyName ]",
