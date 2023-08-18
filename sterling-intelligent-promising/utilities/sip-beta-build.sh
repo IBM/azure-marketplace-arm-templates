@@ -46,7 +46,6 @@ if [[ -z $(az aro list --query "[?name == '$ARO_CLUSTER']" -o tsv) ]]; then
         --parameters \
             namePrefix="$NAME_PREFIX" \
             clusterName="$ARO_CLUSTER" \
-            rpObjectId="$RP_OBJECT_ID" \
             location="$LOCATION" \
             vnetName="$VNET_NAME" \
             createVnet=true \
