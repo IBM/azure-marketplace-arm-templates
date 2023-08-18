@@ -36,7 +36,7 @@ fi
 
 # Build ARO cluster and file share
 
-if [[ -z $(az aro list --query "[?name == '$ARO_CLUSTER']" -o tsv) ]]; then   
+if [[ -z $(az aro list -g $RESOURCE_GROUP --query "[?name == '$ARO_CLUSTER']" -o tsv) ]]; then   
     echo "INFO: Creating ARO cluster $ARO_CLUSTER"
     az deployment group create \
         --resource-group $RESOURCE_GROUP \
