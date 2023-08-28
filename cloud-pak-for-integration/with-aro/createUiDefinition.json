@@ -283,7 +283,7 @@
 						},
 						"constraints": {
 						  "required": true,
-						  "regex": "^[a-zA-Z0-9~.-_]{8,}$",
+						  "regex": "^[a-zA-Z0-9~._-]{8,}$",
 						  "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
 						},
 						"options": {
