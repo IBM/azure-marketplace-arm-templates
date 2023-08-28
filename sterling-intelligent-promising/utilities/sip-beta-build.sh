@@ -81,14 +81,14 @@ else
 fi
 
 # Get ARO credentials
-echo "Getting ARO cluster details"
+echo "INFO: Getting ARO cluster details"
 CLUSTER_API="$( az aro show -n $ARO_CLUSTER -g $RESOURCE_GROUP --query 'apiserverProfile.url' -o tsv )"
 ARO_PASSWORD="$(az aro list-credentials -n $ARO_CLUSTER -g $RESOURCE_GROUP --query 'kubeadminPassword' -o tsv)"
 ARO_USERNAME="$(az aro list-credentials -n $ARO_CLUSTER -g $RESOURCE_GROUP --query 'kubeadminUsername' -o tsv)"
 ARO_INGRESS=$(az aro show -g $RESOURCE_GROUP -n $ARO_CLUSTER --query consoleProfile.url -o tsv | sed -e 's#^https://console-openshift-console.##; s#/##')
 
 # Login to cluster
-echo "Logging into ARO cluster"
+echo "INFO: Logging into ARO cluster"
 oc login -u $ARO_USERNAME -p $ARO_PASSWORD $CLUSTER_API
 
 # Build Container registry
@@ -263,7 +263,9 @@ echo "INFO: Ingress cert ready"
 
 # Create the SIP Environment instance
 
-if [[ $(oc get sipenvironment -n $NAMESPACE  $INSTANCE_NAME | grep "not found") ]]; then
+### TODO: Modify the tags to get the latest from the downloaded images
+
+if [[ ! $(oc get sipenvironment -n $NAMESPACE $INSTANCE_NAME) ]]; then
 
     echo "INFO: Creating SIP Environment instance $INSTANCE_NAME"
 
@@ -325,7 +327,7 @@ spec:
       tag: container_v23.05.30.4
     utilityService:
       audit:
-        tag: V.23.06.15.0-release-Ga006287-J1
+        tag: V.23.06.15.0-release-G5e1f625-J1
       configDataSync:
         tag: release.v2023.05.30.0
       catalog:
