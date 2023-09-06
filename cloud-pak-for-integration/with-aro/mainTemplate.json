@@ -572,7 +572,7 @@
         "aroClusterCredentials": {
             "type": "string",
             "condition": "[parameters('deployARO')]",
-            "value": "[concat('Use \"az aro list-credentials -g ',resourceGroup().name,' -n ',reference(resourceId('Microsoft.Resources/deployments','aro'),'2021-04-01').outputs['clusterName'].value,'\" to obtain credentials')]"
+            "value": "[concat('Use \"az aro list-credentials -g ',resourceGroup().name,' -n ',reference(resourceId('Microsoft.Resources/deployments','aroCluster'),'2021-04-01').outputs['clusterName'].value,'\" to obtain credentials')]"
         },
         "platformNavigatorURL": {
             "type": "string",
