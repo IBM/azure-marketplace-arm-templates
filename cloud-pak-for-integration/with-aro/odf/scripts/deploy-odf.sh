@@ -504,6 +504,7 @@ fi
 # Create the storage cluster
 if [[ -z $(${BIN_DIR}/oc get storagecluster -n openshift-storage ocs-storagecluster) ]]; then
     log-output "INFO: Creating storage cluster ocs-storagecluster"
+    SC_NAME=$(${BIN_DIR}/oc get sc | grep disk.csi.azure.com | awk '{print$1}')
     cat << EOF | oc apply -f -
 apiVersion: ocs.openshift.io/v1
 kind: StorageCluster
@@ -543,7 +544,7 @@ spec:
         resources:
           requests:
             storage: "${STORAGE_SIZE}"
-        storageClassName: managed-premium
+        storageClassName: ${SC_NAME}
         volumeMode: Block
     name: ocs-deviceset
     placement: {}
