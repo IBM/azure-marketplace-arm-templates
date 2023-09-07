@@ -152,12 +152,21 @@
 						"visible": true
 					},
 					{
-						"name": "versionInfo",
+						"name": "versionWarningLTS",
 						"type": "Microsoft.Common.InfoBox",
 						"visible": "[if(or(equals(steps('openshift').aroVersion, ''),startsWith(steps('openshift').aroVersion,'4.10'),startsWith(steps('openshift').aroVersion,'4.12')),false,true)]",
 						"options": {
 							"icon": "Warning",
 							"text": "Cloud Pak for Integration is only supported on version 4.10 or 4.12 versions of OpenShift."
+						}
+					},
+					{
+						"name": "versionWarningOld",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[startsWith(steps('openshift').aroVersion,'4.10')]",
+						"options": {
+							"icon": "Warning",
+							"text": "OpenShift 4.10 will soon be unsupported."
 						}
 					},
 					{
