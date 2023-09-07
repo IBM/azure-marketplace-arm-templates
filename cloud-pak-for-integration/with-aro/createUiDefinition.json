@@ -322,7 +322,7 @@
 						"name": "domainName",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Domain name for cluster",
-						"defaultValue": "concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7))]",
+						"defaultValue": "[toLower(concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)))]",
 						"toolTip": "Enter a domain name for the OpenShift cluster.",
 						"visible": "[steps('openshift').useCustomDomain]",
 						"constraints": {
