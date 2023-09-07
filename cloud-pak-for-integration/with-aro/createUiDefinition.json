@@ -157,7 +157,7 @@
 						"visible": "[if(or(equals(steps('openshift').aroVersion, ''),startsWith(steps('openshift').aroVersion,'4.10'),startsWith(steps('openshift').aroVersion,'4.12')),false,true)]",
 						"options": {
 							"icon": "Warning",
-							"text": "Cloud Pak for Integration is only supported on version 4.10 or 4.12 versions of OpenShift."
+							"text": "Cloud Pak for Integration is only supported on LTS (even) versions of OpenShift."
 						}
 					},
 					{
@@ -309,12 +309,22 @@
 						}
 					},
 					{
+						"name": "useCustomDomain",
+						"type": "Microsoft.Common.CheckBox",
+						"label": "Use a custom domain name",
+						"visible": true,
+						"toolTip": "Allows using a custom domain name instead of a random generated one",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
 						"name": "domainName",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Domain name for cluster",
-						"defaultValue": "",
+						"defaultValue": "concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7))]",
 						"toolTip": "Enter a domain name for the OpenShift cluster.",
-						"visible": true,
+						"visible": "[steps('openshift').useCustomDomain]",
 						"constraints": {
 							"required": true,
 							"validations": [
@@ -332,7 +342,7 @@
 					{
 						"name": "domainInfo",
 						"type": "Microsoft.Common.InfoBox",
-						"visible": "[if( equals(steps('openshift').domainName, '') , false, true )]",
+						"visible": "[steps('openshift').useCustomDomain]",
 						"options": {
 							"icon": "Info",
 							"text": "[concat('The OpenShift cluster will be available at https://console-openshift-console.apps.',steps('openshift').domainName,'.',location(),'.aroapp.io/')]"
