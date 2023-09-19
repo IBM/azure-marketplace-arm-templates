@@ -116,7 +116,7 @@
                             "bastionSubnet": {
                                 "label": "Bastion Host Subnet",
                                 "defaultValue": {
-                                    "name": "AzureBastionSubnet",
+                                    "name": "bastion-subnet",
                                     "addressPrefixSize": "/24"
                                 },
                                 "constraints": {
