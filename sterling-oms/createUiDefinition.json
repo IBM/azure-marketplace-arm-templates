@@ -3,6 +3,56 @@
     "handler": "Microsoft.Azure.CreateUIDef",
     "version": "0.1.2-preview",
     "parameters": {
+		"config": {
+			"isWizard": false,
+			"basics": {
+				"resourceGroup": {
+					"constraints": {
+						"validations": [
+							{
+								"permission": "Microsoft.ManagedIdentity/userAssignedIdentities/create",
+								"message": "Must be able to create a user assigned identity in the resource group"
+							},
+                            {
+								"permission": "Microsoft.RedHatOpenShift/OpenShiftClusters/create",
+								"message": "Must be able to create an OpenShift cluster in the resource group"
+							},
+                            {
+								"permission": "Microsoft.Network/virtualNetworks/create",
+								"message": "Must be able to create a virtual network in the resource group"
+							},
+                            {
+								"permission": "Microsoft.Network/publicIPAddress/create",
+								"message": "Must be able to create a virtual network in the resource group"
+							},
+							{
+								"permission": "Microsoft.DBforPostgreSQL/flexibleServer",
+								"message": "Must be able to create a PostreSQL flexible server in the resource group"
+							}
+						]
+					},
+					"allowExisting": false
+				},
+				"location": {
+					"visible": true,
+					"resourceTypes": [
+						"Microsoft.Resources/deploymentScripts",
+                        "Microsoft.Resources/deployments",
+						"Microsoft.ManagedIdentity/userAssignedIdentities",
+                        "Microsoft.Authorization/roleAssignments",
+						"Microsoft.Storage/storageAccounts",
+                        "Microsoft.Network/virtualNetworks",
+                        "Microsoft.Network/publicIPAddress",
+                        "Microsoft.RedHatOpenShift/OpenShiftClusters",
+						"Microsoft.Network/privateDnsZones",
+						"Microsoft.DBforPostgreSQL/flexibleServer",
+						"Microsoft.OperationalInsights/workspaces",
+						"Microsoft.Insights/diagnosticSettings",
+						"Microsoft.Network/privateEndpoints"
+					]
+				}
+			}
+		},
         "basics": [
             {
                 "name": "namePrefix",
