@@ -156,7 +156,7 @@
         },
         "encryption" : {
             "type": "bool",
-            "defaultValue": false,
+            "defaultValue": true,
             "metadata": {
                 "description": "Flag to encrypt storage at rest"
             }
