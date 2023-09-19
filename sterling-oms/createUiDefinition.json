@@ -355,6 +355,54 @@
 						  ]
 						},
 						"visible": true
+					},
+					{
+						"name": "checkDomainName",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('openshift').domainName,'&api-version=2022-11-01')]"
+						}
+					},
+					{
+						"name": "useCustomDomain",
+						"type": "Microsoft.Common.CheckBox",
+						"label": "Use a custom domain name",
+						"visible": true,
+						"toolTip": "Allows using a custom domain name instead of a random generated one",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "domainName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Domain name for cluster",
+						"defaultValue": "[toLower(concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)))]",
+						"toolTip": "Enter a domain name for the OpenShift cluster.",
+						"visible": "[steps('openshift').useCustomDomain]",
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"isValid": "[steps('openshift').checkDomainName.available]",
+									"message": "Domain name is not available"
+								},
+								{
+									"regex": "^[a-z][a-z0-9-_]{3,32}$",
+									"message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
+								}
+							]
+						}
+					},
+					{
+						"name": "domainInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[steps('openshift').useCustomDomain]",
+						"options": {
+							"icon": "Info",
+							"text": "[concat('The OpenShift cluster will be available at https://console-openshift-console.apps.',steps('openshift').domainName,'.',location(),'.aroapp.io/')]"
+						}
 					}
 				]
 			},
@@ -738,6 +786,7 @@
 			"masterSize": "[steps('openshift').masterNodes]",
 			"workerSize": "[steps('openshift').workerNodes]",
 			"workerCount": "[steps('openshift').workerCount]",
+			"domain": "[steps('openshift').domainName]",
 			"omsNamespace": "[steps('sterling').omsNamespace]",
 			"omsEdition": "[steps('sterling').omsEdition]",
 			"omInstanceName": "[steps('sterling').omsInstanceName]",
