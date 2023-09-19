@@ -139,6 +139,25 @@
 						}
 					},
 					{
+						"name": "versionsApi",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.RedHatOpenShift/locations/',location(),'/openshiftversions?api-version=2022-09-04')]"
+						}
+					},
+					{
+						"name": "aroVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "ARO Version",
+						"toolTip": "Select the ARO version to use. The list depends upon the location selected.",
+						"constraints": {
+							"allowedValues": "[map(steps('openshift').versionsApi.value, (item) => parse(concat('{\"label\":\"',item.properties.version,'\",\"value\":\"', item.properties.version, '\"}')))]",
+							"required": true    
+						},
+						"visible": true
+					},
+					{
 						"name": "masterNodes",
 						"type": "Microsoft.Compute.SizeSelector",
 						"label": "Master VM Size",
@@ -664,6 +683,7 @@
 			"spObjectId": "[first(steps('auth').servicePrincipal.objectId)]",
 			"spClientSecret": "[steps('auth').servicePrincipal.password]",
 			"rpObjectId": "[first(map(steps('openshift').getRpObjectId.authorizations, (item) => item.managedByRoleDefinitionId))]",
+			"aroVersion": "[steps('openshift').aroVersion]",
 			"pullSecret": "[steps('openshift').pullSecret]",
 			"masterSize": "[steps('openshift').masterNodes]",
 			"workerSize": "[steps('openshift').workerNodes]",
@@ -678,7 +698,7 @@
 			"dbStorageSizeGB": "[steps('database').dbStorageSizeGB]",
 			"dbHAMode": "[steps('database').dbHAMode]",
 			"backupRetentionDays": "[steps('database').backupRetentionDays]",
-			"geoRedundantBackup": "[if(equals(steps('database').geoRedundantBackup,'true'),'enabled','disabled')]"
+			"geoRedundantBackup": "[if(equals(steps('database').geoRedundantBackup,true),'enabled','disabled')]"
          }
     }
 }
