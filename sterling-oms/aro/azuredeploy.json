@@ -10,6 +10,13 @@
                 "description": "Prefix for resource names"
             }
         },
+        "aroVersion": {
+            "type": "string",
+            "defaultValue": "4.10.54",
+            "metadata": {
+                "description": "OpenShift version to deploy. Format 4.x.x"
+            }
+        },
         "clusterName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'), '-aro')]",
@@ -149,7 +156,7 @@
         },
         "encryption" : {
             "type": "bool",
-            "defaultValue": false,
+            "defaultValue": true,
             "metadata": {
                 "description": "Flag to encrypt storage at rest"
             }
@@ -292,7 +299,8 @@
                     "domain": "[parameters('domain')]",
                     "resourceGroupId": "[variables('aroRG')]",
                     "fipsValidatedModules": "[if(parameters('fipsEnabled'), 'Enabled', 'Disabled')]",
-                    "pullSecret": "[parameters('pullSecret')]"
+                    "pullSecret": "[parameters('pullSecret')]",
+                    "version": "[parameters('aroVersion')]"
                 },
                 "servicePrincipalProfile": {
                     "clientId": "[parameters('spClientId')]",
@@ -328,7 +336,11 @@
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'contributor')))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'userAccessAdministrator')))]"
             ]
         }
     ],
@@ -336,6 +348,10 @@
         "clusterName": {
             "type": "string",
             "value": "[parameters('clusterName')]"
+        },
+        "aroVersion": {
+            "type": "string",
+            "value": "[parameters('aroVersion')]"
         }
     }
 }

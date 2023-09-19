@@ -3,6 +3,56 @@
     "handler": "Microsoft.Azure.CreateUIDef",
     "version": "0.1.2-preview",
     "parameters": {
+		"config": {
+			"isWizard": false,
+			"basics": {
+				"resourceGroup": {
+					"constraints": {
+						"validations": [
+							{
+								"permission": "Microsoft.ManagedIdentity/userAssignedIdentities/create",
+								"message": "Must be able to create a user assigned identity in the resource group"
+							},
+                            {
+								"permission": "Microsoft.RedHatOpenShift/OpenShiftClusters/create",
+								"message": "Must be able to create an OpenShift cluster in the resource group"
+							},
+                            {
+								"permission": "Microsoft.Network/virtualNetworks/create",
+								"message": "Must be able to create a virtual network in the resource group"
+							},
+                            {
+								"permission": "Microsoft.Network/publicIPAddress/create",
+								"message": "Must be able to create a virtual network in the resource group"
+							},
+							{
+								"permission": "Microsoft.DBforPostgreSQL/flexibleServer",
+								"message": "Must be able to create a PostreSQL flexible server in the resource group"
+							}
+						]
+					},
+					"allowExisting": false
+				},
+				"location": {
+					"visible": true,
+					"resourceTypes": [
+						"Microsoft.Resources/deploymentScripts",
+                        "Microsoft.Resources/deployments",
+						"Microsoft.ManagedIdentity/userAssignedIdentities",
+                        "Microsoft.Authorization/roleAssignments",
+						"Microsoft.Storage/storageAccounts",
+                        "Microsoft.Network/virtualNetworks",
+                        "Microsoft.Network/publicIPAddress",
+                        "Microsoft.RedHatOpenShift/OpenShiftClusters",
+						"Microsoft.Network/privateDnsZones",
+						"Microsoft.DBforPostgreSQL/flexibleServer",
+						"Microsoft.OperationalInsights/workspaces",
+						"Microsoft.Insights/diagnosticSettings",
+						"Microsoft.Network/privateEndpoints"
+					]
+				}
+			}
+		},
         "basics": [
             {
                 "name": "namePrefix",
@@ -74,7 +124,7 @@
 						"bastionSubnet": {
 							"label": "Bastion Subnet",
 							"defaultValue": {
-								"name": "AzureBastionSubnet",
+								"name": "bastion-subnet",
 								"addressPrefixSize": "/24"
 							},
 							"constraints": {
@@ -137,6 +187,25 @@
 						  "text": "The choices in this section relate to the Azure Red Hat Openshift (ARO) cluster that will be created. Click here for details.",
 						  "uri": "https://learn.microsoft.com/en-us/azure/openshift/"
 						}
+					},
+					{
+						"name": "versionsApi",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.RedHatOpenShift/locations/',location(),'/openshiftversions?api-version=2022-09-04')]"
+						}
+					},
+					{
+						"name": "aroVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "ARO Version",
+						"toolTip": "Select the ARO version to use. The list depends upon the location selected.",
+						"constraints": {
+							"allowedValues": "[map(steps('openshift').versionsApi.value, (item) => parse(concat('{\"label\":\"',item.properties.version,'\",\"value\":\"', item.properties.version, '\"}')))]",
+							"required": true    
+						},
+						"visible": true
 					},
 					{
 						"name": "masterNodes",
@@ -259,22 +328,12 @@
 							"visible": true
 					},
 					{
-						"name": "rpObjectId",
-						"type": "Microsoft.Common.TextBox",
-						"label": "OpenShift Resource Provider Service Prinicpal Id",
-						"defaultValue": "",
-						"toolTip": "Refer to https://learn.microsoft.com/en-us/azure/openshift/quickstart-openshift-arm-bicep-template?pivots=aro-arm#get-the-service-principal-object-id-for-the-openshift-resource-provider---azure-cli for details",
-						"multiLine": false,
-						"constraints": {
-						  "required": true,
-						  "validations": [
-							{
-							  "regex": "^[a-z0-9A-Z-]{36}$",
-							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be 36 characters long."
-							}
-						  ]
-						},
-						"visible": true
+						"name": "getRpObjectId",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.RedHatOpenShift?api-version=2021-04-01')]"
+						}
 					},
 					{
 						"name": "pullSecret",
@@ -296,6 +355,54 @@
 						  ]
 						},
 						"visible": true
+					},
+					{
+						"name": "checkDomainName",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('openshift').domainName,'&api-version=2022-11-01')]"
+						}
+					},
+					{
+						"name": "useCustomDomain",
+						"type": "Microsoft.Common.CheckBox",
+						"label": "Use a custom domain name",
+						"visible": true,
+						"toolTip": "Allows using a custom domain name instead of a random generated one",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "domainName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Domain name for cluster",
+						"defaultValue": "[toLower(concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)))]",
+						"toolTip": "Enter a domain name for the OpenShift cluster.",
+						"visible": "[steps('openshift').useCustomDomain]",
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"isValid": "[steps('openshift').checkDomainName.available]",
+									"message": "Domain name is not available"
+								},
+								{
+									"regex": "^[a-z][a-z0-9-_]{3,32}$",
+									"message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
+								}
+							]
+						}
+					},
+					{
+						"name": "domainInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[steps('openshift').useCustomDomain]",
+						"options": {
+							"icon": "Info",
+							"text": "[concat('The OpenShift cluster will be available at https://console-openshift-console.apps.',steps('openshift').domainName,'.',location(),'.aroapp.io/')]"
+						}
 					}
 				]
 			},
@@ -500,7 +607,7 @@
 						  "required": true,
 						  "validations": [
 							{
-							  "regex": "^[a-z0-9A-Z-]{3,}$",
+							  "regex": "^[a-z0-9A-Z-]{2,}$",
 							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 characters long."
 							}
 						  ]
@@ -557,7 +664,7 @@
 						  "required": true,
 						  "validations": [
 							{
-							  "regex": "^[a-z_]+[a-z0-9A-Z_]{3,10}$",
+							  "regex": "^[a-z]+[a-z0-9A-Z_]{2,10}$",
 							  "message": "Name must begin with a lowercase letter. Subsequent characters can be letters, numbers or underscores. Must be between 3 and 10 characters in length."
 							}
 						  ]
@@ -673,11 +780,13 @@
 			"spClientId": "[steps('auth').servicePrincipal.appId]",
 			"spObjectId": "[first(steps('auth').servicePrincipal.objectId)]",
 			"spClientSecret": "[steps('auth').servicePrincipal.password]",
-			"rpObjectId": "[steps('openshift').rpObjectId]",
+			"rpObjectId": "[first(map(steps('openshift').getRpObjectId.authorizations, (item) => item.managedByRoleDefinitionId))]",
+			"aroVersion": "[steps('openshift').aroVersion]",
 			"pullSecret": "[steps('openshift').pullSecret]",
 			"masterSize": "[steps('openshift').masterNodes]",
 			"workerSize": "[steps('openshift').workerNodes]",
 			"workerCount": "[steps('openshift').workerCount]",
+			"domain": "[steps('openshift').domainName]",
 			"omsNamespace": "[steps('sterling').omsNamespace]",
 			"omsEdition": "[steps('sterling').omsEdition]",
 			"omInstanceName": "[steps('sterling').omsInstanceName]",
@@ -688,7 +797,7 @@
 			"dbStorageSizeGB": "[steps('database').dbStorageSizeGB]",
 			"dbHAMode": "[steps('database').dbHAMode]",
 			"backupRetentionDays": "[steps('database').backupRetentionDays]",
-			"geoRedundantBackup": "[if(equals(steps('database').geoRedundantBackup,'true'),'enabled','disabled')]"
+			"geoRedundantBackup": "[if(equals(steps('database').geoRedundantBackup,true),'enabled','disabled')]"
          }
     }
 }

@@ -205,6 +205,12 @@
                 "description": "The ObjectID of the Service Principal"
             }
         },
+        "aroVersion": {
+            "type": "string",
+            "metadata": {
+                "description": "Version of ARO to deploy. Format 4.x.x"
+            }
+        },
         "rpObjectId": {
             "type": "string",
             "metadata": {
@@ -645,6 +651,9 @@
                     "createVnet": {
                         "value": false
                     },
+                    "aroVersion": {
+                        "value": "[parameters('aroVersion')]"
+                    },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
                     },
@@ -661,11 +670,9 @@
                         "value": "[parameters('spClientSecret')]"
                     },
                     "spObjectId": {
-                        // to do: get this through deploy script in linked template
                         "value": "[parameters('spObjectId')]"
                     },
                     "rpObjectId": {
-                        // to do: get this through deploy script in linked template
                         "value": "[parameters('rpObjectId')]"
                     },
                     "pullSecret": {
