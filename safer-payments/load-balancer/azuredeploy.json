@@ -1,0 +1,438 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "defaultValue": "mylb",
+            "metadata": {
+                "description": "Name prefix for created resources"
+            }
+        },
+        "lbName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-lb')]",
+            "metadata": {
+                "description": "Name of the load balancer"
+            }
+        },
+        "sku": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Basic",
+                "Gateway",
+                "Standard"
+            ],
+            "metadata": {
+                "description": "Load balancer and public IP SKU"
+            }
+        },
+        "tier": {
+            "type": "string",
+            "defaultValue": "Regional",
+            "allowedValues": [
+                "Global",
+                "Regional"
+            ],
+            "metadata": {
+                "description": "Load balancer and public IP tier"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location (region) for the load balancer"
+            }
+        },
+        "publicOrPrivate": {
+            "type": "string",
+            "defaultValue": "Public",
+            "allowedValues": [
+                "Public",
+                "Private"
+            ],
+            "metadata": {
+                "description": "Flag for whether load balancer has a public IP interface or only private"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network for the private load balancer frontend if applicable"
+            }
+        },
+        "privateSubnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Name of the subnet for private load balancer frontend if applicable"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Name of the subnet the nodes are attached to"
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "defaultValue": "[concat( parameters('namePrefix'), substring(resourceGroup().id, 1, 5) )]",
+            "metadata": {
+                "description": "Domain name of the public IP address"
+            }
+        },
+        "publicIpName": {
+            "type": "string",
+            "defaultValue": "[concat( parameters('namePrefix') , '-pip')]",
+            "metadata": {
+                "description": "Name of the public IP"
+            }
+        },
+        "nic1Id": {
+            "type": "string",
+            "metadata": {
+                "description": "Id for the NIC of node 1"
+            }
+        },
+        "nic2Id": {
+            "type": "string",
+            "metadata": {
+                "description": "Id for the NIC of node 2"
+            }
+        },
+        "nic3Id": {
+            "type": "string",
+            "metadata": {
+                "description": "Id for the NIC of node 3"
+            }
+        }
+    },
+    "variables": {
+        "lbFrontendName": "[concat( parameters('lbName'), '-frontend')]",
+        "lbFrontendId": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', parameters('lbName'), variables('lbFrontendName'))]",
+        "lbBackendName": "[concat( parameters('lbName'), '-backend')]",
+        "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('privateSubnetName'))]",
+        "frontendIPConfig": {
+            "Public": {
+                "privateIPAllocationMethod": "Dynamic",
+                "publicIPAddress": {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicIpName'))]"
+                }
+            },
+            "Private": {
+                "subnet": {
+                    "id": "[variables('subnetRef')]"
+                }
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-11-01",
+            "condition": "[if( equals(parameters('publicOrPrivate'),'Public'), true(), false() )]",
+            "name": "[parameters('publicIpName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('sku')]",
+                "tier": "[parameters('tier')]"
+            },
+            "zones": [
+                "1",
+                "2",
+                "3"
+            ],
+            "properties": {
+                "ddosSettings": {   // TODO: Add ddos VNet inheritance
+
+                },
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('domainName')]"
+                },
+                "publicIPAllocationMethod": "Static",
+                "deleteOption": "Delete",
+                "publicIPAddressVersion": "IPv4"
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('lbName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
+            ],
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('sku')]",
+                "tier": "[parameters('tier')]"
+            },
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "[variables('lbFrontendName')]",
+                        "properties": "[variables('frontendIPConfig')[parameters('publicOrPrivate')]]"
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('lbBackendName')]"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+            "apiVersion": "2022-11-01",
+            "name": "[concat( parameters('lbName'), '/InboundPort8001' )]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]"
+            ],
+            "properties": {
+                "frontendIPConfiguration": {
+                    "id": "[variables('lbFrontendId')]"
+                },
+                "frontendPort": "8001",
+                "backendPort": "8001",
+                "enableFloatingIP": false,
+                "idleTimeoutInMinutes": 4,
+                "protocol": "Tcp",
+                "enableTcpReset": false
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+            "apiVersion": "2022-11-01",
+            "name": "[concat( parameters('lbName'), '/InboundPort8002' )]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]"
+            ],
+            "properties": {
+                "frontendIPConfiguration": {
+                    "id": "[variables('lbFrontendId')]"
+                },
+                "frontendPort": "8002",
+                "backendPort": "8002",
+                "enableFloatingIP": false,
+                "idleTimeoutInMinutes": 4,
+                "protocol": "Tcp",
+                "enableTcpReset": false
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+            "apiVersion": "2022-11-01",
+            "name": "[concat( parameters('lbName'), '/InboundPort8003' )]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]"
+            ],
+            "properties": {
+                "frontendIPConfiguration": {
+                    "id": "[variables('lbFrontendId')]"
+                },
+                "frontendPort": "8003",
+                "backendPort": "8003",
+                "enableFloatingIP": false,
+                "idleTimeoutInMinutes": 4,
+                "protocol": "Tcp",
+                "enableTcpReset": false
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "setBackendNICS",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
+                "[resourceId('Microsoft.Network/loadBalancers/inboundNatRules', parameters('lbName'), 'InboundPort8001')]",
+                "[resourceId('Microsoft.Network/loadBalancers/inboundNatRules', parameters('lbName'), 'InboundPort8002')]",
+                "[resourceId('Microsoft.Network/loadBalancers/inboundNatRules', parameters('lbName'), 'InboundPort8003')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "nic1Name": {
+                        "value": "[ last( split( parameters('nic1Id'), '/' ) ) ]" 
+                    },
+                    "nic1Config": {
+                        "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',last( split( parameters('nic1Id'), '/' ) )),'2022-09-01').ipConfigurations[0].name]" 
+                    },
+                    "nic2Name": {
+                        "value": "[ last( split( parameters('nic2Id'), '/' ) ) ]" 
+                    },
+                    "nic2Config": {
+                        "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',last( split( parameters('nic2Id'), '/' ) )),'2022-09-01').ipConfigurations[0].name]" 
+                    },
+                    "nic3Name": {
+                        "value": "[ last( split( parameters('nic3Id'), '/' ) ) ]" 
+                    },
+                    "nic3Config": {
+                        "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',last( split( parameters('nic3Id'), '/' ) )),'2022-09-01').ipConfigurations[0].name]" 
+                    },
+                    "lbName": {
+                        "value": "[parameters('lbName')]"
+                    },
+                    "lbBackendName": {
+                        "value": "[variables('lbBackendName')]" 
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+					"contentVersion": "1.0.0.0",
+					"parameters": {
+						"nic1Name": {
+							"type": "String"
+						},
+                        "nic1Config": {
+                            "type": "string"
+                        },
+                        "nic2Name": {
+							"type": "String"
+						},
+                        "nic2Config": {
+                            "type": "string"
+                        },
+                        "nic3Name": {
+							"type": "String"
+						},
+                        "nic3Config": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "lbName": {
+                            "type": "string"
+                        },
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "lbBackendName": {
+                            "type": "string"
+                        }
+					},
+					"resources": [
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2022-09-01",
+                            "name": "[parameters('nic1Name')]",
+                            "location": "[parameters('location')]",
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "[parameters('nic1Config')]",
+                                        "properties": {
+                                            "privateIPAllocationMethod": "Dynamic",
+                                            "subnet": {
+                                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                                            },
+                                            "loadBalancerBackendAddressPools": [
+                                                {
+                                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'),parameters('lbBackendName'))]"
+                                                }
+                                            ],
+                                            "loadBalancerInboundNatRules": [
+                                                {
+                                                    "id": "[resourceId('Microsoft.Network/loadBalancers/inboundNatRules',parameters('lbName'),'InboundPort8001')]"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2022-09-01",
+                            "name": "[parameters('nic2Name')]",
+                            "location": "[parameters('location')]",
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "[parameters('nic2Config')]",
+                                        "properties": {
+                                            "privateIPAllocationMethod": "Dynamic",
+                                            "subnet": {
+                                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                                            },
+                                            "loadBalancerBackendAddressPools": [
+                                                {
+                                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'),parameters('lbBackendName'))]"
+                                                }
+                                            ],
+                                            "loadBalancerInboundNatRules": [
+                                                {
+                                                    "id": "[resourceId('Microsoft.Network/loadBalancers/inboundNatRules',parameters('lbName'),'InboundPort8002')]"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2022-09-01",
+                            "name": "[parameters('nic3Name')]",
+                            "location": "[parameters('location')]",
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "[parameters('nic3Config')]",
+                                        "properties": {
+                                            "privateIPAllocationMethod": "Dynamic",
+                                            "subnet": {
+                                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                                            },
+                                            "loadBalancerBackendAddressPools": [
+                                                {
+                                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'),parameters('lbBackendName'))]"
+                                                }
+                                            ],
+                                            "loadBalancerInboundNatRules": [
+                                                {
+                                                    "id": "[resourceId('Microsoft.Network/loadBalancers/inboundNatRules',parameters('lbName'),'InboundPort8003')]"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]  
+                }
+            }
+
+        }
+    ],
+    "outputs": {
+        "fqdn": {
+            "type": "string",
+            "condition": "[if( equals( parameters('publicOrPrivate'), 'Public' ), true(), false() )]",
+            "value": "[reference(parameters('publicIpName')).dnsSettings.fqdn]"
+        },
+        "privateIP": {
+            "type": "string",
+            "condition": "[if( equals( parameters('publicOrPrivate'), 'Private' ), true(), false() )]",
+            "value": "[reference( resourceId('Microsoft.Network/loadBalancers', parameters('lbName')), '2022-11-01' ).frontendIPConfigurations[0].properties.privateIPAddress]"
+        }
+    }
+}
