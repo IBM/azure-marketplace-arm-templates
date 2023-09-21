@@ -98,7 +98,7 @@
                             "minAddressPrefixSize": "/22"
                         },
                         "options": {
-                            "hideExisting": false
+                            "hideExisting": true
                         },
                         "subnets": {
                             "vmSubnet": {
@@ -162,7 +162,6 @@
                         "name": "tshirtSize",
                         "type": "Microsoft.Common.DropDown",
                         "label": "Size of each VM in cluster",
-                        "placeholder": "",
                         "defaultValue": ["Medium"],
                         "toolTip": "The size of each VM in the cluster will be the same as this setting.",
                         "visible": true,
@@ -220,7 +219,6 @@
                                 "type": "Microsoft.Compute.UserNameTextBox",
                                 "label": "Administrator username for the jumpbox and instance virtual machines",
                                 "toolTip": "Credentials for the instances nodes will be created and stored in the keyvault",
-                                "defaultValue": "azureuser",
                                 "osPlatform": "Linux",
                                 "visible": true,
                                 "constraints": {
@@ -246,8 +244,8 @@
                                 },
                                 "toolTip": {
                                     "authenticationType": "Select the type of authentication. SSH key is recommended.",
-                                    "password": "",
-                                    "sshPublicKey": ""
+                                    "password": "Enter the password which must contain at least 12 characters and 1 number.",
+                                    "sshPublicKey": "Select or enter the SSH public key"
                                 },
                                 "constraints": {
                                     "required": true,
@@ -287,7 +285,13 @@
                                     "Standard_D8s_v3"
                                 ],
                                 "constraints": {
-                                    "allowedSizes": []
+                                    "allowedSizes": [
+                                        "Standard_B1s",
+                                        "Standard_D2s_v3",
+                                        "Standard_E2s_v3",
+                                        "Standard_D4s_v3",
+                                        "Standard_D8s_v3"
+                                    ]
                                 },
                                 "osPlatform": "Linux",
                                 "imageReference": {
@@ -652,6 +656,7 @@
                                 "type": "Microsoft.Common.TextBox",
                                 "label": "Name for the load balancer",
                                 "defaultValue": "[concat( resourceGroup().name, '-lb' )]",
+                                "toolTip": "Enter the name for the load balancer.",
                                 "visible": "[steps('frontEnd').loadBalancer.deployLoadBalancer]",
                                 "constraints":{
                                     "required": false,
@@ -714,7 +719,7 @@
             "binaryPath": "[ steps('saferPayments').binaryPath ]",
             "tshirtSize": "[ steps('saferPayments').tshirtSize ]",
             "acceptLicense": "[ steps('saferPayments').acceptLicense ]",
-            "location": "[ location() ]",
+            "location": "[location()]",
             "createVnet": "[ if( equals( steps('networking').vnet.newOrExisting, 'new' ), true, false ) ]",
             "vnetName": "[ steps('networking').vnet.name ]",
             "vnetCidr": "[ first( steps('networking').vnet.addressPrefixes ) ]",
@@ -738,7 +743,7 @@
             "node1AvailabilityZone": "[ steps('saferPayments').node1.node1AvailabilityZone ]",
             "node2AvailabilityZone" : "[ steps('saferPayments').node2.node2AvailabilityZone ]",
             "node3AvailabilityZone" : "[ steps('saferPayments').node3.node3AvailabilityZone ]",
-            "loadBalancerName": "[ steps('frontEnd').loadBalancer.loadBalancerName ]",
+            "lbName": "[ steps('frontEnd').loadBalancer.loadBalancerName ]",
             "lbPublic": "[ steps('frontEnd').loadBalancer.lbPublicIP  ]",
             "lbPublicIPName": "[ steps('frontEnd').loadBalancer.loadBalancerIp.name ]",
             "domainName": "[ steps('frontEnd').loadBalancer.loadBalancerIp.domainNameLabel ]",
