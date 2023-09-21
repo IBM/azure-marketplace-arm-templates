@@ -331,6 +331,34 @@
             "metadata": {
                 "description": "URL to the Safer Payments binary to be installed"
             }
+        },
+        "devVMSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3",
+            "metadata": {
+                "description": "Size of developer T-shirt VM size"
+            }
+        },
+        "smlVMSize": {
+            "type": "string",
+            "defaultValue": "Standard_E16-4as_v5",
+            "metadata": {
+                "description": "Size of developer T-shirt VM size"
+            }
+        },
+        "medVMSize": {
+            "type": "string",
+            "defaultValue": "Standard_E16-4as_v5",
+            "metadata": {
+                "description": "Size of developer T-shirt VM size"
+            }
+        },
+        "lgeVMSize": {
+            "type": "string",
+            "defaultValue": "Standard_E16-8as_v5",
+            "metadata": {
+                "description": "Size of developer T-shirt VM size"
+            }
         }
     },
     "variables": {
@@ -347,28 +375,28 @@
         },
         "tshirtSize": {
             "dev": {   // Only for dev work
-                "vmSize": "Standard_D2s_v3",
+                "vmSize": "[parameters('devVMSize')]",
                 "vmDiskType": "Standard_LRS",
                 "vmOSVersion": "RHEL 8.6",
                 "imageURN": "RedHat:RHEL:8_6:latest",
                 "dataDiskSize": 100
             },
             "small": {  // 4 cores, 70GB RAM, 200GB Disk
-                "vmSize": "Standard_E16-4as_v5",
+                "vmSize": "[parameters('smlVMSize')]",
                 "vmDiskType": "Premium_LRS",
                 "vmOSVersion": "RHEL 8.6",
                 "imageURN": "RedHat:RHEL:8_6:latest",
                 "dataDiskSize": 200
             },
             "medium": {  // 4 cores, 70GB RAM, 300GB Disk
-                "vmSize": "Standard_E16-4as_v5",
+                "vmSize": "[parameters('medVMSize')]",
                 "vmDiskType": "Premium_LRS",
                 "vmOSVersion": "RHEL 8.6",
                 "imageURN": "RedHat:RHEL:8_6:latest",
                 "dataDiskSize": 300
             },
             "large": {  // 8 cores, 70GB RAM, 400GB Disk
-                "vmSize": "Standard_E16-8as_v5",
+                "vmSize": "[parameters('lgeVMSize')]",
                 "vmDiskType": "Premium_LRS",
                 "vmOSVersion": "RHEL 8.6",
                 "imageURN": "RedHat:RHEL:8_6:latest",
@@ -379,6 +407,19 @@
         "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
     },
     "resources": [
+        { 
+            "apiVersion": "2021-04-01",
+            "name": "pid-2c6bcb0d-4ba9-4c9a-b99e-9dceddc4b956", 
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
         {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2022-11-01",
@@ -413,11 +454,7 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 100,
-                            "direction": "Inbound",
-                            "sourcePortRanges": [],
-                            "destinationPortRanges": [],
-                            "sourceAddressPrefixes": [],
-                            "destinationAddressPrefixes": []
+                            "direction": "Inbound"
                         }
                     },
                     {
@@ -432,11 +469,7 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 110,
-                            "direction": "Inbound",
-                            "sourcePortRanges": [],
-                            "destinationPortRanges": [],
-                            "sourceAddressPrefixes": [],
-                            "destinationAddressPrefixes": []
+                            "direction": "Inbound"
                         }
                     },
                     {
@@ -451,11 +484,7 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 120,
-                            "direction": "Inbound",
-                            "sourcePortRanges": [],
-                            "destinationPortRanges": [],
-                            "sourceAddressPrefixes": [],
-                            "destinationAddressPrefixes": []
+                            "direction": "Inbound"
                         }
                     },
                     {
@@ -470,11 +499,7 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 130,
-                            "direction": "Inbound",
-                            "sourcePortRanges": [],
-                            "destinationPortRanges": [],
-                            "sourceAddressPrefixes": [],
-                            "destinationAddressPrefixes": []
+                            "direction": "Inbound"
                         }
                     }
                 ]
@@ -493,8 +518,6 @@
                 "networkSecurityGroup": {
                     "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
                 },
-                "serviceEndpoints": [],
-                "delegations": [],
                 "privateEndpointNetworkPolicies": "Disabled",
                 "privateLinkServiceNetworkPolicies": "Enabled"
             }
@@ -691,8 +714,6 @@
                         }
                     },
                     "variables": {
-                        "vnetId": "[resourceId(parameters('inputParameters').resourceGroup,'Microsoft.Network/virtualNetworks',parameters('inputParameters').vnetName)]",
-                        "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('inputParameters').subnetName)]",
                         "nicName": "[concat(parameters('inputParameters').jumpbox.name,'-nic')]",
                         "publicIpName": "[concat(parameters('inputParameters').jumpbox.name,'-pip')]",
                         "publicIP": {
@@ -739,7 +760,7 @@
                                         "name": "ipconfig1",
                                         "properties": {
                                             "subnet": {
-                                                "id": "[variables('subnetId')]"
+                                                "id": "[resourceId(parameters('inputParameters').resourceGroup,'Microsoft.Network/virtualNetworks/subnets',parameters('inputParameters').vnetName,parameters('inputParameters').subnetName)]"
                                             },
                                             "publicIPAddress": "[if(parameters('inputParameters').jumpbox.publicIP,variables('publicIP'),json('null'))]",
                                             "privateIPAllocationMethod": "Dynamic"
@@ -774,7 +795,7 @@
                         },
                         {
                             "type": "Microsoft.Compute/virtualMachines",
-                            "apiVersion": "2021-03-01",
+                            "apiVersion": "2022-11-01",
                             "name": "[parameters('inputParameters').jumpbox.name]",
                             "location": "[parameters('inputParameters').location]",
                             "identity": {
@@ -842,14 +863,7 @@
                                 }
                             }
                         }
-                    ],
-                    "outputs": {
-                        "publicIP": {
-                            "type": "string",
-                            "condition": "[parameters('inputParameters').jumpbox.publicIP]",
-                            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPName')),'2022-07-01').ipAddress]"
-                        }
-                    }
+                    ]
                 }
             }
         },
@@ -895,15 +909,15 @@
                     "outputs": {
                         "nic1Id": {
                             "type": "string",
-                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node1Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node1Name')),'2022-11-01').networkProfile.networkInterfaces[0].id]"
                         },
                         "nic2Id": {
                             "type": "string",
-                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node2Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node2Name')),'2022-11-01').networkProfile.networkInterfaces[0].id]"
                         },
                         "nic3Id": {
                             "type": "string",
-                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node3Name')),'2021-03-01').networkProfile.networkInterfaces[0].id]"
+                            "value": "[reference(resourceid('Microsoft.Compute/VirtualMachines',parameters('node3Name')),'2022-11-01').networkProfile.networkInterfaces[0].id]"
                         }
                     }
                 }
@@ -966,17 +980,12 @@
         "saferPaymentsPublicUrl": {
             "type": "string",
             "condition": "[and(parameters('deployLoadBalancer'),parameters('deployCluster'),parameters('lbPublic'))]",
-            "value": "[concat('http://',reference('deployLoadBalancer').outputs['fqdn'].value,':8001/')]"
+            "value": "[uri(concat('https://',reference('deployLoadBalancer').outputs['fqdn'].value,':8001/'),'/')]"
         },
         "saferPaymentsPrivateUrl": {
             "type": "string",
             "condition": "[and(parameters('deployLoadBalancer'),parameters('deployCluster'),not(parameters('lbPublic')))]",
-            "value": "[concat('http://',reference('deployLoadBalancer').outputs['privateIP'].value,':8001/')]"
-        },
-        "jumpboxPublicIp": {
-            "type": "string",
-            "condition": "[parameters('jumpboxPublicIp')]",
-            "value": "[reference('deployCluster').outputs['publicIP'].value]"
+            "value": "[uri(concat('https://',reference('deployLoadBalancer').outputs['privateIP'].value,':8001/'),'/')]"
         }
     }
 }
