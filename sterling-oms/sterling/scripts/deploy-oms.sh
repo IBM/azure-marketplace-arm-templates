@@ -35,6 +35,7 @@ if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="/workspace"; fi
 if [[ -z $BIN_DIR ]]; then export BIN_DIR="/usr/local/bin"; fi
 if [[ -z $TMP_DIR ]]; then TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
 if [[ -z $PSQL_POD_NAME ]]; then export PSQL_POD_NAME="psql-client"; fi
+if [[ -z $PSQL_IMAGE ]]; then export PSQL_IMAGE="postgres:13"; fi
 if [[ -z $DB_NAME ]]; then export DB_NAME="oms"; fi
 if [[ -z $SCHEMA_NAME ]]; then export SCHEMA_NAME="oms"; fi
 if [[ -z $OM_INSTANCE_NAME ]]; then export OM_INSTANCE_NAME="oms-instance"; fi
@@ -92,6 +93,7 @@ log-output "INFO: WORKSPACE_DIR is $WORKSPACE_DIR"
 log-output "INFO: TMP_DIR is $TMP_DIR"
 log-output "INFO: BIN_DIR is $BIN_DIR"
 log-output "INFO: PSQL_POD_NAME is $PSQL_POD_NAME"
+log-output "INFO: PSQL_IMAGE is $PSQL_IMAGE"
 log-output "INFO: DB_NAME is $DB_NAME"
 log-output "INFO: SCHEMA_NAME is $SCHEMA_NAME"
 log-output "INFO: OM_INSTANCE_NAME is $OM_INSTANCE_NAME"
@@ -471,7 +473,7 @@ metadata:
 spec:
   containers:
     - name: psql-container
-      image: rhel8/postgresql-12
+      image: ${PSQL_IMAGE}
       command: [ "/bin/bash", "-c", "--" ]
       args: [ "while true; do sleep 30; done;" ]
       env:
