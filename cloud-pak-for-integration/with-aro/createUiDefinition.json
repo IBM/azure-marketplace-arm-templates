@@ -352,9 +352,7 @@
 					  "name": "rpObjectId",
 					  "type": "Microsoft.Common.TextBox",
 					  "label": "OpenShift Resource Provider Service Prinicpal Id",
-					  "defaultValue": "",
 					  "toolTip": "Refer to https://learn.microsoft.com/en-us/azure/openshift/quickstart-openshift-arm-bicep-template?pivots=aro-arm#get-the-service-principal-object-id-for-the-openshift-resource-provider---azure-cli for details",
-					  "placeholder": "",
 					  "multiLine": false,
 					  "constraints": {
 						"required": true,
