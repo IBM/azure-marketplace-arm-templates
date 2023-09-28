@@ -31,9 +31,9 @@
             {
                 "name": "namePrefix",
                 "type": "Microsoft.Common.TextBox",
-                "label": "Name Prefix",
-                "defaultValue": "cp4i",
-                "toolTip": "Prefix for created resources.",
+                "label": "Azure resource prefix",
+                "defaultValue": "integration",
+                "toolTip": "Prefix for Azure installation resources.",
 				"constraints":{
 					"required": true,
 					"validations": [
@@ -118,10 +118,10 @@
                     {
 						"name": "ibmEntitlementKey",
 						"type": "Microsoft.Common.PasswordBox",	
-						"toolTip": "API Key for IBM registry entitlement to image",					
+						"toolTip": "Entitlement key for the IBM Entitled Registry, used to pull the software images",					
 						"label": {
-							"password": "API Key",
-                            "confirmPassword": "Confirm API Key"
+							"password": "Entitlement key",
+                            "confirmPassword": "Confirm Entitlement key"
 						},
 						"constraints": {
 							"required": true,
@@ -139,15 +139,15 @@
 						"visible": true,
 						"options": {
 						  "icon": "None",
-						  "text": "Details of the licenses are available by clicking here. By selecting accept below you are accepting the terms and conditions of the license.",
+						  "text": "By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
 						  "uri": "https://ibm.biz/int-licenses"
 						}
 					},
 					{
 						"name": "cp4iEdition",
 						"type": "Microsoft.Common.DropDown",
-						"label": "Cloud Pak for Integration Version",
-						"toolTip": "The version and license to be used for the installation. Refer to above link for details.",
+						"label": "Cloud Pak for Integration version",
+						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
 						"constraints": {
 						  "allowedValues": [
 							{
@@ -166,8 +166,8 @@
 					{
 						"name": "acceptLicense",
 						"type": "Microsoft.Common.OptionsGroup",
-						"label": "Cloud Pak License Agreement",
-						"toolTip": "Acceptance of license terms is required to instantiate instance. Refer above link for license details.",
+						"label": "License agreement",
+						"toolTip": "Acceptance of license terms is required to continue with installation.  Refer to the information box for details.",
 						"defaultValue": "Decline",
 						"constraints": {
 							"required": true,
@@ -187,9 +187,9 @@
 					{
 						"name": "nameSpace",
 						"type": "Microsoft.Common.TextBox",
-						"label": "CP4I Instance Namespace",
+						"label": "Platform UI namespace",
 						"defaultValue": "cp4i",
-						"toolTip": "Namespace where CP4I is to be installed.",
+						"toolTip": "Namespace where you want to install the Platform UI.",
 						"multiLine": false,
 						"constraints": {
 						  "required": true,
@@ -205,9 +205,9 @@
 					{
 						"name": "storageClass",
 						"type": "Microsoft.Common.TextBox",
-						"label": "Storage Class",
+						"label": "Storage class",
 						"defaultValue": "ocs-storagecluster-cephfs",
-						"toolTip": "Storage class name. Must be RWX file capable.",
+						"toolTip": "Platform UI requires a persistent volume with ReadWriteMany access mode.",
 						"multiLine": false,
 						"constraints": {
 						  "required": true,
