@@ -273,6 +273,12 @@
 							"visible": true
 					},
 					{
+						"name": "encryption",
+						"type": "Microsoft.Common.CheckBox",
+						"label": "Enable encryption at host",
+						"toolTip": "Encyrption at host must be enabled for the subscription"
+					},
+					{
 						"name": "servicePrincipal",
 						"type": "Microsoft.Common.ServicePrincipalSelector",
 						"label": {
@@ -529,7 +535,8 @@
 			"workerCount": "[steps('openshift').workerCount]",
             "storageSizePerNode": "[steps('openshift').odfNodeSize]",
 			"aroVersion": "[steps('openshift').aroVersion]",
-			"domain": "[steps('openshift').domainName]"
+			"domain": "[steps('openshift').domainName]",
+			"encryption": "[steps('openshift').encryption]"
          }
     }
 }
