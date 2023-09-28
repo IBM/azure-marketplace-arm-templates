@@ -163,9 +163,30 @@
         },
         "vmDomainName": {
             "type": "string",
-            "defaultValue": "[toLower(substring(uniqueString(resourceGroup().id),0,8))]",
+            "defaultValue": "[toLower(concat('i',substring(uniqueString(resourceGroup().id),0,8)))]",
             "metadata": {
                 "description": "Domain name for VM public IP"
+            }
+        },
+        "encryption": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enables encryption at host on virtual machine"
+            }
+        },
+        "dockerDiskSize": {
+            "type": "int",
+            "defaultValue": 20,
+            "metadata": {
+                "description": "Size to extend the /var/lib/docker volume to accommodate the docker registry"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
             }
         }
     },
@@ -198,6 +219,7 @@
             "name": "[parameters('vnetName')]",
             "condition": "[parameters('createVnet')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
             ],
@@ -218,6 +240,7 @@
             "apiVersion": "2022-11-01",
             "name": "[parameters('nsgName')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ],
@@ -279,7 +302,7 @@
                             "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": 120,
+                            "priority": 130,
                             "direction": "Inbound"
                         }
                     }
@@ -344,11 +367,17 @@
                     "vmSize": {
                         "value": "[parameters('vmSize')]" 
                     },
+                    "dockerDiskSize": {
+                        "value": "[parameters('dockerDiskSize')]"
+                    },
                     "authType": {
                         "value": "[parameters('authType')]" 
                     },
                     "publicIP": {
                         "value": "[parameters('vmPublicIp')]" 
+                    },
+                    "encryption": {
+                        "value": "[parameters('encryption')]"
                     },
                     "domainName": {
                         "value": "[parameters('vmDomainName')]" 
@@ -361,6 +390,9 @@
                     },
                     "subnetName": {
                         "value": "[parameters('vmSubnetName')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
                     }
                 },
                 "template": {
@@ -381,6 +413,12 @@
                         },
                         "vmSize": {
                             "type": "string"
+                        },
+                        "dockerDiskSize": {
+                            "type": "int"
+                        },
+                        "encryption": {
+                            "type": "bool"
                         },
                         "storageSKU": {
                             "type": "string"
@@ -408,6 +446,9 @@
                         },
                         "domainName": {
                             "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
                         }
                     },
                     "variables": {
@@ -419,10 +460,10 @@
                         "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - yum update -y')]",
                         "securityProfile": {
                             "Standard": {
-                                "encryptionAtHost": true
+                                "encryptionAtHost": "[parameters('encryption')]"
                             },
                             "TrustedLaunch": {
-                                "encryptionAtHost": true,
+                                "encryptionAtHost": "[parameters('encryption')]",
                                 "uefiSettings": {
                                     "secureBootEnabled": true,
                                     "vTpmEnabled": true
@@ -501,6 +542,7 @@
                             "apiVersion": "2023-03-01",
                             "name": "[parameters('namePrefix')]",
                             "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/virtualMachines'), parameters('tagsByResource')['Microsoft.Compute/virtualMachines'], json('{}')) ]",
                             "properties": {
                                 "hardwareProfile": {
                                     "vmSize": "[parameters('vmSize')]"
@@ -512,7 +554,20 @@
                                             "storageAccountType": "[parameters('storageSKU')]"
                                         }
                                     },
-                                    "imageReference": "[parameters('imageRef')]"
+                                    "imageReference": "[parameters('imageRef')]",
+                                    "dataDisks": [
+                                        {
+                                            "name": "[concat(parameters('namePrefix'),'-docker-disk')]",
+                                            "caching": "None",
+                                            "createOption": "Empty",
+                                            "deleteOption": "Delete",
+                                            "diskSizeGB": "[parameters('dockerDiskSize')]",
+                                            "lun": 0,
+                                            "managedDisk": {
+                                                "storageAccountType": "[parameters('storageSKU')]"
+                                            }
+                                        }
+                                    ]
                                 },
                                 "networkProfile": {
                                     "networkInterfaces": [
@@ -552,6 +607,5 @@
         }
         
         // Bastion (optional)
-        // Load Balancer?
     ]
 }
