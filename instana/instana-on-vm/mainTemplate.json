@@ -1,0 +1,557 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure region into which to deploy resources"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group for the virtual network"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "vnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the Virtual Network"
+            }
+        },
+        "enableDDosProtection": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable DDos protection for the virtual network"
+            }
+        },
+        "ddosProtectionPlanName": {
+            "type": "string",
+            "defaultValue": "Instana-DDoS-Plan",
+            "metadata": {
+                "description": "DDoS protection plan name to be used if DDoS is enabled"
+            }
+        },
+        "vmSubnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Name of the subnet for the virtual machine(s)"
+            }
+        },
+        "vmSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/27",
+            "metadata": {
+                "description": "CIDR for the VM subnet"
+            }
+        },
+        "createVnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use a new or existing VNet"
+            }
+        },
+        "nsgName": {
+            "type": "string",
+            "defaultValue": "instana-nsg",
+            "metadata": {
+                "description": "Name of the network security group"
+            }
+        },
+        "deployVM": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the virtual machine and Instana"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "instana-vm",
+            "metadata": {
+                "description": "Name of the virtual machine that will host Instana"
+            }
+        },
+        "securityType": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Initial SSH Key or password for node 1."
+            }
+        },
+        "authType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication for initial node 1 configuration. SSH Key or Password"
+            }
+        },
+        "storageSKU": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "osVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 9.2",
+            "allowedValues": [
+                "RHEL 8.7",
+                "RHEL 9.2"
+            ],
+            "metadata": {
+                "description": "Operating system version for the Instana virtual machine"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D16s_v3",
+            "metadata": {
+                "description": "Size of the Instana virtual machine"
+            }
+        },
+        "vmPublicIp": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a public IP for the Instana virtual machine"
+            }
+        },
+        "vmDomainName": {
+            "type": "string",
+            "defaultValue": "[toLower(substring(uniqueString(resourceGroup().id),0,8))]",
+            "metadata": {
+                "description": "Domain name for VM public IP"
+            }
+        }
+    },
+    "variables": {
+        "imageRef": {
+            "RHEL 8.7": {
+                "publisher": "RedHat",
+                "offer": "RHEL",
+                "sku": "8_7",
+                "version": "latest"
+            },
+            "RHEL 9.2": {
+                "publisher": "RedHat",
+                "offer": "RHEL",
+                "sku": "9_2",
+                "version": "latest"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/ddosProtectionPlans",
+            "apiVersion": "2021-05-01",
+            "name": "[parameters('ddosProtectionPlanName')]",
+            "location": "[parameters('location')]"
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('vnetName')]",
+            "condition": "[parameters('createVnet')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCidr')]"
+                    ]
+                },
+                "enableDdosProtection": "[parameters('enableDDoSProtection')]",
+                "ddosProtectionPlan": {
+                    "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('nsgName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowAnySSHInbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnySSHInbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "AllowAnyHTTPInbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPInbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 110,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "AllowAnyHTTPSInbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPSInbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 120,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "AllowAnyAGENTInbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPSInbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "1444",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 120,
+                            "direction": "Inbound"
+                        }
+                    }
+                    // TODO: Add more rules when base is working
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2023-04-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+            ],
+            "name": "[concat(parameters('vnetName'), '/' ,parameters('vmSubnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('vmSubnetCidr')]",
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                },
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Disabled"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "condition": "[parameters('deployVM')]",
+            "name": "vmDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('vmSubnetName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('vmName')]" 
+                    },
+                    "securityType": {
+                        "value": "[parameters('securityType')]" 
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('adminUserName')]" 
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]" 
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "storageSKU": {
+                        "value": "[parameters('storageSKU')]" 
+                    },
+                    "imageRef": {
+                        "value": "[variables('imageRef')[parameters('osVersion')]]" 
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]" 
+                    },
+                    "authType": {
+                        "value": "[parameters('authType')]" 
+                    },
+                    "publicIP": {
+                        "value": "[parameters('vmPublicIp')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('vmDomainName')]" 
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]" 
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]" 
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "namePrefix": {
+                            "type": "string"
+                        },
+                        "securityType": {
+                            "type": "string"
+                        },
+                        "adminUserName": {
+                            "type": "string"
+                        },
+                        "adminPassword": {
+                            "type": "secureString"
+                        },
+                        "vmSize": {
+                            "type": "string"
+                        },
+                        "storageSKU": {
+                            "type": "string"
+                        },
+                        "imageRef": {
+                            "type": "object"
+                        },
+                        "authType": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "networkResourceGroup": {
+                            "type": "string"
+                        },
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "publicIP": {
+                            "type": "bool"
+                        },
+                        "domainName": {
+                            "type": "string"
+                        }
+                    },
+                    "variables": {
+                        "nicName": "[concat(parameters('namePrefix'),'-nic')]",
+                        "publicIpName": "[concat(parameters('namePrefix'),'-pip')]",
+                        "publicIP": {
+                            "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+                        },
+                        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - yum update -y')]",
+                        "securityProfile": {
+                            "Standard": {
+                                "encryptionAtHost": true
+                            },
+                            "TrustedLaunch": {
+                                "encryptionAtHost": true,
+                                "uefiSettings": {
+                                    "secureBootEnabled": true,
+                                    "vTpmEnabled": true
+                                },
+                                "securityType": "[parameters('securityType')]"
+                            }
+                        },
+                        "linuxConfigSSH": {
+                            "disablePasswordAuthentication": true,
+                            "ssh": {
+                                "publicKeys": [
+                                    {
+                                        "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUserName'))]",
+                                        "keyData": "[parameters('adminPassword')]"
+                                    }
+                                ]
+                            }
+                        },
+                        "linuxConfigPWD": {
+                            "disablePasswordAuthentication": false
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2022-07-01",
+                            "name": "[variables('nicName')]",
+                            "location": "[parameters('location')]",
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "ipconfig1",
+                                        "properties": {
+                                            "subnet": {
+                                                "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+                                            },
+                                            "publicIPAddress": "[if(parameters('publicIP'),variables('publicIP'),json('null'))]",
+                                            "privateIPAllocationMethod": "Dynamic"
+                                        }
+                                    }
+                                ]
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.Network/publicIPAddresses",
+                            "apiVersion": "2022-07-01",
+                            "condition": "[parameters('publicIP')]",
+                            "name": "[variables('publicIPName')]",
+                            "location": "[parameters('location')]",
+                            "sku": {
+                                "name": "Standard",
+                                "tier": "Regional"
+                            },
+                            "zones": [
+                                "1",
+                                "2",
+                                "3"
+                            ],
+                            "properties": {
+                                "publicIPAllocationMethod": "Static",
+                                "deleteOption": "Delete",
+                                "publicIPAddressVersion": "IPv4",
+                                "dnsSettings": {
+                                    "domainNameLabel": "[parameters('domainName')]"
+                                },
+                                "ddosSettings": {
+                                    "protectionMode": "VirtualNetworkInherited"
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Compute/virtualMachines",
+                            "apiVersion": "2023-03-01",
+                            "name": "[parameters('namePrefix')]",
+                            "location": "[parameters('location')]",
+                            "properties": {
+                                "hardwareProfile": {
+                                    "vmSize": "[parameters('vmSize')]"
+                                },
+                                "storageProfile": {
+                                    "osDisk": {
+                                        "createOption": "FromImage",
+                                        "managedDisk": {
+                                            "storageAccountType": "[parameters('storageSKU')]"
+                                        }
+                                    },
+                                    "imageReference": "[parameters('imageRef')]"
+                                },
+                                "networkProfile": {
+                                    "networkInterfaces": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                                        }
+                                    ]
+                                },
+                                "osProfile": {
+                                    "computerName": "[parameters('namePrefix')]",
+                                    "adminUsername": "[parameters('adminUserName')]",
+                                    "adminPassword": "[parameters('adminPassword')]",
+                                    "customData": "[base64(variables('vmBootstrap'))]",
+                                    "linuxConfiguration": "[if(equals(parameters('authType'), 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
+                                },
+                                "securityProfile": "[variables('securityProfile')[parameters('securityType')] ]",
+                                "diagnosticsProfile": {
+                                    "bootDiagnostics": {
+                                        "enabled": true
+                                    }
+                                }
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                            ]
+                        }
+                        // Docker disk (/var/lib/docker)
+                        // Data disk  (/mnt)
+                        // VM Extension
+                    ],
+                    "outputs": {
+
+                    }
+                }
+            }
+
+        }
+        
+        // Bastion (optional)
+        // Load Balancer?
+    ]
+}
