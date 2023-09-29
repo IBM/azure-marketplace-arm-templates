@@ -2,40 +2,103 @@
 
 # Supports RHEL 8 and RHEL 9
 
+function log-output() {
+    MSG=${1}
+
+    if [[ -z $OUTPUT_DIR ]]; then
+        OUTPUT_DIR="$(pwd)"
+    fi
+    mkdir -p $OUTPUT_DIR
+
+    if [[ -z $OUTPUT_FILE ]]; then
+        OUTPUT_FILE="script-output.log"
+    fi
+
+    echo "$(date -u +"%Y-%m-%d %T") ${MSG}" >> ${OUTPUT_DIR}/${OUTPUT_FILE}
+    echo ${MSG}
+}
+
+function usage()
+{
+   echo "Installs Instana on a RHEL server"
+   echo
+   echo "Usage: ${0} -p PARAMETERS [-a]"
+   echo "  options:"
+   echo "  -p     install parameters in json format"
+   echo "  -a     (optional) accept the license terms"
+   echo "  -h     Print this help"
+   echo
+}
+
+log-output "INFO: Script started"
+
+# Get the command line arguments
+while getopts ":p:ah" option; do
+   case $option in
+      h) # display Help
+         usage
+         exit 1;;
+      p) # install parameters
+         PARAMS=$OPTARG;;
+      a) # Accept license   
+         LICENSE="accept";;
+     \?) # Invalid option
+         echo "Error: Invalid option"
+         usage
+         exit 1;;
+   esac
+done
+
 # Check running as root
 if [[ $(id -u) != 0 ]]; then
-    echo "ERROR: Not running as root. Please change to root and retry"
+    log-output "ERROR: Not running as root. Please change to root and retry"
     exit 1
 fi
 
-# Check input parameters
-ENV_VAR_NOT_SET=""
+# Parse parameters
+if [[ -z $PARAMS ]]; then
+    log-output "ERROR: No parameters provided"
+    exit 1
+fi
 
-if [[ -z $DOWNLOAD_KEY ]]; then ENV_VAR_NOT_SET="DOWNLOAD_KEY"; fi
-if [[ -z $SALES_KEY ]]; then ENV_VAR_NOT_SET="SALES_KEY"; fi
-if [[ -z $TENANT_NAME ]]; then ENV_VAR_NOT_SET="TENANT_NAME"; fi
-if [[ -z $ENV_NAME ]]; then ENV_VAR_NOT_SET="ENV_NAME"; fi
-if [[ -z $FQDN ]]; then ENV_VAR_NOT_SET="FQDN"; fi
+DOWNLOAD_KEY=$(echo $PARAMS | jq -r '.credentials.downloadKey')
+SALES_KEY=$(echo $PARAMS | jq -r '.credentials.salesKey')
+TENANT_NAME=$(echo $PARAMS | jq -r '.config.tenantName')
+ENV_NAME=$(echo $PARAMS | jq -r '.config.envName')
+FQDN=$(echo $PARAMS | jq -r '.config.fqdn')
+DOCKER_DISK_SIZE=$(echo $PARAMS | jq -r '.config.dockerDiskSize')
+AGENT_TYPE=$(echo $PARAMS | jq -r '.config.agentType')
+AGENT_MODE=$(echo $PARAMS | jq -r '.config.agentMode')
 
-if [[ -n $ENV_VAR_NOT_SET ]]; then
-    echo "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
+# Check critical parameters
+VAR_NOT_SET=""
+
+if [[ $DOWNLOAD_KEY == null ]]; then VAR_NOT_SET="DOWNLOAD_KEY"; fi
+if [[ $SALES_KEY == null ]]; then VAR_NOT_SET="SALES_KEY"; fi
+if [[ $TENANT_NAME == null ]]; then VAR_NOT_SET="TENANT_NAME"; fi
+if [[ $ENV_NAME == null ]]; then VAR_NOT_SET="ENV_NAME"; fi
+if [[ $FQDN == null ]]; then VAR_NOT_SET="FQDN"; fi
+
+if [[ -n $VAR_NOT_SET ]]; then
+    log-output "ERROR: $VAR_NOT_SET not set. Please set and retry."
     exit 1
 fi
 
 # Set defaults
-if [[ -z $TMP_DIR ]]; then TMP_DIR="/tmp"; fi
-if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
-if [[ -z $DOCKER_DISK_SIZE ]]; then DOCKER_DISK_SIZE=20; fi
-if [[ -z $AGENT_TYPE ]]; then AGENT_TYPE="docker"; fi
+if [[ -z $TMP_DIR ]] || [[ $TMP_DIR == null ]]; then TMP_DIR="/tmp"; fi
+if [[ -z $LICENSE ]] ; then LICENSE="decline"; fi
+if [[ -z $DOCKER_DISK_SIZE ]] || [[ $DOCKER_DISK_SIZE == null ]]; then DOCKER_DISK_SIZE=20; fi
+if [[ -z $AGENT_TYPE ]] || [[ $AGENT_TYPE == null ]]; then AGENT_TYPE="docker"; fi
+if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRUCTURE"; fi
 
 # Extend the var logical volume for docker
-echo "INFO: Extending var filesystem to accommodate docker registry"
+log-output "INFO: Extending var filesystem to accommodate docker registry"
 CURRENT_VAR_SIZE=$(lvscan | grep varlv | awk '{print $3}' | sed 's/\[//g' | awk -F '.' '{print $1}')
 NEW_VAR_SIZE=$(( $CURRENT_VAR_SIZE + $DOCKER_DISK_SIZE ))
 lvextend -r -L ${NEW_VAR_SIZE}G /dev/rootvg/varlv
 
 if [[ $? != 0 ]]; then
-    echo "ERROR: Unable to extend var filesystem to $NEW_VAR_SIZE for docker regsitry"
+    log-output "ERROR: Unable to extend var filesystem to $NEW_VAR_SIZE for docker registry"
     exit 1
 fi
 
@@ -43,7 +106,7 @@ fi
 
 if [[ -z $(which docker) ]]; then
 
-    echo "INFO: Installing docker"
+    log-output "INFO: Installing docker"
 
     # TODO: Test the below with different RHEL versions (tested 9.2)
     ARCH="$(arch)"
@@ -64,12 +127,12 @@ if [[ -z $(which docker) ]]; then
     systemctl enable docker
     systemctl start docker
 else
-    echo "INFO: Docker already installed on VM" 
+    log-output "INFO: Docker already installed on VM" 
 fi
 
 # Install the Instana console
 if [[ -z $(which instana) ]]; then
-    echo "INFO: Installing the Instana console"
+    log-output "INFO: Installing the Instana console"
     cat << EOF > /etc/yum.repos.d/Instana-Product.repo
 [instana-product]
 name=Instana-Product
@@ -83,20 +146,20 @@ EOF
     yum clean expire-cache -y && yum update -y
     yum install -y instana-console
 else
-    echo "INFO: Instana console already installed"
+    log-output "INFO: Instana console already installed"
 fi
 
 # Create the self-signed certificates
 if [[ -z $INSTANA_CERT ]]; then
-    echo "INFO: Creating self-signed certificates"
+    log-output "INFO: Creating self-signed certificates"
     openssl req -x509 -newkey rsa:2048 -keyout /root/instana.key -out /root/instana.crt -days 365 -nodes -subj "/CN=$FQDN"
     openssl rsa -in /root/instana.key -pubout -out /root/instana-pub.key
 else
-    echo "INFO: Using provided certificates"
+    log-output "INFO: Using provided certificates"
 fi
 
 # Open firewall ports
-echo "INFO: Opening firewall ports for Instana"
+log-output "INFO: Opening firewall ports for Instana"
 firewall-cmd --zone=public --add-port=443/tcp --permanent
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --zone=public --add-port=86/tcp --permanent
@@ -105,10 +168,13 @@ firewall-cmd --zone=public --add-port=1444/tcp --permanent
 firewall-cmd --reload
 
 # Make sure directories exist
-echo "INFO: Created directories for Instana"
+log-output "INFO: Created directories for Instana"
 mkdir -p /mnt/data
 mkdir -p /mnt/traces
 mkdir -p /mnt/metrics
+
+##################TEMP
+exit 0
 
 # Create the settings file
 
@@ -118,17 +184,17 @@ instana init -y
 
 # Add the license
 if [[ $LICENSE = "accept" ]]; then
-    echo "INFO: Applying license"
+    log-output "INFO: Applying license"
     instana license download
     instana license import -f $(pwd)/license
 else
-    echo "INFO: License not accepted. License not applied."
+    log-output "INFO: License not accepted. License not applied."
 fi
 
 # Install monitoring agent on the Instana VM host
 if [[ $AGENT_TYPE == "docker" ]]; then 
     # Create the docker Instana agent
-    echo "INFO: Starting docker agent"
+    log-output "INFO: Starting docker agent"
     docker run \
     --detach \
     --name instana-agent \
@@ -143,13 +209,13 @@ if [[ $AGENT_TYPE == "docker" ]]; then
     --env="INSTANA_AGENT_ENDPOINT=$(ifconfig eth0 | grep "inet " | awk '{print $2}')" \
     --env="INSTANA_AGENT_ENDPOINT_PORT=1444" \
     --env="INSTANA_AGENT_KEY=${DOWNLOAD_KEY}" \
-    --env="INSTANA_AGENT_MODE=INFRASTRUCTURE" \
+    --env="INSTANA_AGENT_MODE=${AGENT_MODE}" \
     --env="INSTANA_DOWNLOAD_KEY=${DOWNLOAD_KEY}" \
     icr.io/instana/agent
 
 elif [[ $AGENT_TYPE = "host" ]]; then
     # Install the Instana server agent in the Instana VM
-    echo "INFO: Creating instana host agent"
+    log-output "INFO: Creating instana host agent"
     curl -o setup_agent.sh https://setup.instana.io/agent \
         && chmod 700 ./setup_agent.sh \
         && sudo ./setup_agent.sh \
@@ -159,5 +225,5 @@ elif [[ $AGENT_TYPE = "host" ]]; then
         -m infra \
         -e ${FQDN}:1444  -y
 else
-    echo "INFO: Unknown agent type $AGENT_TYPE. No agent installed."
+    log-output "INFO: Unknown agent type $AGENT_TYPE. No agent installed."
 fi

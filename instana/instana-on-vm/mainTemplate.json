@@ -178,8 +178,90 @@
         "dockerDiskSize": {
             "type": "int",
             "defaultValue": 20,
+            "minValue": 1,
+            "maxValue": 30,
             "metadata": {
                 "description": "Size to extend the /var/lib/docker volume to accommodate the docker registry"
+            }
+        },
+        "dataDiskSize": {
+            "type": "int",
+            "defaultValue": 5,
+            "minValue": 1,
+            "maxValue": 1024,
+            "metadata": {
+                "description": "Size of the data disk"
+            }
+        },
+        "metricsDiskSize": {
+            "type": "int",
+            "defaultValue": 5,
+            "minValue": 1,
+            "maxValue": 1024,
+            "metadata": {
+                "description": "Size of the metrics disk"
+            }
+        },
+        "tracesDiskSize": {
+            "type": "int",
+            "defaultValue": 5,
+            "minValue": 1,
+            "maxValue": 1024,
+            "metadata": {
+                "description": "Size of the traces disk"
+            }
+        },
+        "downloadKey": {
+            "type": "string",
+            "metadata": {
+                "description": "Instana download key"
+            }
+        },
+        "salesKey": {
+            "type": "string",
+            "metadata": {
+                "description": "Instana sales key"
+            }
+        },
+        "tenantName": {
+            "type": "string",
+            "metadata": {
+                "description": "Tenant name for Instana"
+            }
+        },
+        "envName": {
+            "type": "string",
+            "metadata": {
+                "description": "Environment name for Instana"
+            }
+        },
+        "agentType": {
+            "type": "string",
+            "defaultValue": "",
+            "allowedValues": [
+                "docker",
+                "host"
+            ],
+            "metadata": {
+                "description": "Instana host agent type for monitoring self"
+            }
+        },
+        "agentMode": {
+            "type": "string",
+            "defaultValue": "INFRASTRUCTURE",
+            "allowedValues": [
+                "APM",
+                "INFRASTRUCTURE"
+            ],
+            "metadata": {
+                "description": "Instana host agent mode for monitoring self"
+            }
+        },
+        "acceptLicense": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Accept the Instana license"
             }
         },
         "tagsByResource": {
@@ -187,6 +269,13 @@
             "defaultValue": {},
             "metadata": {
                 "description": "Tags for resources"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for installation script"
             }
         }
     },
@@ -204,7 +293,9 @@
                 "sku": "9_2",
                 "version": "latest"
             }
-        }
+        },
+        "baseURL": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+        "scriptOffset": "/instana/instana-on-vm/"
     },
     "resources": [
         {
@@ -370,6 +461,15 @@
                     "dockerDiskSize": {
                         "value": "[parameters('dockerDiskSize')]"
                     },
+                    "dataDiskSize": {
+                        "value": "[parameters('dataDiskSize')]"
+                    },
+                    "metricsDiskSize": {
+                        "value": "[parameters('metricsDiskSize')]"
+                    },
+                    "tracesDiskSize": {
+                        "value": "[parameters('tracesDiskSize')]"
+                    },
                     "authType": {
                         "value": "[parameters('authType')]" 
                     },
@@ -393,6 +493,31 @@
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
+                    },
+                    "scriptPath": {
+                        "value": "[uri(variables('baseURL'),concat(parameters('branch'),variables('scriptOffset')))]" 
+                    },
+                    "scriptName": {
+                        "value": "install-instana-rhel.json" 
+                    },
+                    "instanaParameters": {
+                        "value": {
+                            "credentials": {
+                                "downloadKey": "[parameters('downloadKey')]",
+                                "salesKey": "[parameters('salesKey')]"
+                            },
+                            "config": {
+                                "tenantName": "[parameters('tenantName')]",
+                                "envName": "[parameters('envName')]",
+                                "fqdn": "[concat(parameters('vmDomainName'),'.',parameters('location'),'.cloudapp.azure.com')]",
+                                "dockerDiskSize": "[parameters('dockerDiskSize')]",
+                                "agentType": "[parameters('agentType')]",
+                                "agentMode": "[parameters('agentMode')]"
+                            }
+                        }
+                    },
+                    "acceptLicense": {
+                        "value": "[parameters('acceptLicense')]"
                     }
                 },
                 "template": {
@@ -414,7 +539,13 @@
                         "vmSize": {
                             "type": "string"
                         },
-                        "dockerDiskSize": {
+                        "dataDiskSize": {
+                            "type": "int"
+                        },
+                        "tracesDiskSize": {
+                            "type": "int"
+                        },
+                        "metricsDiskSize": {
                             "type": "int"
                         },
                         "encryption": {
@@ -449,6 +580,18 @@
                         },
                         "tagsByResource": {
                             "type": "object"
+                        },
+                        "scriptPath": {
+                            "type": "string"
+                        },
+                        "scriptName": {
+                            "type": "string"
+                        },
+                        "instanaParameters": {
+                            "type": "secureObject"
+                        },
+                        "acceptLicense": {
+                            "type": "bool"
                         }
                     },
                     "variables": {
@@ -557,12 +700,34 @@
                                     "imageReference": "[parameters('imageRef')]",
                                     "dataDisks": [
                                         {
-                                            "name": "[concat(parameters('namePrefix'),'-docker-disk')]",
+                                            "name": "[concat(parameters('namePrefix'),'-data-disk')]",
                                             "caching": "None",
                                             "createOption": "Empty",
                                             "deleteOption": "Delete",
-                                            "diskSizeGB": "[parameters('dockerDiskSize')]",
+                                            "diskSizeGB": "[parameters('dataDiskSize')]",
                                             "lun": 0,
+                                            "managedDisk": {
+                                                "storageAccountType": "[parameters('storageSKU')]"
+                                            }
+                                        },
+                                        {
+                                            "name": "[concat(parameters('namePrefix'),'-traces-disk')]",
+                                            "caching": "None",
+                                            "createOption": "Empty",
+                                            "deleteOption": "Delete",
+                                            "diskSizeGB": "[parameters('tracesDiskSize')]",
+                                            "lun": 1,
+                                            "managedDisk": {
+                                                "storageAccountType": "[parameters('storageSKU')]"
+                                            }
+                                        },
+                                        {
+                                            "name": "[concat(parameters('namePrefix'),'-metrics-disk')]",
+                                            "caching": "None",
+                                            "createOption": "Empty",
+                                            "deleteOption": "Delete",
+                                            "diskSizeGB": "[parameters('metricsDiskSize')]",
+                                            "lun": 2,
                                             "managedDisk": {
                                                 "storageAccountType": "[parameters('storageSKU')]"
                                             }
@@ -593,10 +758,28 @@
                             "dependsOn": [
                                 "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
                             ]
+                        },
+                        {
+                            "type": "Microsoft.Compute/virtualMachines/extensions",
+                            "apiVersion": "2023-03-01",
+                            "location": "[parameters('location')]",
+                            "name": "[concat(parameters('namePrefix'),'/','install-instana-rhel')]",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Compute/virtualMachines', parameters('namePrefix'))]"
+                            ],
+                            "properties": {
+                                "publisher": "Microsoft.Azure.Extensions",
+                                "type": "CustomScript",
+                                "typeHandlerVersion": "2.0",
+                                "autoUpgradeMinorVersion": true,
+                                "protectedSettings": {
+                                    "fileUris": [
+                                        "[uri(parameters('scriptPath'),parameters('scriptName'))]"
+                                    ],
+                                    "commandToExecute": "[concat('/bin/bash ',parameters('scriptName'),' -p \"', replace(string(parameters('instanaParameters')), '\"', '\\\"'),'\"',if(parameters('acceptLicense'),' -a ',''))]"
+                                }
+                            }
                         }
-                        // Docker disk (/var/lib/docker)
-                        // Data disk  (/mnt)
-                        // VM Extension
                     ],
                     "outputs": {
 
