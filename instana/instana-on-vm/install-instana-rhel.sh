@@ -61,6 +61,9 @@ if [[ -z $PARAMS ]]; then
     exit 1
 fi
 
+##################TEMP
+echo $PARAMS > $(pwd)/instanaParameters.json
+
 DOWNLOAD_KEY=$(echo $PARAMS | jq -r '.credentials.downloadKey')
 SALES_KEY=$(echo $PARAMS | jq -r '.credentials.salesKey')
 TENANT_NAME=$(echo $PARAMS | jq -r '.config.tenantName')
@@ -90,6 +93,9 @@ if [[ -z $LICENSE ]] ; then LICENSE="decline"; fi
 if [[ -z $DOCKER_DISK_SIZE ]] || [[ $DOCKER_DISK_SIZE == null ]]; then DOCKER_DISK_SIZE=20; fi
 if [[ -z $AGENT_TYPE ]] || [[ $AGENT_TYPE == null ]]; then AGENT_TYPE="docker"; fi
 if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRUCTURE"; fi
+if [[ -z $DATA_DISK ]] || [[ $DATA_DISK == null ]]; then DATA_DISK="/dev/sdc"; fi
+if [[ -z $TRACES_DISK ]] || [[ $TRACES_DISK == null ]]; then TRACES_DISK="/dev/sdd"; fi
+if [[ -z $METRICS_DISK ]] || [[ $METRICS_DISK == null ]]; then METRICS_DISK="/dev/sde"; fi
 
 # Extend the var logical volume for docker
 log-output "INFO: Extending var filesystem to accommodate docker registry"
@@ -173,8 +179,30 @@ mkdir -p /mnt/data
 mkdir -p /mnt/traces
 mkdir -p /mnt/metrics
 
+# Partition the data disks
+log-output "INFO: Partitioning data disks"
+echo "o\nn\np\n1\n\n\nw\n" | fdisk $DATA_DISK
+echo "o\nn\np\n1\n\n\nw\n" | fdisk $TRACES_DISK
+echo "o\nn\np\n1\n\n\nw\n" | fdisk $METRICS_DISK
+
+# Format the disks
+log-output "INFO: Formatting data disks"
+echo "y\n\n" | mkfs.xfs ${DATA_DISK}1
+echo "y\n\n" | mkfs.xfs ${TRACES_DISK}1
+echo "y\n\n" | mkfs.xfs ${METRICS_DISK}1
+
+# Mount the disks
+log-output "INFO: Adding mount entries to fstab for data disks"
+echo "${DATA_DISK}1                /mnt/data               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+echo "${TRACES_DISK}1                /mnt/metrics               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+echo "${METRICS_DISK}1                /mnt/traces               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+
+# Mount the disks
+log-output "INFO: Mounting the data disks"
+mount -a
+
 ##################TEMP
-echo $PARAMS > $(pwd)/instanaParameters.json
+log-output "INFO: ******* Temp script exit"
 exit 0
 
 # Create the settings file
