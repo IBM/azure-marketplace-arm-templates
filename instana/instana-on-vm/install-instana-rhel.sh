@@ -174,6 +174,7 @@ mkdir -p /mnt/traces
 mkdir -p /mnt/metrics
 
 ##################TEMP
+echo $PARAMS > $(pwd)/instanaParameters.json
 exit 0
 
 # Create the settings file
