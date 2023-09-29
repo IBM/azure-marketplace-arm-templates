@@ -294,6 +294,9 @@
                 "version": "latest"
             }
         },
+        "ddosProtectionPlan": {
+            "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
+        },
         "baseURL": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
         "scriptOffset": "/instana/instana-on-vm/"
     },
@@ -322,9 +325,7 @@
                     ]
                 },
                 "enableDdosProtection": "[parameters('enableDDoSProtection')]",
-                "ddosProtectionPlan": {
-                    "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
-                }
+                "ddosProtectionPlan": "[if(parameters('enableDDosProtection'),variables('ddosProtectionPlan'),json('null'))]"
             }
         },
         {
