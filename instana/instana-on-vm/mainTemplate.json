@@ -212,13 +212,13 @@
             }
         },
         "downloadKey": {
-            "type": "string",
+            "type": "secureString",
             "metadata": {
                 "description": "Instana download key"
             }
         },
         "salesKey": {
-            "type": "string",
+            "type": "secureString",
             "metadata": {
                 "description": "Instana sales key"
             }
@@ -302,6 +302,7 @@
             "type": "Microsoft.Network/ddosProtectionPlans",
             "apiVersion": "2021-05-01",
             "name": "[parameters('ddosProtectionPlanName')]",
+            "condition": "[parameters('enableDDosProtection')]",
             "location": "[parameters('location')]"
         },
         {
@@ -458,9 +459,6 @@
                     "vmSize": {
                         "value": "[parameters('vmSize')]" 
                     },
-                    "dockerDiskSize": {
-                        "value": "[parameters('dockerDiskSize')]"
-                    },
                     "dataDiskSize": {
                         "value": "[parameters('dataDiskSize')]"
                     },
@@ -498,7 +496,7 @@
                         "value": "[uri(variables('baseURL'),concat(parameters('branch'),variables('scriptOffset')))]" 
                     },
                     "scriptName": {
-                        "value": "install-instana-rhel.json" 
+                        "value": "install-instana-rhel.sh" 
                     },
                     "instanaParameters": {
                         "value": {
@@ -514,8 +512,8 @@
                                 "agentType": "[parameters('agentType')]",
                                 "agentMode": "[parameters('agentMode')]"
                             }
-                        }
-                    },
+						}
+					},
                     "acceptLicense": {
                         "value": "[parameters('acceptLicense')]"
                     }
