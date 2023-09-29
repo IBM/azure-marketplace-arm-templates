@@ -2,6 +2,10 @@
 
 # Supports RHEL 8 and RHEL 9
 
+#### TODO: 
+# Fix mapping of external data disks to devices
+# Add support for user supplied certificates
+
 function log-output() {
     MSG=${1}
 
@@ -93,6 +97,7 @@ if [[ -z $LICENSE ]] ; then LICENSE="decline"; fi
 if [[ -z $DOCKER_DISK_SIZE ]] || [[ $DOCKER_DISK_SIZE == null ]]; then DOCKER_DISK_SIZE=20; fi
 if [[ -z $AGENT_TYPE ]] || [[ $AGENT_TYPE == null ]]; then AGENT_TYPE="docker"; fi
 if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRUCTURE"; fi
+if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=false; fi
 if [[ -z $DATA_DISK ]] || [[ $DATA_DISK == null ]]; then DATA_DISK="/dev/sdc"; fi
 if [[ -z $TRACES_DISK ]] || [[ $TRACES_DISK == null ]]; then TRACES_DISK="/dev/sdd"; fi
 if [[ -z $METRICS_DISK ]] || [[ $METRICS_DISK == null ]]; then METRICS_DISK="/dev/sde"; fi
@@ -156,12 +161,15 @@ else
 fi
 
 # Create the self-signed certificates
-if [[ -z $INSTANA_CERT ]]; then
+if [[ -z $INSTANA_CERT ]] || [[ -z $INSTANA_KEY ]]; then
     log-output "INFO: Creating self-signed certificates"
     openssl req -x509 -newkey rsa:2048 -keyout /root/instana.key -out /root/instana.crt -days 365 -nodes -subj "/CN=$FQDN"
-    openssl rsa -in /root/instana.key -pubout -out /root/instana-pub.key
 else
     log-output "INFO: Using provided certificates"
+    echo $INSTANA_CERT > /root/instana.crt
+    echo $INSTANA_KEY > /root/instana.key
+    chmod 644 /root/instana.crt
+    chmod 600 /root/instana.key
 fi
 
 # Open firewall ports
@@ -179,37 +187,140 @@ mkdir -p /mnt/data
 mkdir -p /mnt/traces
 mkdir -p /mnt/metrics
 
-# Partition the data disks
-log-output "INFO: Partitioning data disks"
-echo "o\nn\np\n1\n\n\nw\n" | fdisk $DATA_DISK
-echo "o\nn\np\n1\n\n\nw\n" | fdisk $TRACES_DISK
-echo "o\nn\np\n1\n\n\nw\n" | fdisk $METRICS_DISK
+#########
+# TODO: Making of these disks is not right. 
+# Currently these are /dev/sda, sdb and sde ????
 
-# Format the disks
-log-output "INFO: Formatting data disks"
-echo "y\n\n" | mkfs.xfs ${DATA_DISK}1
-echo "y\n\n" | mkfs.xfs ${TRACES_DISK}1
-echo "y\n\n" | mkfs.xfs ${METRICS_DISK}1
+if [[ $MOUNT_DISKS == true ]]; then
+    # Partition the data disks
+    log-output "INFO: Partitioning data disks"
+    cat << EOF | fdisk $DATA_DISK
+o
+n
+p
+1
 
-# Mount the disks
-log-output "INFO: Adding mount entries to fstab for data disks"
-echo "${DATA_DISK}1                /mnt/data               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
-echo "${TRACES_DISK}1                /mnt/metrics               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
-echo "${METRICS_DISK}1                /mnt/traces               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
 
-# Mount the disks
-log-output "INFO: Mounting the data disks"
-mount -a
+w
+EOF
 
-##################TEMP
-log-output "INFO: ******* Temp script exit"
-exit 0
+    cat << EOF | fdisk $TRACES_DISK
+o
+n
+p
+1
+
+
+w
+EOF
+
+    cat << EOF | fdisk $METRICS_DISK
+o
+n
+p
+1
+
+
+w
+EOF
+
+    # Format the disks
+    log-output "INFO: Formatting data disks"
+    echo "y\n\n" | mkfs.xfs ${DATA_DISK}1
+    echo "y\n\n" | mkfs.xfs ${TRACES_DISK}1
+    echo "y\n\n" | mkfs.xfs ${METRICS_DISK}1
+
+    # Mount the disks
+    log-output "INFO: Adding mount entries to fstab for data disks"
+    echo "${DATA_DISK}1                /mnt/data               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+    echo "${TRACES_DISK}1                /mnt/metrics               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+    echo "${METRICS_DISK}1                /mnt/traces               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+
+    # Mount the disks
+    log-output "INFO: Mounting the data disks"
+    systemctl daemon-reload
+    mount -a
+else
+    log-output "INFO: Skipping data disk partitioning and mounting"
+fi
 
 # Create the settings file
+TOKEN=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 12 ; echo '')
 
+cat << EOF > /root/instana-settings.hcl
+type                      = "single"
+profile                   = "normal"
+tenant                    = "${TENANT_NAME}"
+unit                      = "${ENV_NAME}"
+agent_key                 = "${DOWNLOAD_KEY}"
+download_key              = "${DOWNLOAD_KEY}"
+sales_key                 = "${SALES_KEY}"
+host_name                 = "${FQDN}"
+token_secret              = "${TOKEN}"
+
+cert {
+    crt  = "/root/instana.crt"
+    key  = "/root/instana.key"
+}
+
+dir {
+    metrics  = "/mnt/metrics"
+    traces   = "/mnt/traces"
+    data     = "/mnt/data"
+    logs     = "/var/log/instana"
+}
+
+proxy {
+  host     = ""
+  port     = 0
+  user     = ""
+  password = ""
+}
+
+artifact_repository {
+  repository_url = "https://artifact-public.instana.io/artifactory/rel-generic-instana-virtual/"
+  user           = "_"
+  password       = "${DOWNLOAD_KEY}"
+}
+
+email {
+
+  smtp {
+    from      = ""
+    host      = ""
+    port      = 0
+    user      = ""
+    password  = ""
+    use_ssl   = false
+    start_tls = false
+  }
+
+  ses {
+    from            = ""
+    aws_access_key  = ""
+    aws_access_id   = ""
+    aws_return_path = ""
+    aws_region      = ""
+  }
+}
+
+o_auth {
+  client_id     = ""
+  client_secret = ""
+}
+
+docker_repository {
+  base_url = "artifact-public.instana.io"
+  username = "_"
+  password = "${DOWNLOAD_KEY}"
+}
+
+EOF
+
+chmod 600 /root/instana-settings.hcl
 
 # Install Instana
-instana init -y
+instana init -y -f /root/instana-settings.hcl
 
 # Add the license
 if [[ $LICENSE = "accept" ]]; then
@@ -221,7 +332,7 @@ else
 fi
 
 # Install monitoring agent on the Instana VM host
-if [[ $AGENT_TYPE == "docker" ]]; then 
+if [[ $AGENT_TYPE == "docker" ]] && [[ $LICENSE == "accept" ]]; then 
     # Create the docker Instana agent
     log-output "INFO: Starting docker agent"
     docker run \
@@ -242,7 +353,7 @@ if [[ $AGENT_TYPE == "docker" ]]; then
     --env="INSTANA_DOWNLOAD_KEY=${DOWNLOAD_KEY}" \
     icr.io/instana/agent
 
-elif [[ $AGENT_TYPE = "host" ]]; then
+elif [[ $AGENT_TYPE = "host" ]] && [[ $LICENSE == "accept" ]]; then
     # Install the Instana server agent in the Instana VM
     log-output "INFO: Creating instana host agent"
     curl -o setup_agent.sh https://setup.instana.io/agent \
@@ -254,5 +365,7 @@ elif [[ $AGENT_TYPE = "host" ]]; then
         -m infra \
         -e ${FQDN}:1444  -y
 else
-    log-output "INFO: Unknown agent type $AGENT_TYPE. No agent installed."
+    log-output "INFO: Unknown agent type $AGENT_TYPE or license not accepted. No agent installed."
 fi
+
+## Output username and password
