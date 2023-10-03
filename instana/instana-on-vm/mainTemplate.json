@@ -1,6 +1,8 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
+    // TODO: Add option for public IP SKU
+    // TODO: Allow for existing DDoS plan
     "parameters": {
         "location": {
             "type": "string",
@@ -34,7 +36,14 @@
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Flag to determine whether to enable DDos protection for the virtual network"
+                "description": "Flag to determine whether to enable DDoS protection for the virtual network"
+            }
+        },
+        "existingDdosPlan": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a new DDoS protection service or use an existing one."
             }
         },
         "ddosProtectionPlanName": {
@@ -158,7 +167,28 @@
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Flag to determine whether to create a public IP for the Instana virtual machine"
+                "description": "Flag to determine whether to assign a public IP for the Instana virtual machine"
+            }
+        },
+        "publicIpName": {
+            "type": "string",
+            "defaultValue": "instana-vm-pip",
+            "metadata": {
+                "description": "Name of the public IP resource either existing or new"
+            }
+        },
+        "existingPublicIp": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the Public IP already exists."
+            }
+        },
+        "publicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group containing the public IP address."
             }
         },
         "vmDomainName": {
@@ -305,7 +335,8 @@
             "type": "Microsoft.Network/ddosProtectionPlans",
             "apiVersion": "2021-05-01",
             "name": "[parameters('ddosProtectionPlanName')]",
-            "condition": "[parameters('enableDDosProtection')]",
+            "condition": "[and(parameters('enableDDosProtection'),parameters('existingDdosPlan'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/ddosProtectionPlans'), parameters('tagsByResource')['Microsoft.Network/ddosProtectionPlan'], json('{}')) ]",
             "location": "[parameters('location')]"
         },
         {
@@ -475,6 +506,15 @@
                     "publicIP": {
                         "value": "[parameters('vmPublicIp')]" 
                     },
+                    "existingPublicIp": {
+                        "value": "[parameters('existingPublicIp')]"
+                    },
+                    "publicIpName": {
+                        "value": "[parameters('publicIpName')]" 
+                    },
+                    "publicIpResourceGroup": {
+                        "value": "[parameters('publicIpResourceGroup')]"
+                    },
                     "encryption": {
                         "value": "[parameters('encryption')]"
                     },
@@ -574,6 +614,15 @@
                         "publicIP": {
                             "type": "bool"
                         },
+                        "existingPublicIp": {
+                            "type": "string"
+                        },
+                        "publicIpName": {
+                            "type": "string"
+                        },
+                        "publicIpResourceGroup": {
+                            "type": "string"
+                        },
                         "domainName": {
                             "type": "string"
                         },
@@ -595,9 +644,8 @@
                     },
                     "variables": {
                         "nicName": "[concat(parameters('namePrefix'),'-nic')]",
-                        "publicIpName": "[concat(parameters('namePrefix'),'-pip')]",
                         "publicIP": {
-                            "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+                            "id": "[resourceId(parameters('publicIpResourceGroup'), 'Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
                         },
                         "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - yum update -y')]",
                         "securityProfile": {
@@ -649,15 +697,16 @@
                                 ]
                             },
                             "dependsOn": [
-                                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+                                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
                             ]
                         },
                         {
                             "type": "Microsoft.Network/publicIPAddresses",
                             "apiVersion": "2022-07-01",
-                            "condition": "[parameters('publicIP')]",
-                            "name": "[variables('publicIPName')]",
+                            "condition": "[and(parameters('publicIP'),not(parameters('existingPublicIp')))]",
+                            "name": "[parameters('publicIpName')]",
                             "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
                             "sku": {
                                 "name": "Standard",
                                 "tier": "Regional"
