@@ -97,7 +97,7 @@ if [[ -z $LICENSE ]] ; then LICENSE="decline"; fi
 if [[ -z $DOCKER_DISK_SIZE ]] || [[ $DOCKER_DISK_SIZE == null ]]; then DOCKER_DISK_SIZE=20; fi
 if [[ -z $AGENT_TYPE ]] || [[ $AGENT_TYPE == null ]]; then AGENT_TYPE="docker"; fi
 if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRUCTURE"; fi
-if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=false; fi
+if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=true; fi
 if [[ -z $DATA_DISK ]] || [[ $DATA_DISK == null ]]; then DATA_DISK="/dev/sdc"; fi
 if [[ -z $TRACES_DISK ]] || [[ $TRACES_DISK == null ]]; then TRACES_DISK="/dev/sdd"; fi
 if [[ -z $METRICS_DISK ]] || [[ $METRICS_DISK == null ]]; then METRICS_DISK="/dev/sde"; fi
@@ -245,6 +245,7 @@ else
 fi
 
 # Create the settings file
+log-output "INFO: Creating Instana configuration"
 TOKEN=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 12 ; echo '')
 
 cat << EOF > /root/instana-settings.hcl
@@ -321,12 +322,32 @@ chmod 600 /root/instana-settings.hcl
 
 # Install Instana
 instana init -y -f /root/instana-settings.hcl
+if (( $? != 0 )); then
+    log-output "ERROR: Instana initialization was unsuccessful."
+    exit 1
+else
+    log-output "INFO: Successfully initialized Instana"
+fi
 
 # Add the license
 if [[ $LICENSE = "accept" ]]; then
     log-output "INFO: Applying license"
+
     instana license download
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to download license"
+        exit 1
+    else
+        log-output "INFO: Successfully downloaded license"
+    fi
+
     instana license import -f $(pwd)/license
+    if (( $? !+ 0 )); then
+        log-output "ERROR: Unable to apply license"
+        exit 1
+    else
+        log-output "INFO: Successfully applied license"
+    fi
 else
     log-output "INFO: License not accepted. License not applied."
 fi
