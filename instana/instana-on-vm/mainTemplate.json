@@ -32,7 +32,7 @@
                 "description": "CIDR for the Virtual Network"
             }
         },
-        "enableDDosProtection": {
+        "enableDdosProtection": {
             "type": "bool",
             "defaultValue": false,
             "metadata": {
@@ -335,8 +335,8 @@
             "type": "Microsoft.Network/ddosProtectionPlans",
             "apiVersion": "2021-05-01",
             "name": "[parameters('ddosProtectionPlanName')]",
-            "condition": "[and(parameters('enableDDosProtection'),parameters('existingDdosPlan'))]",
-            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/ddosProtectionPlans'), parameters('tagsByResource')['Microsoft.Network/ddosProtectionPlan'], json('{}')) ]",
+            "condition": "[and(parameters('enableDdosProtection'),not(parameters('existingDdosPlan')))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/ddosProtectionPlans'), parameters('tagsByResource')['Microsoft.Network/ddosProtectionPlans'], json('{}')) ]",
             "location": "[parameters('location')]"
         },
         {
@@ -355,8 +355,8 @@
                         "[parameters('vnetCidr')]"
                     ]
                 },
-                "enableDdosProtection": "[parameters('enableDDoSProtection')]",
-                "ddosProtectionPlan": "[if(parameters('enableDDosProtection'),variables('ddosProtectionPlan'),json('null'))]"
+                "enableDdosProtection": "[parameters('enableDdosProtection')]",
+                "ddosProtectionPlan": "[if(parameters('enableDdosProtection'),variables('ddosProtectionPlan'),json('null'))]"
             }
         },
         {
@@ -615,7 +615,7 @@
                             "type": "bool"
                         },
                         "existingPublicIp": {
-                            "type": "string"
+                            "type": "bool"
                         },
                         "publicIpName": {
                             "type": "string"
