@@ -32,14 +32,14 @@
                 "name": "namePrefix",
                 "type": "Microsoft.Common.TextBox",
                 "label": "Azure resource prefix",
-                "defaultValue": "integration",
+                "defaultValue": "ibmint",
                 "toolTip": "Prefix for Azure installation resources.",
 				"constraints":{
 					"required": true,
 					"validations": [
 						{
 							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
-							"message": "Only alphanumeric charactors are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
 						}
 					]
 				}

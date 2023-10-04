@@ -49,14 +49,14 @@
                 "name": "namePrefix",
                 "type": "Microsoft.Common.TextBox",
                 "label": "Azure resource prefix",
-                "defaultValue": "integration",
+                "defaultValue": "ibmint",
                 "toolTip": "Prefix for Azure installation resources.",
 				"constraints":{
 					"required": true,
 					"validations": [
 						{
 							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
-							"message": "Only alphanumeric charactors are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
 						}
 					]
 				}
@@ -276,7 +276,7 @@
 						"name": "encryption",
 						"type": "Microsoft.Common.CheckBox",
 						"label": "Enable encryption at host",
-						"toolTip": "Encyrption at host must be enabled for the subscription"
+						"toolTip": "Encryption at host must be enabled for the subscription"
 					},
 					{
 						"name": "servicePrincipal",
@@ -357,7 +357,7 @@
 					{
 					  "name": "rpObjectId",
 					  "type": "Microsoft.Common.TextBox",
-					  "label": "OpenShift Resource Provider Service Prinicpal Id",
+					  "label": "OpenShift Resource Provider Service Principal Id",
 					  "toolTip": "Refer to https://learn.microsoft.com/en-us/azure/openshift/quickstart-openshift-arm-bicep-template?pivots=aro-arm#get-the-service-principal-object-id-for-the-openshift-resource-provider---azure-cli for details",
 					  "multiLine": false,
 					  "constraints": {
@@ -493,9 +493,9 @@
 					{
 						"name": "nameSpace",
 						"type": "Microsoft.Common.TextBox",
-						"label": "CP4I Instance Namespace",
+						"label": "Platform UI namespace",
 						"defaultValue": "cp4i",
-						"toolTip": "Namespace where CP4I is to be installed.",
+						"toolTip": "Namespace where you want to install the Platform UI.",
 						"multiLine": false,
 						"constraints": {
 						  "required": true,
