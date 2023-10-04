@@ -32,7 +32,7 @@
                 "name": "namePrefix",
                 "type": "Microsoft.Common.TextBox",
                 "label": "Azure resource prefix",
-                "defaultValue": "IBMInt",
+                "defaultValue": "ibmint",
                 "toolTip": "Prefix for Azure installation resources.",
 				"constraints":{
 					"required": true,
