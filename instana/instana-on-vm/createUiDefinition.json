@@ -825,6 +825,16 @@
                         "label": "Accept License",
                         "toolTip": "License acceptance is required to activate Instana"
                     },
+					{
+						"name": "licenseInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
+						  "uri": "https://www.ibm.com/support/customer/csol/terms/licenses#license-search-result"
+						}
+					},
                     {
                         "name": "downloadKey",
                         "type": "Microsoft.Common.TextBox",
