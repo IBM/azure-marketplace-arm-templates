@@ -886,7 +886,7 @@
                     {
                         "name": "envName",
                         "type": "Microsoft.Common.TextBox",
-                        "label": "Name for the Instana environment",
+                        "label": "Unit name for the Instana instance",
                         "toolTip": "This will be used to configure the Instana application",
                         "visible": true,
                         "constraints": {
