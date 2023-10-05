@@ -950,9 +950,9 @@
                         "type": "Microsoft.Common.DropDown",
                         "label": "Agent Type",
                         "toolTip": "Instana agent type for monitoring self",
-                        "defaultValue": "Host",
+                        "defaultValue": "Docker",
                         "multiLine": false,
-                        "visible": true,
+                        "visible": false,
                         "constraints": {
                             "allowedValues": [
                                 {
@@ -973,7 +973,7 @@
                         "toolTip": "Instana agent mode for monitoring self",
                         "defaultValue": "Infrastructure",
                         "multiLine": false,
-                        "visible": true,
+                        "visible": false,
                         "constraints": {
                             "allowedValues": [
                                 {
@@ -1039,8 +1039,8 @@
             "salesKey": "[steps('instana').salesKey]",
             "tenantName": "[steps('instana').tenantName]",
             "envName": "[steps('instana').envName]",
-            "agentType": "[steps('instana').agentType]",
-            "agentMode": "[steps('instana').agentMode]",
+            "agentType": "docker",
+            "agentMode": "INFRASTRUCTURE",
             "acceptLicense": "[steps('instana').acceptLicense]",
             "tagsByResource": "[steps('tags').tagsByResource]"
         }
