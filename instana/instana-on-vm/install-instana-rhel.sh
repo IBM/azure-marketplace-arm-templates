@@ -101,6 +101,7 @@ if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=true; f
 if [[ -z $DATA_DISK ]] || [[ $DATA_DISK == null ]]; then DATA_DISK="/dev/sdc"; fi
 if [[ -z $TRACES_DISK ]] || [[ $TRACES_DISK == null ]]; then TRACES_DISK="/dev/sdd"; fi
 if [[ -z $METRICS_DISK ]] || [[ $METRICS_DISK == null ]]; then METRICS_DISK="/dev/sde"; fi
+if [[ -z $HOME ]]; then export HOME="/root"; fi
 
 # Extend the var logical volume for docker
 log-output "INFO: Extending var filesystem to accommodate docker registry"
