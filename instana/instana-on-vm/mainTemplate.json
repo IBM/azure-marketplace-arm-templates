@@ -1,8 +1,6 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    // TODO: Add option for public IP SKU
-    // TODO: Allow for existing DDoS plan
     "parameters": {
         "location": {
             "type": "string",
@@ -360,93 +358,14 @@
             }
         },
         {
-            "type": "Microsoft.Network/networkSecurityGroups",
-            "apiVersion": "2022-11-01",
-            "name": "[parameters('nsgName')]",
-            "location": "[parameters('location')]",
-            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-            ],
-            "properties": {
-                "securityRules": [
-                    {
-                        "name": "AllowAnySSHInbound",
-                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnySSHInbound')]",
-                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
-                        "properties": {
-                            "protocol": "TCP",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "22",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 100,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowAnyHTTPInbound",
-                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPInbound')]",
-                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
-                        "properties": {
-                            "protocol": "TCP",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "80",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 110,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowAnyHTTPSInbound",
-                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPSInbound')]",
-                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
-                        "properties": {
-                            "protocol": "TCP",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 120,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowAnyAGENTInbound",
-                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPSInbound')]",
-                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
-                        "properties": {
-                            "protocol": "TCP",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "1444",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 130,
-                            "direction": "Inbound"
-                        }
-                    }
-                    // TODO: Add more rules when base is working
-                ]
-            }
-        },
-        {
             "type": "Microsoft.Network/virtualNetworks/subnets",
             "apiVersion": "2023-04-01",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ],
             "name": "[concat(parameters('vnetName'), '/' ,parameters('vmSubnetName'))]",
             "properties": {
                 "addressPrefix": "[parameters('vmSubnetCidr')]",
-                "networkSecurityGroup": {
-                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
-                },
                 "privateEndpointNetworkPolicies": "Disabled",
                 "privateLinkServiceNetworkPolicies": "Disabled"
             }
@@ -458,8 +377,7 @@
             "name": "vmDeployment",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('vmSubnetName'))]",
-                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('vmSubnetName'))]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -502,6 +420,9 @@
                     },
                     "authType": {
                         "value": "[parameters('authType')]" 
+                    },
+                    "nsgName": {
+                        "value": "[parameters('nsgName')]"
                     },
                     "publicIP": {
                         "value": "[parameters('vmPublicIp')]" 
@@ -611,6 +532,9 @@
                         "subnetName": {
                             "type": "string"
                         },
+                        "nsgName": {
+                            "type": "string"
+                        },
                         "publicIP": {
                             "type": "bool"
                         },
@@ -678,6 +602,76 @@
                     },
                     "resources": [
                         {
+                            "type": "Microsoft.Network/networkSecurityGroups",
+                            "apiVersion": "2022-11-01",
+                            "name": "[parameters('nsgName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
+                            "properties": {
+                                "securityRules": [
+                                    {
+                                        "name": "AllowAnySSHInbound",
+                                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnySSHInbound')]",
+                                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                                        "properties": {
+                                            "protocol": "TCP",
+                                            "sourcePortRange": "*",
+                                            "destinationPortRange": "22",
+                                            "sourceAddressPrefix": "*",
+                                            "destinationAddressPrefix": "*",
+                                            "access": "Allow",
+                                            "priority": 100,
+                                            "direction": "Inbound"
+                                        }
+                                    },
+                                    {
+                                        "name": "AllowAnyHTTPInbound",
+                                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPInbound')]",
+                                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                                        "properties": {
+                                            "protocol": "TCP",
+                                            "sourcePortRange": "*",
+                                            "destinationPortRange": "80",
+                                            "sourceAddressPrefix": "*",
+                                            "destinationAddressPrefix": "*",
+                                            "access": "Allow",
+                                            "priority": 110,
+                                            "direction": "Inbound"
+                                        }
+                                    },
+                                    {
+                                        "name": "AllowAnyHTTPSInbound",
+                                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPSInbound')]",
+                                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                                        "properties": {
+                                            "protocol": "TCP",
+                                            "sourcePortRange": "*",
+                                            "destinationPortRange": "443",
+                                            "sourceAddressPrefix": "*",
+                                            "destinationAddressPrefix": "*",
+                                            "access": "Allow",
+                                            "priority": 120,
+                                            "direction": "Inbound"
+                                        }
+                                    },
+                                    {
+                                        "name": "AllowAnyAGENTInbound",
+                                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('nsgName'), 'AllowAnyHTTPSInbound')]",
+                                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                                        "properties": {
+                                            "protocol": "TCP",
+                                            "sourcePortRange": "*",
+                                            "destinationPortRange": "1444",
+                                            "sourceAddressPrefix": "*",
+                                            "destinationAddressPrefix": "*",
+                                            "access": "Allow",
+                                            "priority": 130,
+                                            "direction": "Inbound"
+                                        }
+                                    }
+                                ]
+                            }
+                        },{
                             "type": "Microsoft.Network/networkInterfaces",
                             "apiVersion": "2022-07-01",
                             "name": "[variables('nicName')]",
@@ -694,10 +688,14 @@
                                             "privateIPAllocationMethod": "Dynamic"
                                         }
                                     }
-                                ]
+                                ],
+                                "networkSecurityGroup": {
+                                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName'))]"
+                                }
                             },
                             "dependsOn": [
-                                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
+                                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]",
+                                "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('nsgName'))]"
                             ]
                         },
                         {
