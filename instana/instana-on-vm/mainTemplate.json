@@ -251,6 +251,19 @@
                 "description": "Instana sales key"
             }
         },
+        "instanaUsername": {
+            "type": "string",
+            "defaultValue": "admin@instana.local",
+            "metadata": {
+                "description": "Instana administrator email"
+            }
+        },
+        "instanaPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Instana administrator password"
+            }
+        },
         "tenantName": {
             "type": "string",
             "metadata": {
@@ -464,7 +477,9 @@
                         "value": {
                             "credentials": {
                                 "downloadKey": "[parameters('downloadKey')]",
-                                "salesKey": "[parameters('salesKey')]"
+                                "salesKey": "[parameters('salesKey')]",
+                                "instanaUsername": "[parameters('instanaUsername')]",
+                                "instanaPassword": "[parameters('instanaPassword')]"
                             },
                             "config": {
                                 "tenantName": "[parameters('tenantName')]",

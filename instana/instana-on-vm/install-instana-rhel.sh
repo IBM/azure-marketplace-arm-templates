@@ -70,6 +70,8 @@ echo $PARAMS > $(pwd)/instanaParameters.json
 
 DOWNLOAD_KEY=$(echo $PARAMS | jq -r '.credentials.downloadKey')
 SALES_KEY=$(echo $PARAMS | jq -r '.credentials.salesKey')
+INSTANA_USERNAME=$(echo $PARAMS | jq -r '.credentials.instanaUsername')
+INSTANA_PASSWORD=$(echo $PARAMS | jq -r '.credentials.instanaPassword')
 TENANT_NAME=$(echo $PARAMS | jq -r '.config.tenantName')
 ENV_NAME=$(echo $PARAMS | jq -r '.config.envName')
 FQDN=$(echo $PARAMS | jq -r '.config.fqdn')
@@ -88,6 +90,10 @@ if [[ $SALES_KEY == null ]]; then VAR_NOT_SET="SALES_KEY"; fi
 if [[ $TENANT_NAME == null ]]; then VAR_NOT_SET="TENANT_NAME"; fi
 if [[ $ENV_NAME == null ]]; then VAR_NOT_SET="ENV_NAME"; fi
 if [[ $FQDN == null ]]; then VAR_NOT_SET="FQDN"; fi
+if [[ $INSTANA_PASSWORD == null ]]; then VAR_NOT_SET="INSTANA_PASSWORD"; fi
+if [[ $DOCKER_DISK_SIZE == null ]]; then VAR_NOT_SET="DOCKER_DISK_SIZE"; fi
+if [[ $METRICS_DISK_SIZE == null ]]; then VAR_NOT_SET="METRICS_DISK_SIZE"; fi
+if [[ $TRACES_DISK_SIZE == null ]]; then VAR_NOT_SET="TRACES_DISK_SIZE"; fi
 
 if [[ -n $VAR_NOT_SET ]]; then
     log-output "ERROR: $VAR_NOT_SET not set. Please set and retry."
@@ -101,10 +107,8 @@ if [[ -z $DOCKER_DISK_SIZE ]] || [[ $DOCKER_DISK_SIZE == null ]]; then DOCKER_DI
 if [[ -z $AGENT_TYPE ]] || [[ $AGENT_TYPE == null ]]; then AGENT_TYPE="docker"; fi
 if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRUCTURE"; fi
 if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=true; fi
-# if [[ -z $DATA_DISK ]] || [[ $DATA_DISK == null ]]; then DATA_DISK="/dev/sdc"; fi
-# if [[ -z $TRACES_DISK ]] || [[ $TRACES_DISK == null ]]; then TRACES_DISK="/dev/sdd"; fi
-# if [[ -z $METRICS_DISK ]] || [[ $METRICS_DISK == null ]]; then METRICS_DISK="/dev/sde"; fi
 if [[ -z $HOME ]]; then export HOME="/root"; fi
+if [[ -z $INSTANA_USERNAME ]] || [[ $INSTANA_USERNAME == null ]]; then INSTANA_USERNAME="admin@instana.local"; fi
 
 # Extend the var logical volume for docker
 log-output "INFO: Extending var filesystem to accommodate docker registry"
@@ -112,7 +116,7 @@ CURRENT_VAR_SIZE=$(lvscan | grep varlv | awk '{print $3}' | sed 's/\[//g' | awk 
 NEW_VAR_SIZE=$(( $CURRENT_VAR_SIZE + $DOCKER_DISK_SIZE ))
 lvextend -r -L ${NEW_VAR_SIZE}G /dev/rootvg/varlv
 
-if [[ $? != 0 ]]; then
+if (( $? != 0 )); then
     log-output "ERROR: Unable to extend var filesystem to $NEW_VAR_SIZE for docker registry"
     exit 1
 fi
@@ -141,13 +145,19 @@ if [[ -z $(which docker) ]]; then
     # Start the docker service
     systemctl enable docker
     systemctl start docker
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to start docker"
+        exit 1
+    else
+        log-output "INFO: Successfully started docker"
+    fi
 else
     log-output "INFO: Docker already installed on VM" 
 fi
 
 # Install the Instana console
 if [[ -z $(which instana) ]]; then
-    log-output "INFO: Installing the Instana console"
+    log-output "INFO: Installing the Instana console tool"
     cat << EOF > /etc/yum.repos.d/Instana-Product.repo
 [instana-product]
 name=Instana-Product
@@ -160,6 +170,12 @@ EOF
 
     yum clean expire-cache -y && yum update -y
     yum install -y instana-console
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to install the Instana console tool"
+        exit 1
+    else
+        log-output "INFO: Successfully installed the Instana console tool"
+    fi
 else
     log-output "INFO: Instana console already installed"
 fi
@@ -294,6 +310,12 @@ EOF
     log-output "INFO: Mounting all disks"
     systemctl daemon-reload
     mount -a
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to mount drives"
+        exit 1
+    else
+        log-output "INFO: Successfully mounted drives"
+    fi
 else
     log-output "INFO: Skipping data disk partitioning and mounting"
 fi
@@ -406,6 +428,9 @@ else
     log-output "INFO: License not accepted. License not applied."
 fi
 
+# Set Instana administrator password
+instana configure admin -p $INSTANA_PASSWORD -u $INSTANA_USERNAME
+
 # Install monitoring agent on the Instana VM host
 if [[ $AGENT_TYPE == "docker" ]] && [[ $LICENSE == "accept" ]]; then 
     # Create the docker Instana agent
@@ -443,4 +468,4 @@ else
     log-output "INFO: Unknown agent type $AGENT_TYPE or license not accepted. No agent installed."
 fi
 
-# Set admin password
+log-output "INFO: Deployment script completed"
