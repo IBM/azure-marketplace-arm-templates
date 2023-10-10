@@ -858,7 +858,7 @@
                         },
                         "internalIp": {
                             "type": "string",
-                            "value": "[reference(resourceId('Microsoft.Compute/virtualMachines',parameters('namePrefix'),'2022-11-01').networkProfile.networkInterfaces[0].value)]"
+                            "value": "[reference(resourceId('Microsoft.Compute/virtualMachines',parameters('namePrefix')),'2022-11-01').networkProfile.networkInterfaces[0].value]"
                         }
 
                     }
@@ -881,20 +881,6 @@
         "instanaConsoleInternal": {
             "type": "string",
             "value": "[uri(concat('https://',reference('vmDeployment').outputs['internalIp'].value),'/')]"
-        },
-        "vmLoginExt": {
-            "type": "string",
-            "condition": "[parameters('vmPublicIp')]",
-            "value": "[concat('ssh ',parameters('adminUserName'),'@',reference('vmDeployment').outputs['fqdn'].value)]"
-        },
-        "vmLoginInt": {
-            "type": "string",
-            "condition": "[not(parameters('vmPublicIp'))]",
-            "value": "[concat('ssh ',parameters('adminUserName'),'@',reference('vmDeployment').outputs['internalIp'].value)]"
-        },
-        "loginDetails": {
-            "type": "string",
-            "value": "To login via the console, reset the admin password by logging in the VM and running \"instana configure admin -p <password>\" as root."
         }
     }
 }
