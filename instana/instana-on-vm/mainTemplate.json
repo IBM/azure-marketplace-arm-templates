@@ -471,6 +471,9 @@
                                 "envName": "[parameters('envName')]",
                                 "fqdn": "[concat(parameters('vmDomainName'),'.',parameters('location'),'.cloudapp.azure.com')]",
                                 "dockerDiskSize": "[parameters('dockerDiskSize')]",
+                                "dataDiskSize": "[parameters('dataDiskSize')]",
+                                "metricsDiskSize": "[parameters('metricsDiskSize')]",
+                                "tracesDiskSize": "[parameters('tracesDiskSize')]",
                                 "agentType": "[parameters('agentType')]",
                                 "agentMode": "[parameters('agentMode')]"
                             }
@@ -828,13 +831,55 @@
                         }
                     ],
                     "outputs": {
+                        "publicIp": {
+                            "type": "string",
+                            "condition": "[parameters('publicIP')]",
+                            "value": "[reference(parameters('publicIpName')).IpAddress]"
+                        },
+                        "fqdn": {
+                            "type": "string",
+                            "condition": "[parameters('publicIP')]",
+                            "value": "[concat(parameters('domainName'),'.',parameters('location'),'cloudapp.azure.com')]"
+                        },
+                        "internalIp": {
+                            "type": "string",
+                            "value": "[reference(resourceId('Microsoft.Compute/virtualMachines',parameters('namePrefix'),'2022-11-01').networkProfile.networkInterfaces[0].value)]"
+                        }
 
                     }
                 }
             }
 
         }
-        
-        // Bastion (optional)
-    ]
+    ],
+    "outputs": {
+        "instanaVmIp": {
+            "type": "string",
+            "condition": "[parameters('vmPublicIp')]",
+            "value": "[reference('vmDeployment').outputs['publicIp'].value]"
+        },
+        "instanaConsoleExternal": {
+            "type": "string",
+            "condition": "[parameters('vmPublicIp')]",
+            "value": "[uri(concat('https://',reference('vmDeployment').outputs['fqdn'].value),'/')]"
+        },
+        "instanaConsoleInternal": {
+            "type": "string",
+            "value": "[uri(concat('https://',reference('vmDeployment').outputs['internalIp'].value),'/')]"
+        },
+        "vmLoginExt": {
+            "type": "string",
+            "condition": "[parameters('vmPublicIp')]",
+            "value": "[concat('ssh ',parameters('adminUserName'),'@',reference('vmDeployment').outputs['fqdn'].value)]"
+        },
+        "vmLoginInt": {
+            "type": "string",
+            "condition": "[not(parameters('vmPublicIp'))]",
+            "value": "[concat('ssh ',parameters('adminUserName'),'@',reference('vmDeployment').outputs['internalIp'].value)]"
+        },
+        "loginDetails": {
+            "type": "string",
+            "value": "To login via the console, reset the admin password by logging in the VM and running \"instana configure admin -p <password>\" as root."
+        }
+    }
 }

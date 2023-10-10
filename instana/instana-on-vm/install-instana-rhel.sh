@@ -74,6 +74,9 @@ TENANT_NAME=$(echo $PARAMS | jq -r '.config.tenantName')
 ENV_NAME=$(echo $PARAMS | jq -r '.config.envName')
 FQDN=$(echo $PARAMS | jq -r '.config.fqdn')
 DOCKER_DISK_SIZE=$(echo $PARAMS | jq -r '.config.dockerDiskSize')
+DATA_DISK_SIZE=$(echo $PARAMS | jq -r '.config.dataDiskSize')
+METRICS_DISK_SIZE=$(echo $PARAMS | jq -r '.config.metricsDiskSize')
+TRACES_DISK_SIZE=$(echo $PARAMS | jq -r '.config.tracesDiskSize')
 AGENT_TYPE=$(echo $PARAMS | jq -r '.config.agentType')
 AGENT_MODE=$(echo $PARAMS | jq -r '.config.agentMode')
 
@@ -98,9 +101,9 @@ if [[ -z $DOCKER_DISK_SIZE ]] || [[ $DOCKER_DISK_SIZE == null ]]; then DOCKER_DI
 if [[ -z $AGENT_TYPE ]] || [[ $AGENT_TYPE == null ]]; then AGENT_TYPE="docker"; fi
 if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRUCTURE"; fi
 if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=true; fi
-if [[ -z $DATA_DISK ]] || [[ $DATA_DISK == null ]]; then DATA_DISK="/dev/sdc"; fi
-if [[ -z $TRACES_DISK ]] || [[ $TRACES_DISK == null ]]; then TRACES_DISK="/dev/sdd"; fi
-if [[ -z $METRICS_DISK ]] || [[ $METRICS_DISK == null ]]; then METRICS_DISK="/dev/sde"; fi
+# if [[ -z $DATA_DISK ]] || [[ $DATA_DISK == null ]]; then DATA_DISK="/dev/sdc"; fi
+# if [[ -z $TRACES_DISK ]] || [[ $TRACES_DISK == null ]]; then TRACES_DISK="/dev/sdd"; fi
+# if [[ -z $METRICS_DISK ]] || [[ $METRICS_DISK == null ]]; then METRICS_DISK="/dev/sde"; fi
 if [[ -z $HOME ]]; then export HOME="/root"; fi
 
 # Extend the var logical volume for docker
@@ -192,9 +195,49 @@ mkdir -p /mnt/metrics
 # TODO: Making of these disks is not right. 
 # Currently these are /dev/sda, sdb and sde ????
 
+# Identify drives
+DATA_DISKS=( $(lsblk --json | jq -r ".blockdevices[] | select(.type == \"disk\") | select(.mountpoint == null) | select(.children == null ) | select(.size == \"${DATA_DISK_SIZE}G\") | .name") )
+METRICS_DISKS=( $(lsblk --json | jq -r ".blockdevices[] | select(.type == \"disk\") | select(.mountpoint == null) | select(.children == null ) | select(.size == \"${METRICS_DISK_SIZE}G\") | .name") )
+TRACES_DISKS=( $(lsblk --json | jq -r ".blockdevices[] | select(.type == \"disk\") | select(.mountpoint == null) | select(.children == null ) | select(.size == \"${TRACES_DISK_SIZE}G\") | .name") )
+
+if [[ ${#DATA_DISKS[@]} == 0 ]]; then
+    echo "ERROR: No data disk found"
+else
+    DATA_DRIVE=${DATA_DISKS[0]}
+    DATA_DISK="/dev/${DATA_DISKS[0]}"
+fi
+
+if [[ ${#METRICS_DISKS[@]} == 0 ]]; then
+    echo "ERROR: No metrics disk found"
+else
+    for (( i=0; i<${#METRICS_DISKS[@]}; i++  )); do
+        if [[ ${METRICS_DISKS[$i]} != $DATA_DRIVE ]]; then
+            METRICS_DRIVE="${METRICS_DISKS[$i]}"
+            METRICS_DISK="/dev/${METRICS_DISKS[$i]}"
+            break
+        fi
+    done
+fi
+
+if [[ ${#TRACES_DISKS[@]} == 0 ]]; then
+    echo "ERROR: No traces disk found"
+else
+     for (( i=0; i<${#TRACES_DISKS[@]}; i++  )); do
+        if [[ ${TRACES_DISKS[$i]} != $DATA_DRIVE ]] && [[ ${TRACES_DISKS[$i]} != $METRICS_DRIVE ]]; then
+            TRACES_DRIVE="${TRACES_DISKS[$i]}"
+            TRACES_DISK="/dev/${TRACES_DISKS[$i]}"
+            break
+        fi
+    done
+fi
+
+log-output "INFO: Data disk identified as $DATA_DISK for size $DATA_DISK_SIZE"
+log-output "INFO: Metrics disk identified as $METRICS_DISK for size $METRICS_DISK_SIZE"
+log-output "INFO: Traces disk identified as $TRACES_DISK for size $TRACES_DISK_SIZE"
+
 if [[ $MOUNT_DISKS == true ]]; then
     # Partition the data disks
-    log-output "INFO: Partitioning data disks"
+    log-output "INFO: Partitioning data disk $DATA_DISK"
     cat << EOF | fdisk $DATA_DISK
 o
 n
@@ -205,6 +248,7 @@ p
 w
 EOF
 
+    log-output "INFO: Partitioning traces disk $TRACES_DISK"
     cat << EOF | fdisk $TRACES_DISK
 o
 n
@@ -215,6 +259,7 @@ p
 w
 EOF
 
+    log-output "INFO: Partitioning metrics data disk $METRICS_DISK"
     cat << EOF | fdisk $METRICS_DISK
 o
 n
@@ -226,19 +271,27 @@ w
 EOF
 
     # Format the disks
-    log-output "INFO: Formatting data disks"
+    log-output "INFO: Formatting data disk ${DATA_DISK}1"
     echo "y\n\n" | mkfs.xfs ${DATA_DISK}1
+
+    log-output "INFO: Formatting traces disk ${TRACES_DISK}1"
     echo "y\n\n" | mkfs.xfs ${TRACES_DISK}1
+
+    log-output "INFO: Formatting metrics disk ${METRICS_DISK}1"
     echo "y\n\n" | mkfs.xfs ${METRICS_DISK}1
 
     # Mount the disks
-    log-output "INFO: Adding mount entries to fstab for data disks"
+    log-output "INFO: Adding mount entries to fstab for data disk ${DATA_DISK}1 to /mnt/data"
     echo "${DATA_DISK}1                /mnt/data               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+
+    log-output "INFO: Adding mount entries to fstab for traces disk ${TRACES_DISK}1 to /mnt/traces"
     echo "${TRACES_DISK}1                /mnt/metrics               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+
+    log-output "INFO: Adding mount entries to fstab for metrics disk ${METRICS_DISK}1 to /mnt/metrics"
     echo "${METRICS_DISK}1                /mnt/traces               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
 
     # Mount the disks
-    log-output "INFO: Mounting the data disks"
+    log-output "INFO: Mounting all disks"
     systemctl daemon-reload
     mount -a
 else
@@ -390,4 +443,4 @@ else
     log-output "INFO: Unknown agent type $AGENT_TYPE or license not accepted. No agent installed."
 fi
 
-## Output username and password
+# Set admin password
