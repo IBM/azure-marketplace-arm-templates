@@ -314,20 +314,6 @@
         }
     },
     "variables": {
-        "imageRef": {
-            "RHEL 8.7": {
-                "publisher": "RedHat",
-                "offer": "RHEL",
-                "sku": "8_7",
-                "version": "latest"
-            },
-            "RHEL 9.2": {
-                "publisher": "RedHat",
-                "offer": "RHEL",
-                "sku": "9_2",
-                "version": "latest"
-            }
-        },
         "ddosProtectionPlan": {
             "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
         },
@@ -337,7 +323,7 @@
     "resources": [
         {
             "type": "Microsoft.Network/ddosProtectionPlans",
-            "apiVersion": "2021-05-01",
+            "apiVersion": "2023-04-01",
             "name": "[parameters('ddosProtectionPlanName')]",
             "condition": "[and(parameters('enableDdosProtection'),not(parameters('existingDdosPlan')))]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/ddosProtectionPlans'), parameters('tagsByResource')['Microsoft.Network/ddosProtectionPlans'], json('{}')) ]",
@@ -403,8 +389,8 @@
                     "storageSKU": {
                         "value": "[parameters('storageSKU')]" 
                     },
-                    "imageRef": {
-                        "value": "[variables('imageRef')[parameters('osVersion')]]" 
+                    "osVersion": {
+                        "value": "[parameters('osVersion')]" 
                     },
                     "vmSize": {
                         "value": "[parameters('vmSize')]" 
@@ -518,8 +504,8 @@
                         "storageSKU": {
                             "type": "string"
                         },
-                        "imageRef": {
-                            "type": "object"
+                        "osVersion": {
+                            "type": "string"
                         },
                         "authType": {
                             "type": "string"
@@ -571,6 +557,20 @@
                         }
                     },
                     "variables": {
+                        "imageRef": {
+                            "RHEL 8.7": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "8_7",
+                                "version": "latest"
+                            },
+                            "RHEL 9.2": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "9_2",
+                                "version": "latest"
+                            }
+                        },
                         "nicName": "[concat(parameters('namePrefix'),'-nic')]",
                         "publicIP": {
                             "id": "[resourceId(parameters('publicIpResourceGroup'), 'Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
@@ -607,7 +607,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.Network/networkSecurityGroups",
-                            "apiVersion": "2022-11-01",
+                            "apiVersion": "2023-04-01",
                             "name": "[parameters('nsgName')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
@@ -747,7 +747,7 @@
                                             "storageAccountType": "[parameters('storageSKU')]"
                                         }
                                     },
-                                    "imageReference": "[parameters('imageRef')]",
+                                    "imageReference": "[variables('imageRef')[parameters('osVersion')]]",
                                     "dataDisks": [
                                         {
                                             "name": "[concat(parameters('namePrefix'),'-data-disk')]",

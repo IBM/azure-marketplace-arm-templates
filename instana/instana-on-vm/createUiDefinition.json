@@ -115,11 +115,11 @@
                             "allowedValues": [
                                 {
                                     "label": "Existing DDoS Plan",
-                                    "value": "existing"
+                                    "value": false
                                 },
                                 {
                                     "label": "New DDoS Plan",
-                                    "value": "new"
+                                    "value": true
                                 }
                             ]
                         }
@@ -128,6 +128,7 @@
                         "name": "ddosPlanSelector",
                         "type": "Microsoft.Solutions.ResourceSelector",
                         "label": "Select the existing DDoS plan",
+                        "toolTip": "Either create a new DDoS plan or use an existing one. Plans can support multiple public IP resources.",
                         "resourceType": "Microsoft.Network/ddosProtectionPlans",
                         "visible": "[equals(steps('networking').existingDdosPlan,'existing')]",
                         "options": {
@@ -226,7 +227,6 @@
                         "type": "Microsoft.Compute.UserNameTextBox",
                         "label": "Administrator Username",
                         "toolTip": "This will be the primary admin user and login on the created virtual machine",
-                        "defaultValue": "azureuser",
                         "visible": true,
                         "constraints": {
                             "required": true,
@@ -863,6 +863,7 @@
                     {
                         "name": "tagsByResource",
                         "type": "Microsoft.Common.TagsByResource",
+                        "toolTip": "Create one or more tags to associate with the created resources.",
                         "resources": [
                             "Microsoft.Network/ddosProtectionPlans",
                             "Microsoft.Network/networkSecurityGroups",
@@ -907,8 +908,8 @@
             "salesKey": "[steps('instana').salesKey]",
             "tenantName": "[steps('instana').tenantName]",
             "envName": "[steps('instana').envName]",
-            "agentType": "docker",
-            "agentMode": "INFRASTRUCTURE",
+            "agentType": "[steps('instana').agentType]",
+            "agentMode": "[steps('instana').agentMode]",
             "acceptLicense": "[steps('instana').acceptLicense]",
             "tagsByResource": "[steps('tags').tagsByResource]"
         }
