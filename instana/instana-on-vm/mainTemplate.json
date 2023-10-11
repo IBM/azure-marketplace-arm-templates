@@ -835,16 +835,16 @@
                         "publicIp": {
                             "type": "string",
                             "condition": "[parameters('publicIP')]",
-                            "value": "[reference(parameters('publicIpName')).IpAddress]"
+                            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('publicIpName')),'2022-07-01').IpAddress]"
                         },
                         "fqdn": {
                             "type": "string",
                             "condition": "[parameters('publicIP')]",
-                            "value": "[concat(parameters('domainName'),'.',parameters('location'),'cloudapp.azure.com')]"
+                            "value": "[concat(parameters('domainName'),'.',parameters('location'),'.cloudapp.azure.com')]"
                         },
                         "internalIp": {
                             "type": "string",
-                            "value": "[reference(resourceId('Microsoft.Compute/virtualMachines',parameters('namePrefix')),'2022-11-01').networkProfile.networkInterfaces[0].value]"
+                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',variables('nicName')),'2022-07-01').ipConfigurations[0].properties.privateIPAddress]"
                         }
 
                     }
