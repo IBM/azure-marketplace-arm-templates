@@ -62,7 +62,7 @@
 							"required": true,
 							"validations": [
 								{
-									"regex": "^[a-z0-9A-Z://._-]{8,50}$",
+									"regex": "^[a-z0-9A-Z://._-]{8,}$",
 									"message": "Can only contain valid characters for a URL"
 								},
 								{
