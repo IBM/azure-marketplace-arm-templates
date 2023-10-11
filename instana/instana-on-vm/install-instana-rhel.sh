@@ -139,6 +139,9 @@ if [[ -z $(which docker) ]]; then
         log-output "INFO: Successfully installed containerd.io"
     fi
 
+    #####TEMP#######
+    ps xua > $TMP_DIR/process-list.txt
+
     log-output "INFO: Installing docker cli"
     yum install -y ${TMP_DIR}/docker-cli.rpm
     if (( $? != 0 )); then
