@@ -857,16 +857,16 @@
         "instanaVmIp": {
             "type": "string",
             "condition": "[parameters('vmPublicIp')]",
-            "value": "[reference('vmDeployment').outputs['publicIp'].value]"
+            "value": "[reference('instanaOnVM').outputs['publicIp'].value]"
         },
         "instanaConsoleExternal": {
             "type": "string",
             "condition": "[parameters('vmPublicIp')]",
-            "value": "[uri(concat('https://',reference('vmDeployment').outputs['fqdn'].value),'/')]"
+            "value": "[uri(concat('https://',reference('instanaOnVM').outputs['fqdn'].value),'/')]"
         },
         "instanaConsoleInternal": {
             "type": "string",
-            "value": "[uri(concat('https://',reference('vmDeployment').outputs['internalIp'].value),'/')]"
+            "value": "[uri(concat('https://',reference('instanaOnVM').outputs['internalIp'].value),'/')]"
         }
     }
 }
