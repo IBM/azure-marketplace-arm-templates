@@ -70,7 +70,6 @@ echo $PARAMS > $(pwd)/instanaParameters.json
 
 DOWNLOAD_KEY=$(echo $PARAMS | jq -r '.credentials.downloadKey')
 SALES_KEY=$(echo $PARAMS | jq -r '.credentials.salesKey')
-INSTANA_USERNAME=$(echo $PARAMS | jq -r '.credentials.instanaUsername')
 INSTANA_PASSWORD=$(echo $PARAMS | jq -r '.credentials.instanaPassword')
 TENANT_NAME=$(echo $PARAMS | jq -r '.config.tenantName')
 ENV_NAME=$(echo $PARAMS | jq -r '.config.envName')
@@ -108,7 +107,6 @@ if [[ -z $AGENT_TYPE ]] || [[ $AGENT_TYPE == null ]]; then AGENT_TYPE="docker"; 
 if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRUCTURE"; fi
 if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=true; fi
 if [[ -z $HOME ]]; then export HOME="/root"; fi
-if [[ -z $INSTANA_USERNAME ]] || [[ $INSTANA_USERNAME == null ]]; then INSTANA_USERNAME="admin@instana.local"; fi
 
 # Extend the var logical volume for docker
 log-output "INFO: Extending var filesystem to accommodate docker registry"
@@ -138,21 +136,50 @@ if [[ -z $(which docker) ]]; then
     wget -q -O $TMP_DIR/docker-cli.rpm https://download.docker.com/linux/centos/${OS_MINOR}/${ARCH}/stable/Packages/docker-ce-cli-24.0.6-1.${OS_MAJOR}.${ARCH}.rpm
     wget -q -O $TMP_DIR/docker-rootless-extras.rpm https://download.docker.com/linux/centos/${OS_MINOR}/${ARCH}/stable/Packages/docker-ce-rootless-extras-24.0.6-1.${OS_MAJOR}.${ARCH}.rpm
 
+    log-output "INFO: Installing containerd.io"
     yum install -y ${TMP_DIR}/containerd.io.rpm
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to install containerd.io"
+        exit 1
+    else
+        log-output "INFO: Successfully install containerd.io"
+    fi
+
+    log-output "INFO: Installing docker cli"
     yum install -y ${TMP_DIR}/docker-cli.rpm
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to install Docker cli"
+        exit 1
+    else
+        log-output "INFO: Successfully installed Docker cli"
+    fi
+
+    log-output "INFO: Installing Docker CE and Rootless Extras"
     yum install -y ${TMP_DIR}/docker-rootless-extras.rpm ${TMP_DIR}/docker-ce.rpm
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to install Docker CE"
+        exit 1
+    else
+        log-output "INFO: Successfully installed Docker CE" 
+    fi
 
     # Start the docker service
     systemctl enable docker
-    systemctl start docker
     if (( $? != 0 )); then
-        log-output "ERROR: Unable to start docker"
+        log-output "ERROR: Unable to enable Docker service"
         exit 1
-    else
-        log-output "INFO: Successfully started docker"
     fi
 else
     log-output "INFO: Docker already installed on VM" 
+fi
+
+log-output "INFO: Starting docker"
+systemctl start docker
+if (( $? != 0 )); then
+    log-output "ERROR: Unable to start docker"
+    exit 1
+else
+    log-output "INFO: Successfully started docker"
 fi
 
 # Install the Instana console
@@ -301,10 +328,10 @@ EOF
     echo "${DATA_DISK}1                /mnt/data               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
 
     log-output "INFO: Adding mount entries to fstab for traces disk ${TRACES_DISK}1 to /mnt/traces"
-    echo "${TRACES_DISK}1                /mnt/metrics               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+    echo "${TRACES_DISK}1                /mnt/traces               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
 
     log-output "INFO: Adding mount entries to fstab for metrics disk ${METRICS_DISK}1 to /mnt/metrics"
-    echo "${METRICS_DISK}1                /mnt/traces               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
+    echo "${METRICS_DISK}1                /mnt/metrics               xfs    rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota   0 0" >> /etc/fstab
 
     # Mount the disks
     log-output "INFO: Mounting all disks"
@@ -429,7 +456,7 @@ else
 fi
 
 # Set Instana administrator password
-instana configure admin -p $INSTANA_PASSWORD -u $INSTANA_USERNAME
+instana configure admin -p $INSTANA_PASSWORD
 
 # Install monitoring agent on the Instana VM host
 if [[ $AGENT_TYPE == "docker" ]] && [[ $LICENSE == "accept" ]]; then 

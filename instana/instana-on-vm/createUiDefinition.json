@@ -739,25 +739,6 @@
                         }
                     },
                     {
-                        "name": "instanaUsername",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Instanan administrator email",
-                        "defaultValue": "admin@instana.local",
-                        "palceholder": "admin@instana.local",
-                        "toolTip": "Will be set for the Instana administrator",
-                        "multiLine": false,
-                        "visible": true,
-                        "constraints": {
-                            "required": true,
-                            "validations": [
-                                {
-                                    "regex": "^[a-zA-Z0-9]+(?:\\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(?:\\.[a-zA-Z0-9]+)*$",
-                                    "validationMessage": "Must be in the form an an email address such as admin@instana.local"
-                                }
-                            ]
-                        }
-                    },
-                    {
                         "name": "instanaPassword",
                         "type": "Microsoft.Common.PasswordBox",
                         "label": {
@@ -917,7 +898,6 @@
             "publicIpResourceGroup": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.resourceGroup)]",
             "vmDomainName": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.domainNameLabel)]",
             "encryption": "[steps('virtualMachine').hostEncryption]",
-            "instanaUsername": "[steps('instana').instanaUsername]",
             "instanaPassword": "[steps('instana').instanaPassword]",
             "dockerDiskSize": "[steps('instana').dockerDiskSize]",
             "dataDiskSize": "[steps('instana').dataDiskSize]",
