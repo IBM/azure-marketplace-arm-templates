@@ -361,7 +361,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "condition": "[parameters('deployVM')]",
-            "name": "vmDeployment",
+            "name": "instanaOnVM",
             "dependsOn": [
                 "[parameters('vnetName')]"
             ],
