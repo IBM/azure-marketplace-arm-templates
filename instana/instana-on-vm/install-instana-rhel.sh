@@ -65,9 +65,6 @@ if [[ -z $PARAMS ]]; then
     exit 1
 fi
 
-##################TEMP
-echo $PARAMS > $(pwd)/instanaParameters.json
-
 DOWNLOAD_KEY=$(echo $PARAMS | jq -r '.credentials.downloadKey')
 SALES_KEY=$(echo $PARAMS | jq -r '.credentials.salesKey')
 INSTANA_PASSWORD=$(echo $PARAMS | jq -r '.credentials.instanaPassword')
@@ -120,12 +117,9 @@ if (( $? != 0 )); then
 fi
 
 # Install Docker
-
 if [[ -z $(which docker) ]]; then
 
     log-output "INFO: Installing docker"
-
-    # TODO: Test the below with different RHEL versions (tested 9.2)
     ARCH="$(arch)"
     OS_MAJOR="$(uname -a | awk '{print $3}' | awk -F '.' '{print $6}' | awk -F '_' '{print $1}')"
     OS_MINOR="$(echo $OS_MAJOR | sed 's/el//g' )"
@@ -142,7 +136,7 @@ if [[ -z $(which docker) ]]; then
         log-output "ERROR: Unable to install containerd.io"
         exit 1
     else
-        log-output "INFO: Successfully install containerd.io"
+        log-output "INFO: Successfully installed containerd.io"
     fi
 
     log-output "INFO: Installing docker cli"
@@ -233,10 +227,6 @@ log-output "INFO: Created directories for Instana"
 mkdir -p /mnt/data
 mkdir -p /mnt/traces
 mkdir -p /mnt/metrics
-
-#########
-# TODO: Making of these disks is not right. 
-# Currently these are /dev/sda, sdb and sde ????
 
 # Identify drives
 DATA_DISKS=( $(lsblk --json | jq -r ".blockdevices[] | select(.type == \"disk\") | select(.mountpoint == null) | select(.children == null ) | select(.size == \"${DATA_DISK_SIZE}G\") | .name") )
@@ -456,7 +446,14 @@ else
 fi
 
 # Set Instana administrator password
+log-output "INFO: Setting Instana administrator password"
 instana configure admin -p $INSTANA_PASSWORD
+if (( $? != 0 )); then
+    log-output "ERROR: Unable to update Instana administrator password"
+    exit 1
+else
+    log-output "INFO: Instana administrator password set"
+fi
 
 # Install monitoring agent on the Instana VM host
 if [[ $AGENT_TYPE == "docker" ]] && [[ $LICENSE == "accept" ]]; then 
@@ -480,6 +477,13 @@ if [[ $AGENT_TYPE == "docker" ]] && [[ $LICENSE == "accept" ]]; then
     --env="INSTANA_DOWNLOAD_KEY=${DOWNLOAD_KEY}" \
     icr.io/instana/agent
 
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to run docker agent"
+        exit 1
+    else
+        log-output "INFO: Successfully started docker agent"
+    fi 
+
 elif [[ $AGENT_TYPE = "host" ]] && [[ $LICENSE == "accept" ]]; then
     # Install the Instana server agent in the Instana VM
     log-output "INFO: Creating instana host agent"
@@ -491,6 +495,13 @@ elif [[ $AGENT_TYPE = "host" ]] && [[ $LICENSE == "accept" ]]; then
         -t dynamic \
         -m infra \
         -e ${FQDN}:1444  -y
+
+    if (( $? != 0 )); then
+        log-output "ERROR: Unable to setup host agent"
+        exit 1
+    else
+        log-output "INFO: Successfully setup host agent"
+    fi
 else
     log-output "INFO: Unknown agent type $AGENT_TYPE or license not accepted. No agent installed."
 fi
