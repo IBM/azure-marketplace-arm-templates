@@ -3,7 +3,6 @@
 # Supports RHEL 8 and RHEL 9
 
 #### TODO: 
-# Fix mapping of external data disks to devices
 # Add support for user supplied certificates
 
 function log-output() {
@@ -105,6 +104,18 @@ if [[ -z $AGENT_MODE ]] || [[ $AGENT_MODE == null ]]; then AGENT_MODE="INFRASTRU
 if [[ -z $MOUNT_DISKS ]] || [[ $MOUNT_DISKS == null ]]; then MOUNT_DISKS=true; fi
 if [[ -z $HOME ]]; then export HOME="/root"; fi
 
+# Wait for cloud-init to finish
+count=0
+while [[ $(/usr/bin/ps xua | grep cloud-init | grep -v grep) ]]; do
+    log-output "INFO: Waiting for cloud init to finish. Waited $count minutes. Will wait 15 mintues."
+    sleep 60
+    count=$(( $count + 1 ))
+    if (( $count > 15 )); then
+        log-output "ERROR: Timeout waiting for cloud-init to finish"
+        exit 1;
+    fi
+done
+
 # Extend the var logical volume for docker
 log-output "INFO: Extending var filesystem to accommodate docker registry"
 CURRENT_VAR_SIZE=$(lvscan | grep varlv | awk '{print $3}' | sed 's/\[//g' | awk -F '.' '{print $1}')
@@ -138,9 +149,6 @@ if [[ -z $(which docker) ]]; then
     else
         log-output "INFO: Successfully installed containerd.io"
     fi
-
-    #####TEMP#######
-    ps xua > $TMP_DIR/process-list.txt
 
     log-output "INFO: Installing docker cli"
     yum install -y ${TMP_DIR}/docker-cli.rpm
