@@ -115,6 +115,7 @@ while [[ $(/usr/bin/ps xua | grep cloud-init | grep -v grep) ]]; do
         exit 1;
     fi
 done
+log-output "INFO: cloud-init finished. Proceeding with deployment"
 
 # Extend the var logical volume for docker
 log-output "INFO: Extending var filesystem to accommodate docker registry"
