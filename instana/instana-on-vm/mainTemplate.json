@@ -147,6 +147,7 @@
             "type": "string",
             "defaultValue": "RHEL 9.2",
             "allowedValues": [
+                "RHEL 8.6",
                 "RHEL 8.7",
                 "RHEL 9.2"
             ],
@@ -558,6 +559,12 @@
                     },
                     "variables": {
                         "imageRef": {
+                            "RHEL 8.6": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "8_6",
+                                "version": "latest"
+                            },
                             "RHEL 8.7": {
                                 "publisher": "RedHat",
                                 "offer": "RHEL",

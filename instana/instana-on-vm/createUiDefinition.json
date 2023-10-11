@@ -611,6 +611,10 @@
                             "required": true,
                             "allowedValues": [
                                 {
+                                    "label": "Red Hat Enterprise Linux v8.6",
+                                    "value": "RHEL 8.6"
+                                },
+                                {
                                     "label": "Red Hat Enterprise Linux v8.7",
                                     "value": "RHEL 8.7"
                                 },
