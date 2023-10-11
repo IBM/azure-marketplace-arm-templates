@@ -602,7 +602,7 @@
                         "type": "Microsoft.Common.DropDown",
                         "label": "Operating System Version",
                         "toolTip": "The operating system for the Instana virtual machine",
-                        "visible": true,
+                        "visible": false,
                         "defaultValue": ["Red Hat Enterprise Linux v9.2"],
                         "multiselect": false,
                         "filter": false,
