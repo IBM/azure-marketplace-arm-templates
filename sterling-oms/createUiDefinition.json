@@ -58,9 +58,10 @@
                 "name": "namePrefix",
                 "type": "Microsoft.Common.TextBox",
                 "label": "Name Prefix",
-                "defaultValue": "",
+                "defaultValue": "oms",
                 "toolTip": "Prefix for created resources.",
 				"constraints":{
+					"required": true,
 					"validations": [
 						{
 							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
@@ -328,12 +329,31 @@
 							"visible": true
 					},
 					{
-						"name": "getRpObjectId",
-						"type": "Microsoft.Solutions.ArmApiControl",
-						"request": {
-							"method": "GET",
-							"path": "[concat(subscription().id, '/providers/Microsoft.RedHatOpenShift?api-version=2021-04-01')]"
+						"name": "rpObjectIdInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "The service principal object ID for the OpenShift resource provider may vary between subscriptions, to ensure you are using the correct one, run the command \"az ad sp list --display-name \"Azure Red Hat OpenShift RP\" --query '[0].id' -o tsv\" to get the Id. Click here for more details.",
+						  "uri": "https://learn.microsoft.com/en-us/azure/openshift/quickstart-openshift-arm-bicep-template?pivots=aro-arm&WT.mc_id=Portal-Microsoft_Azure_CreateUIDef#get-the-service-principal-object-id-for-the-openshift-resource-provider---azure-cli"
 						}
+					},
+					{
+					  "name": "rpObjectId",
+					  "type": "Microsoft.Common.TextBox",
+					  "label": "OpenShift Resource Provider Service Principal Id",
+					  "toolTip": "Refer to https://learn.microsoft.com/en-us/azure/openshift/quickstart-openshift-arm-bicep-template?pivots=aro-arm#get-the-service-principal-object-id-for-the-openshift-resource-provider---azure-cli for details",
+					  "multiLine": false,
+					  "constraints": {
+						"required": true,
+						"validations": [
+						  {
+							"regex": "^[a-z0-9A-Z-]{36}$",
+							"message": "Only alphanumeric characters and dashes are allowed, and the value must be 36 characters long."
+						  }
+						]
+					  },
+					  "visible": true
 					},
 					{
 						"name": "pullSecret",
@@ -780,7 +800,7 @@
 			"spClientId": "[steps('auth').servicePrincipal.appId]",
 			"spObjectId": "[first(steps('auth').servicePrincipal.objectId)]",
 			"spClientSecret": "[steps('auth').servicePrincipal.password]",
-			"rpObjectId": "[first(map(steps('openshift').getRpObjectId.authorizations, (item) => item.managedByRoleDefinitionId))]",
+			"rpObjectId": "[steps('openshift').rpObjectId]",
 			"aroVersion": "[steps('openshift').aroVersion]",
 			"pullSecret": "[steps('openshift').pullSecret]",
 			"masterSize": "[steps('openshift').masterNodes]",
