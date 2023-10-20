@@ -31,6 +31,7 @@ ENV_VAR_NOT_SET=""
 
 if [[ -z $API_SERVER ]]; then ENV_VAR_NOT_SET="API_SERVER"; fi
 if [[ -z $OCP_PASSWORD ]]; then ENV_VAR_NOT_SET="OCP_PASSWORD"; fi
+if [[ -z $CLUSTER_LOCATION ]]; then ENV_VAR_NOT_SET="CLUSTER_LOCATION"; fi
 
 if [[ -n $ENV_VAR_NOT_SET ]]; then
     log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
@@ -41,16 +42,6 @@ fi
 # Download and install CLI's if they do not already exist
 if [[ ! -f ${BIN_DIR}/oc ]] || [[ ! -f ${BIN_DIR}/kubectl ]]; then
     cli-download $BIN_DIR $TMP_DIR
-fi
-
-#######
-# Login to Azure CLI
-az account show > /dev/null 2>&1
-if (( $? != 0 )); then
-    # Login with service principal details
-    az-login $CLIENT_ID $CLIENT_SECRET $TENANT_ID $SUBSCRIPTION_ID
-else
-    log-output "INFO: Using existing Azure CLI login"
 fi
 
 #####
@@ -70,10 +61,6 @@ log-output "INFO: CLUSTER_ID = $CLUSTER_ID"
 export OCP_VERSION=$(${BIN_DIR}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,"."); print version[1],version[2]}' | sed 's/ /./g')
 log-output "INFO: OCP_VERSION = $OCP_VERSION"
 
-### Change this #########################
-export CLUSTER_LOCATION=$(az aro list --query "[?contains(name, '$CLUSTER_NAME')].[location]" -o tsv)
-log-output "INFO: CLUSTER_LOCATION = $CLUSTER_LOCATION"
-
 export IMAGE_SKU=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{"\n"}')
 log-output "INFO: IMAGE_SKU = $IMAGE_SKU"
 
@@ -83,8 +70,8 @@ log-output "INFO: IMAGE_OFFER = $IMAGE_OFFER"
 export IMAGE_VERSION=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{"\n"}')
 log-output "INFO: IMAGE_VERSION = $IMAGE_VERSION"
 
-export ARO_RESOURCE_GROUP=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{"\n"}')
-log-output "INFO: ARO_RESOURCE_GROUP = $ARO_RESOURCE_GROUP"
+export OCP_RESOURCE_GROUP=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{"\n"}')
+log-output "INFO: OCP_RESOURCE_GROUP = $OCP_RESOURCE_GROUP"
 
 export VNET_NAME=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{"\n"}')
 log-output "INFO: VNET_NAME = $VNET_NAME"
@@ -223,7 +210,7 @@ spec:
             osType: Linux
           publicIP: false
           publicLoadBalancer: ${CLUSTER_ID}
-          resourceGroup: ${ARO_RESOURCE_GROUP} 
+          resourceGroup: ${OCP_RESOURCE_GROUP} 
           sshPrivateKey: ""
           sshPublicKey: ""
           subnet: ${SUBNET_NAME}  
@@ -296,7 +283,7 @@ spec:
             osType: Linux
           publicIP: false
           publicLoadBalancer: ${CLUSTER_ID}
-          resourceGroup: ${ARO_RESOURCE_GROUP} 
+          resourceGroup: ${OCP_RESOURCE_GROUP} 
           sshPrivateKey: ""
           sshPublicKey: ""
           subnet: ${SUBNET_NAME}  
@@ -369,7 +356,7 @@ spec:
             osType: Linux
           publicIP: false
           publicLoadBalancer: ${CLUSTER_ID}
-          resourceGroup: ${ARO_RESOURCE_GROUP} 
+          resourceGroup: ${OCP_RESOURCE_GROUP} 
           sshPrivateKey: ""
           sshPublicKey: ""
           subnet: ${SUBNET_NAME}  

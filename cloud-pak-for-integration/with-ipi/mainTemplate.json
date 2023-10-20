@@ -313,6 +313,13 @@
                 "description": "Name of the NSG for the worker subnet"
             }
         },
+        "existingNodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create new machineset for ODF or use existing nodes (existing nodes need to be large enough)"
+            }
+        },
         "logLevel": {
             "type": "string",
             "allowedValues": [
@@ -1426,6 +1433,9 @@
                     },
                     "storageSizePerNode": {
                         "value": "[parameters('storageSizePerNode')]"
+                    },
+                    "existingNodes": {
+                        "value": "[parameters('existingNodes')]" 
                     }
                 },
                 "template": {
@@ -1465,6 +1475,9 @@
                         "storageSizePerNode": {
                             "type": "string"
                         },
+                        "existingNodes": {
+                            "type": "bool"
+                        },
                         "branch": {
                             "type": "string"
                         }
@@ -1481,7 +1494,7 @@
                         {
                             "type": "Microsoft.Resources/deploymentScripts",
                             "apiVersion": "2020-10-01",
-                            "comments": "Deploys Cloud Pak Integration onto an ARO cluster",
+                            "comments": "Deploys ODF onto an OpenShift IPI cluster",
                             "name": "[variables('scriptName')]",
                             "location": "[parameters('location')]",
                             "identity": {
@@ -1517,6 +1530,14 @@
                                     {
                                         "name": "STORAGE_SIZE",
                                         "value": "[parameters('storageSizePerNode')]"
+                                    },
+                                    {
+                                        "name": "CLUSTER_LOCATION",
+                                        "value": "[parameters('location')]"
+                                    },
+                                    {
+                                        "name": "EXISTING_NODES",
+                                        "value": "[if(parameters('existingNodes'),'yes','no')]"
                                     }
                                 ],
                                 "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/scripts/deploy-odf.sh'))]",
