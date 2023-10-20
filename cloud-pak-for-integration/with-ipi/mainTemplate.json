@@ -157,7 +157,7 @@
         },
         "ocpVersion": {
             "type": "string",
-            "defaultValue": "4.10",
+            "defaultValue": "4.12",
             "metadata": {
                 "description": "Openshift version to install"
             }
