@@ -98,15 +98,19 @@ log-output "INFO: Worker disk type is set to $WORKER_NODE_DISK_TYPE"
 log-output "INFO: Worker node VM type is set to $WORKER_NODE_TYPE"
 log-output "INFO: Worker node quantity is set to $WORKER_NODE_QTY"
 log-output "INFO: Cluster name is set to $CLUSTER_NAME"
+log-output "INFO: Cluster base domain is set to $BASE_DOMAIN"
+log-output "INFO: Base domain resource group is set to $BASE_DOMAIN_RESOURCE_GROUP"
 log-output "INFO: Internal OpenShift network CIDR set to $CLUSTER_CIDR"
 log-output "INFO: Internal host prefix for OpenShift is set to $CLUSTER_HOST_PREFIX"
 log-output "INFO: OpenShift virtual machine network CIDR is set to $MACHINE_CIDR"
 log-output "INFO: OpenShift internal networking set to $OCP_NETWORK_TYPE"
 log-output "INFO: OpenShift internal services network CIDR is set to $SERVICE_NETWORK_CIDR"
 log-output "INFO: OpenShift outbound routing is set to $OCP_OUTBOUND_TYPE"
+log-output "INFO: Cluster node networking type is set to $VM_NETWORKING_TYPE"
 log-output "INFO: OpenShift ingress is set to $CLUSTER_ACCESS"
 log-output "INFO: OpenShift UltraSSD is set to $ENABLE_ULTRADISK"
 log-output "INFO: OpenShift cloud type is set to $CLOUD_TYPE"
+log-output "DEBUG: Debug is set to true"
 
 
 #######
@@ -162,9 +166,9 @@ chmod 0600 ~/.azure/osServicePrincipal.json
 
 ##########
 # Create openshift install configuration file
-if [[ -f ${WORKSPACE_DIR}/install-config.json ]]; then 
+if [[ -f ${WORKSPACE_DIR}/install-config.yaml ]]; then 
     log-output "INFO: Removing existing OpenShift install configuration"
-    rm ${WORKSPACE_DIR}/install-config.json
+    rm ${WORKSPACE_DIR}/install-config.yaml
 fi
 
 log-output "INFO: Creating OpenShift install configuration"
@@ -222,8 +226,8 @@ platform:
     resourceGroupName: ${CLUSTER_RESOURCE_GROUP} 
     region: ${LOCATION} 
     outboundType: ${OCP_OUTBOUND_TYPE}
-    cloudName: ${$CLOUD_TYPE}
-    networkResourceGroupName: ${RESOURCE_GROUP} 
+    cloudName: ${CLOUD_TYPE}
+    networkResourceGroupName: ${NETWORK_240RESOURCE_GROUP} 
     virtualNetwork: ${VNET_NAME} 
     controlPlaneSubnet: ${CONTROL_SUBNET_NAME} 
     computeSubnet: ${WORKER_SUBNET_NAME} 
