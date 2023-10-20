@@ -124,7 +124,7 @@ fi
 #########
 # Set location if not already
 if [[ -z $LOCATION ]]; then
-    LOCATION=$(az group show -n $RESOURCE_GROUP --query 'location' -o tsv)
+    LOCATION=$(az group show -n $NETWORK_RESOURCE_GROUP --query 'location' -o tsv)
     if (( $? != 0 )); then
         log-output "ERROR: Unable to determine location. Please set as environment variable."
         exit 1
