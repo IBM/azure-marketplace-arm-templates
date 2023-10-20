@@ -5,8 +5,7 @@
         "description": "Azure ARM Template to deploy a Red Hat OpenShift IPI cluster and IBM Cloud Pak for Integration."
     },
     // TO DO: Upload private key to keyvault within script to avoid making visible in deployment script output
-    // TO DO: Add DDoS plan option (none, new or existing)
-    // TO DO: Add tags
+    // TO DO: Add managed id to cluster resource group
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -113,13 +112,6 @@
             "defaultValue": "[concat( parameters('namePrefix'), '-', substring( uniqueString(resourceGroup().id), 1, 5 ), '-openshift') ]",
             "metadata": {
                 "description": "The name of the empty resource group into which the cluster resources will be built."
-            }
-        },
-        "createClusterResourceGroup": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description": "Flag to determine whether to create a new resource group for the cluster or use existing, empty, one."
             }
         },
         "baseDomain": {
@@ -324,10 +316,10 @@
         "logLevel": {
             "type": "string",
             "allowedValues": [
-                "default",
-                "debug"
+                "Default",
+                "Debug"
             ],
-            "defaultValue": "default",
+            "defaultValue": "Default",
             "metadata": {
                 "description": "Flag to determine level of logging and post deployment clean up"
             }
@@ -1094,7 +1086,7 @@
                         "value": "[parameters('ocpVersion')]"
                     },
                     "baseUrl": {
-                        "value": "[variables('baseUrl')]" 
+                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/'))]" 
                     },
                     "baseDomainRG": {
                         "value": "[parameters('baseDomainRG')]" 
@@ -1114,14 +1106,8 @@
                     "controlSubnetName": {
                         "value": "[parameters('controlSubnetName')]"
                     },
-                    "controlSubnetCIDR": {
-                        "value": "[parameters('controlSubnetCIDR')]"
-                    },
                     "workerSubnetName": {
                         "value": "[parameters('workerSubnetName')]"
-                    },
-                    "workerSubnetCIDR": {
-                        "value": "[parameters('workerSubnetCIDR')]"
                     },
                     "masterNodeSize": {
                         "value": "[parameters('masterNodeSize')]"
@@ -1137,9 +1123,6 @@
                     },
                     "clusterResourceGroup": {
                         "value": "[parameters('clusterResourceGroup')]" 
-                    },
-                    "createClusterResourceGroup": {
-                        "value": "[parameters('createClusterResourceGroup')]" 
                     },
                     "networkResourceGroup": {
                         "value": "[parameters('networkResourceGroup')]" 
@@ -1221,9 +1204,6 @@
                         "clusterResourceGroup": {
                             "type": "string"
                         },
-                        "createClusterResourceGroup": {
-                            "type": "bool"
-                        },
                         "logLevel": {
                             "type": "string"
                         },
@@ -1240,14 +1220,6 @@
                     },
                     "resources": [
                         {
-                            "type": "Microsoft.Resources/resourceGroups",
-                            "apiVersion": "2022-09-01",
-                            "name": "[parameters('clusterResourceGroup')]",
-                            "condition": "[parameters('createClusterResourceGroup')]",
-                            "location": "[parameters('location')]",
-                            "managedBy": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]"
-                        },
-                        {
                             "type": "Microsoft.Authorization/roleAssignments",
                             "apiVersion": "2022-04-01",
                             "name": "[variables('roleDefinitionName')]",
@@ -1262,9 +1234,7 @@
                             "comments": "Deploys OpenShift IPI cluster on an existing Azure VNet",
                             "name": "[ variables('scriptName') ]",
                             "dependsOn": [
-                                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]",
-                                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]",
-                                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('workerSubnetName'))]"
+                                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]"
                             ],
                             "location": "[parameters('location')]",
                             "identity": {
@@ -1362,9 +1332,9 @@
                                         "value": "[if(equals(parameters('logLevel'),'Debug'),'true','false')]"
                                     }
                                 ],
-                                    "primaryScriptUri": "[uri(parameters('baseUrl'),'openshift/ipi/scripts/deploy-ocp.sh')]",
+                                    "primaryScriptUri": "[uri(parameters('baseUrl'),'scripts/deploy-ocp.sh')]",
                                     "supportingScriptUris": [
-                                        "[uri(parameters('baseUrl'),'openshift/ipi/scripts/common.sh')]"
+                                        "[uri(parameters('baseUrl'),'scripts/common.sh')]"
                                 ],
                                 "timeout": "PT120M",
                                 "cleanupPreference": "OnSuccess",
