@@ -1055,7 +1055,7 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'create-ssh-keys')]",
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "[resourceId('Microsoft.Resources/deployments', 'virtual-network')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1234,7 +1234,6 @@
                     "variables": {
                         "azureCliVersion": "2.45.0",
                         "scriptName": "[ concat(parameters('namePrefix'), '-ocp-deploy-script') ]",
-                        "nsgName": "[ concat( parameters('namePrefix'), '-ocp-nsg') ]",
                         "containergroupName": "[ concat( parameters('namePrefix'), '-ocp-deploy-cg') ]",
                         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
                         "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clientObjectId')), variables('roleDefinitionId'), resourceGroup().id)]"
