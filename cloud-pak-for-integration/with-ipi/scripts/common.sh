@@ -50,24 +50,44 @@ function az-login() {
 }
 
 function oc-login() {
-# Login to an OpenShift cluster. Must be logged into az cli beforehand and az cli must be in PATH
+# Login to an OpenShift cluster. 
 # Usage:
-#        oc-login ARO_CLUSTER BIN_DIR
+#        oc-login API_SERVER OCP_USERNAME OCP_PASSWORD BIN_DIR 
 #
 
-    if [[ -z ${2} ]]; then
+    if [[ -z ${1} ]] || [[ -z $API_SERVER ]]; then
+        log-output "ERROR: API_SERVER not passed to function oc-login"
+        exit 1
+    elif [[ ${1} != "" ]]; then
+        API_SERVER=${1}
+    fi
+
+    if [[ -z ${2} ]] || [[ -z $OCP_USERNAME ]]; then
+        log-output "ERROR: OCP_USERNAME not passed to function oc-login"
+        exit 1
+    elif [[ ${2} != "" ]]; then
+        OCP_USERNAME=${2}
+    fi
+
+    if [[ -z ${3} ]] || [[ -z $OCP_PASSWORD ]]; then
+        log-output "ERROR: OCP_PASSWORD not passed to function oc-login"
+        exit 1
+    elif [[ ${3} != "" ]]; then
+        OCP_PASSWORD=${3}
+    fi
+
+    if [[ -z ${4} ]] || [[ -z $BIN_DIR ]]; then
         BIN_DIR="/usr/local/bin"
-    else
-        BIN_DIR="${2}"
+    elif [[ ${4} != "" ]]; then
+        BIN_DIR="${4}"
     fi
 
     if ! ${BIN_DIR}/oc status 1> /dev/null 2> /dev/null; then
-        log-output "INFO: Logging into OpenShift cluster $ARO_CLUSTER"
-        API_SERVER=$(az aro list --query "[?contains(name,'$ARO_CLUSTER')].[apiserverProfile.url]" -o tsv)
-        CLUSTER_PASSWORD=$(az aro list-credentials --name $ARO_CLUSTER --resource-group $RESOURCE_GROUP --query kubeadminPassword -o tsv)
+        log-output "INFO: Logging into OpenShift cluster $API_SERVER"
+
         # Below loop added to allow authentication service to start on new clusters
         count=0
-        while ! ${BIN_DIR}/oc login $API_SERVER -u kubeadmin -p $CLUSTER_PASSWORD 1> /dev/null 2> /dev/null ; do
+        while ! ${BIN_DIR}/oc login $API_SERVER -u $OCP_USERNAME -p $OCP_PASSWORD --insecure-skip-tls-verify=true 1> /dev/null 2> /dev/null ; do
             log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
             sleep 60
             count=$(( $count + 1 ))
@@ -76,17 +96,17 @@ function oc-login() {
                 exit 1;    
             fi
         done
-        log-output "INFO: Successfully logged into cluster $ARO_CLUSTER"
+        log-output "INFO: Successfully logged into cluster $API_SERVER"
     else   
         CURRENT_SERVER=$(${BIN_DIR}/oc status | grep server | awk '{printf $6}' | sed -e 's#^https://##; s#/##')
-        API_SERVER=$(az aro list --query "[?contains(name,'$CLUSTER')].[apiserverProfile.url]" -o tsv)
+
         if [[ $CURRENT_SERVER == $API_SERVER ]]; then
             log-output "INFO: Already logged into cluster"
         else
-            CLUSTER_PASSWORD=$(az aro list-credentials --name $ARO_CLUSTER --resource-group $RESOURCE_GROUP --query kubeadminPassword -o tsv)
+
             # Below loop added to allow authentication service to start on new clusters
             count=0
-            while ! ${BIN_DIR}/oc login $API_SERVER -u kubeadmin -p $CLUSTER_PASSWORD > /dev/null 2>&1 ; do
+            while ! ${BIN_DIR}/oc login $API_SERVER -u $OCP_USERNAME -p $OCP_PASSWORD --insecure-skip-tls-verify=true > /dev/null 2>&1 ; do
                 log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
                 sleep 60
                 count=$(( $count + 1 ))
@@ -95,7 +115,7 @@ function oc-login() {
                     exit 1;    
                 fi
             done
-            log-output "INFO: Successfully logged into cluster $ARO_CLUSTER"
+            log-output "INFO: Successfully logged into cluster $API_SERVER"
         fi
     fi
 }
@@ -361,7 +381,6 @@ function download-openshift-installer() {
 }
 
 function wait_for_cluster_operators() {
-# Login to an OpenShift cluster. Must be logged into az cli beforehand and az cli must be in PATH
 # Usage:
 #        wait_for_cluster_operators API_SERVER OCP_USERNAME OCP_PASSWORD BIN_DIR 
 #
