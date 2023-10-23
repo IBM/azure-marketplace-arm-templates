@@ -310,6 +310,8 @@ CLUSTER_ID="$(cat ${WORKSPACE_DIR}/metadata.json | jq -r '.clusterID')"
 
 if [[ ! -z $VAULT_NAME ]]; then
     az keyvault secret set --name "cluster-password" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password
+    az keyvault secret set --name "kubeconfig" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeconfig
+    az keyvault secret set --name "cluster-metadata" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/metadata.json
 
     jq -n -c \
         --arg apiServer $API_SERVER \
