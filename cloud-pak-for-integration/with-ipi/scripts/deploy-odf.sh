@@ -61,14 +61,8 @@ log-output "INFO: CLUSTER_ID = $CLUSTER_ID"
 export OCP_VERSION=$(${BIN_DIR}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,"."); print version[1],version[2]}' | sed 's/ /./g')
 log-output "INFO: OCP_VERSION = $OCP_VERSION"
 
-export IMAGE_SKU=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{"\n"}')
-log-output "INFO: IMAGE_SKU = $IMAGE_SKU"
-
-export IMAGE_OFFER=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.offer}{"\n"}')
-log-output "INFO: IMAGE_OFFER = $IMAGE_OFFER"
-
-export IMAGE_VERSION=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{"\n"}')
-log-output "INFO: IMAGE_VERSION = $IMAGE_VERSION"
+export IMAGE_RESOURCE_ID=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.resourceID}{"\n"}')
+log-output "INFO: IMAGE_RESOURCE_ID = $IMAGE_RESOURCE_ID"
 
 export OCP_RESOURCE_GROUP=$(${BIN_DIR}/oc get machineset/${CLUSTER_ID}-worker-${CLUSTER_LOCATION}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{"\n"}')
 log-output "INFO: OCP_RESOURCE_GROUP = $OCP_RESOURCE_GROUP"
@@ -191,11 +185,11 @@ spec:
             name: azure-cloud-credentials
             namespace: openshift-machine-api
           image:
-            offer: ${IMAGE_OFFER}
-            publisher: azureopenshift
-            resourceID: ''
-            sku: ${IMAGE_SKU}
-            version: ${IMAGE_VERSION}
+            offer: ''
+            publisher: ''
+            resourceID: '${IMAGE_RESOURCE_ID}'
+            sku: ''
+            version: ''
           internalLoadBalancer: ""
           kind: AzureMachineProviderSpec
           location: ${CLUSTER_LOCATION}
@@ -264,11 +258,11 @@ spec:
             name: azure-cloud-credentials
             namespace: openshift-machine-api
           image:
-            offer: ${IMAGE_OFFER}
-            publisher: azureopenshift
-            resourceID: ''
-            sku: ${IMAGE_SKU}
-            version: ${IMAGE_VERSION}
+            offer: ''
+            publisher: ''
+            resourceID: '${IMAGE_RESOURCE_ID}'
+            sku: ''
+            version: ''
           internalLoadBalancer: ""
           kind: AzureMachineProviderSpec
           location: ${CLUSTER_LOCATION}
@@ -337,11 +331,11 @@ spec:
             name: azure-cloud-credentials
             namespace: openshift-machine-api
           image:
-            offer: ${IMAGE_OFFER}
-            publisher: azureopenshift
-            resourceID: ''
-            sku: ${IMAGE_SKU}
-            version: ${IMAGE_VERSION}
+            offer: ''
+            publisher: ''
+            resourceID: '${IMAGE_RESOURCE_ID}'
+            sku: ''
+            version: ''
           internalLoadBalancer: ""
           kind: AzureMachineProviderSpec
           location: ${CLUSTER_LOCATION}
