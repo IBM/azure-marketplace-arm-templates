@@ -769,6 +769,8 @@ EOF
             exit 1
         fi
     done
+
+    log-output "INFO: Instance started"
 else
     log-output "INFO: License not accepted. Please manually install desired components"
 fi
