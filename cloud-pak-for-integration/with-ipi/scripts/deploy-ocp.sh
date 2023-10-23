@@ -64,6 +64,7 @@ if [[ -z $SERVICE_NETWORK_CIDR ]]; then SERVICE_NETWORK_CIDR="172.30.0.0/16"; fi
 if [[ -z $OCP_OUTBOUND_TYPE ]]; then OCP_OUTBOUND_TYPE="Loadbalancer"; fi
 if [[ -z $CLUSTER_ACCESS ]]; then CLUSTER_ACCESS="External"; fi
 if [[ -z $VM_NETWORKING_TYPE ]]; then VM_NETWORKING_TYPE="Accelerated"; fi
+if [[ -z $NEW_CLUSTER_RESOURCE_GROUP ]]; then NEW_CLUSTER_RESOURCE_GROUP="true"; fi
 
 # The following can be "OVNKubernetes" (the default), or "OpenShiftSDN"
 if [[ -z $OCP_NETWORK_TYPE ]]; then OCP_NETWORK_TYPE="OVNKubernetes"; fi
@@ -80,6 +81,7 @@ log-output "INFO: Workspace directory is set to : $WORKSPACE_DIR"
 log-output "INFO: Binary directory is set to : $BIN_DIR"
 if [[ $CLIENT_ID ]]; then log-output "INFO: Client id is $CLIENT_ID"; fi
 if [[ $CLIENT_SECRET ]]; then log-output "INFO: Client secret is set"; fi
+if [[ $PULL_SECRET ]]; then log-output "INFO: Red Hat pull secret is set"; fi
 log-output "INFO: Network resource group set to $NETWORK_RESOURCE_GROUP"
 log-output "INFO: Virtual network name is set to $VNET_NAME"
 log-output "INFO: Worker subnet name is set to $WORKER_SUBNET_NAME"
@@ -98,6 +100,8 @@ log-output "INFO: Worker disk type is set to $WORKER_NODE_DISK_TYPE"
 log-output "INFO: Worker node VM type is set to $WORKER_NODE_TYPE"
 log-output "INFO: Worker node quantity is set to $WORKER_NODE_QTY"
 log-output "INFO: Cluster name is set to $CLUSTER_NAME"
+if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-output "INFO: Cluster resource group is set to $CLUSTER_RESOURCE_GROUP"; fi
+if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-output "INFO: New cluster resource group is set to $NEW_CLUSTER_RESOURCE_GROUP"; fi
 log-output "INFO: Cluster base domain is set to $BASE_DOMAIN"
 log-output "INFO: Base domain resource group is set to $BASE_DOMAIN_RESOURCE_GROUP"
 log-output "INFO: Internal OpenShift network CIDR set to $CLUSTER_CIDR"
@@ -162,6 +166,46 @@ jq --null-input \
     --arg tenant_id "${TENANT_ID}" \
     '{"subscriptionId":$subscription_id,"clientId":$client_id,"clientSecret":$client_secret,"tenantId":$tenant_id}' > ~/.azure/osServicePrincipal.json
 chmod 0600 ~/.azure/osServicePrincipal.json
+
+##########
+# Log into Azure using service principal credentials
+az login --service-principal -u $CLIENT_ID -p $CLIENT_SECRET --tenant $TENANT_ID
+
+if (( $? != 0 )); then
+  log-output "ERROR: Unable to login with provided service principal. Check credentials"
+  exit 1
+else
+  log-output "INFO: Successfully logged in with provided service principal credentials"
+fi
+
+##########
+# Create the cluster resource group if it does not already exist
+if [[ $NEW_CLUSTER_RESOURCE_GROUP == true ]]; then
+  az group create --name $CLUSTER_RESOURCE_GROUP \
+    --location $LOCATION
+
+  if (( $? != 0 )); then
+    log-output "ERROR: Unable to create cluster resource group $CLUSTER_RESOURCE_GROUP. Check service principal permissions"
+    exit 1
+  else
+    log-output "INFO: Successfully created cluster resource group $CLUSTER_RESOURCE_GROUP"
+  fi
+else
+  if [[ $(az group list -o table | grep $CLUSTER_RESOURCE_GROUP) ]]; then
+    log-output "INFO: Located existing resource group $CLUSTER_RESOURCE_GROUP"
+  else
+    log-output "ERROR: Unable to find existing resource group $CLUSTER_RESOURCE_GROUP"
+    exit 1
+  fi
+fi
+
+# Check that the cluster resource group is empty
+if [[ $(az resource list -g $CLUSTER_RESOURCE_GROUP -o table | grep $CLUSTER_RESOURCE_GROUP) ]]; then
+  log-output "ERROR: $CLUSTER_RESOURCE_GROUP is not empty."
+  exit 1
+else
+  log-output "INFO: Confirmed $CLUSTER_RESOURCE_GROUP is empty."
+fi
 
 
 ##########
@@ -246,6 +290,13 @@ if [[ $DEBUG != true ]]; then
     openshift-install create cluster --dir ${WORKSPACE_DIR}/ --log-level=info  
 else
     openshift-install create cluster --dir ${WORKSPACE_DIR}/ --log-level=debug
+fi
+
+if (( $? != 0 )); then
+  log-output "ERROR: Cluster creation failed. Refer to openshift install logs for details"
+  exit 1
+else
+  log-output "INFO: Cluster creation successfully completed"
 fi
 
 ##########

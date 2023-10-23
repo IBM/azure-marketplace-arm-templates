@@ -114,6 +114,13 @@
                 "description": "The name of the empty resource group into which the cluster resources will be built."
             }
         },
+        "existingClusterResourceGroup": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a new cluster resource group or use existing"
+            }
+        },
         "baseDomain": {
             "type": "string",
             "metadata": {
@@ -1131,8 +1138,17 @@
                     "clusterResourceGroup": {
                         "value": "[parameters('clusterResourceGroup')]" 
                     },
+                    "existingClusterResourceGroup": {
+                        "value": "[parameters('existingClusterResourceGroup')]"
+                    },
                     "networkResourceGroup": {
                         "value": "[parameters('networkResourceGroup')]" 
+                    },
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "useVault": {
+                        "value": "[parameters('deployKeyVault')]"
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]"
@@ -1210,6 +1226,15 @@
                         },
                         "clusterResourceGroup": {
                             "type": "string"
+                        },
+                        "existingClusterResourceGroup": {
+                            "type": "string"
+                        },
+                        "vaultName": {
+                            "type": "string"
+                        },
+                        "useVault": {
+                            "type": "bool"
                         },
                         "logLevel": {
                             "type": "string"
@@ -1321,6 +1346,14 @@
                                     {
                                         "name": "CLUSTER_RESOURCE_GROUP",
                                         "value": "[parameters('clusterResourceGroup')]"
+                                    },
+                                    {
+                                        "name": "NEW_CLUSTER_RESOURCE_GROUP",
+                                        "value": "[if(parameters('existingClusterResourceGroup'),'false','true')]"
+                                    },
+                                    {
+                                        "name": "VAULT_NAME",
+                                        "value": "[if(parameters('useVault'),parameters('vaultName'),null())]"
                                     },
                                     {
                                         "name": "NETWORK_RESOURCE_GROUP",
