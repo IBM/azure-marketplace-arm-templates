@@ -253,62 +253,6 @@ function wait_for_catalog() {
     done   
 }
 
-function menu() {
-    local item i=1 numItems=$#
-
-    for item in "$@"; do
-        printf '%s %s\n' "$((i++))" "$item"
-    done >&2
-
-    while :; do
-        printf %s "${PS3-#? }" >&2
-        read -r input
-        if [[ -z $input ]]; then
-            break
-        elif (( input < 1 )) || (( input > numItems )); then
-          echo "Invalid Selection. Enter number next to item." >&2
-          continue
-        fi
-        break
-    done
-
-    if [[ -n $input ]]; then
-        printf %s "${@: input:1}"
-    fi
-}
-
-function get_region() {
-    if [[ -z $METADATA_FILE ]]; then
-        METADATA_FILE="$(pwd)/azure-metadata.yaml"
-    fi
-
-    IFS=$'\n'
-
-    echo
-    read -r -d '' -a AREAS < <(yq '.regions[].area' $METADATA_FILE | sort -u)
-    DEFAULT_AREA="$(yq ".regions[] | select(.code == \"$DEFAULT_REGION\") | .area" $METADATA_FILE)"
-    PS3="Select the deployment area [$DEFAULT_AREA]: "
-    area=$(menu "${AREAS[@]}")
-    case $area in
-        '') AREA="$DEFAULT_AREA"; ;;
-        *) AREA=$area; ;;
-    esac
-
-    echo
-    read -r -d '' -a REGIONS < <(yq ".regions[] | select(.area == \"${AREA}\") | .name" $METADATA_FILE | sort -u)
-    if [[ $AREA != $DEFAULT_AREA ]]; then
-        DEFAULT_REGION="$(yq ".regions[] | select(.name == \"${REGIONS[0]}\") | .code" $METADATA_FILE)"
-    fi
-    PS3="Select the region within ${AREA} [$(yq ".regions[] | select(.code == \"$DEFAULT_REGION\") | .name" $METADATA_FILE)]: "
-    region=$(menu "${REGIONS[@]}")
-    case $region in
-        '') REGION="$DEFAULT_REGION"; ;;
-        *) REGION="$(yq ".regions[] | select(.name == \"$region\") | .code" $METADATA_FILE)"; ;;
-    esac
-
-    echo $REGION
-}
-
 function cleanup_file() {
     FILE=${1}
 
