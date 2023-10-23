@@ -747,7 +747,7 @@ spec:
     license: ${LICENSE_ID}
   mqDashboard: true
   replicas: ${REPLICAS}
-  version: ${VERSION}
+  version: '${VERSION}'
   storage:
     class: ${STORAGE_CLASS}
 EOF
