@@ -227,7 +227,7 @@ platform:
     region: ${LOCATION} 
     outboundType: ${OCP_OUTBOUND_TYPE}
     cloudName: ${CLOUD_TYPE}
-    networkResourceGroupName: ${NETWORK_240RESOURCE_GROUP} 
+    networkResourceGroupName: ${NETWORK_RESOURCE_GROUP} 
     virtualNetwork: ${VNET_NAME} 
     controlPlaneSubnet: ${CONTROL_SUBNET_NAME} 
     computeSubnet: ${WORKER_SUBNET_NAME} 
