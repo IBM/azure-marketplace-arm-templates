@@ -556,4 +556,4 @@ while [[ $(${BIN_DIR}/oc get StorageCluster ocs-storagecluster -n openshift-stor
         exit 1;    
     fi
 done
-log-output "ODF successfully installed on cluster $ARO_CLUSTER"
+log-output "ODF successfully installed on cluster $CLUSTER_ID at $API_SERVER"
