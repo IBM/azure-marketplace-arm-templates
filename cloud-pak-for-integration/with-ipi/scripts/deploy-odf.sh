@@ -4,6 +4,7 @@
 # Written by:  Rich Ehrhardt
 # Email: rich_ehrhardt@au1.ibm.com
 
+OUTPUT_FILE="cp4i-script-output-$(date -u +'%Y-%m-%d-%H%M%S').log"
 source common.sh
 
 ######
