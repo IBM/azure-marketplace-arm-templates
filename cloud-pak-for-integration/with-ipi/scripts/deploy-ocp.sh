@@ -314,6 +314,10 @@ INFRA_ID="$(cat ${WORKSPACE_DIR}/metadata.json | jq -r '.infraID')"
 CLUSTER_ID="$(cat ${WORKSPACE_DIR}/metadata.json | jq -r '.clusterID')"
 
 if [[ ! -z $VAULT_NAME ]]; then
+
+    # Ensure logged in with managed identity with access to update vault.
+    az login --identity
+
     az keyvault secret set --name "$SECRET_NAME" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password > /dev/null
     if (( $? ! = 0 )); then
       log-output "ERROR: Unable to create secret for cluster password in $VAULT_NAME"
@@ -368,4 +372,6 @@ if [[ $DEBUG == true ]]; then
     while true; do 
         sleep 30; 
     done
+else
+  log-output "INFO: OpenShift installation successfully completed"
 fi
