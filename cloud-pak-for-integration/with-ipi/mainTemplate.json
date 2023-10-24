@@ -47,11 +47,18 @@
                 "description": "Name of the key vault to store credentials"
             }
         },
+        "clusterPasswordSecretName": {
+            "type": "string",
+            "defaultValue": "cluster-password",
+            "metadata": {
+                "description": "Name of the secret to create in the key vault for the cluster password"
+            }
+        },
         "keyName": {
             "type": "string",
             "defaultValue": "[ concat(parameters('namePrefix'), '-sshkey') ]",
             "metadata": {
-                "description": "Name of the secret to create in the key vault"
+                "description": "Name of the secret to create in the key vault for the private SSH key"
             }
         },
         "deployPrereqs": {
@@ -1147,6 +1154,9 @@
                     "vaultName": {
                         "value": "[parameters('vaultName')]"
                     },
+                    "clusterPasswordSecretName": {
+                        "value": "[parameters('clusterPasswordSecretName')]"
+                    },
                     "useVault": {
                         "value": "[parameters('deployKeyVault')]"
                     },
@@ -1231,6 +1241,9 @@
                             "type": "string"
                         },
                         "vaultName": {
+                            "type": "string"
+                        },
+                        "clusterPasswordSecretName": {
                             "type": "string"
                         },
                         "useVault": {
@@ -1356,6 +1369,10 @@
                                         "value": "[if(parameters('useVault'),parameters('vaultName'),null())]"
                                     },
                                     {
+                                        "name": "SECRET_NAME",
+                                        "value": "[parameters('clusterPasswordSecretName')]"
+                                    },
+                                    {
                                         "name": "NETWORK_RESOURCE_GROUP",
                                         "value": "[parameters('networkResourceGroup')]"
                                     },
@@ -1394,11 +1411,6 @@
                         "adminUser": {
                             "type": "string",
                             "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.adminUser ]"
-                        },
-                        "adminPassword": {
-                            "type": "securestring",
-                            "condition": true,    // TO DO: Add condition on whether key vault is set
-                            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.adminPassword ]"
                         },
                         "clusterName": {
                             "type": "string",
@@ -1461,8 +1473,11 @@
                     "ocpUsername": {
                         "value": "[reference(resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi'),'2022-09-01').outputs['adminUser'].value]" 
                     },
-                    "ocpPassword": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi'),'2022-09-01').outputs['adminPassword'].value]" 
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "clusterPasswordSecretName": {
+                        "value": "[parameters('clusterPasswordSecretName')]"
                     },
                     "storageSizePerNode": {
                         "value": "[parameters('storageSizePerNode')]"
@@ -1502,8 +1517,11 @@
                         "ocpUsername": {
                             "type": "string"
                         },
-                        "ocpPassword": {
-                            "type": "secureString"
+                        "vaultName": {
+                            "type": "string"
+                        },
+                        "clusterPasswordSecretName": {
+                            "type": "string"
                         },
                         "storageSizePerNode": {
                             "type": "string"
@@ -1557,8 +1575,12 @@
                                         "value": "[parameters('ocpUsername')]"
                                     },
                                     {
-                                        "name": "OCP_PASSWORD",
-                                        "value": "[parameters('ocpPassword')]"
+                                        "name": "VAULT_NAME",
+                                        "value": "[parameters('vaultName')]"
+                                    },
+                                    {
+                                        "name": "SECRET_NAME",
+                                        "value": "[parameters('clusterPasswordSecretName')]"
                                     },
                                     {
                                         "name": "STORAGE_SIZE",

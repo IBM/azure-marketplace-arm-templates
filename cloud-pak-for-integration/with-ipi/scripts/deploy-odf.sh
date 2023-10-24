@@ -1,5 +1,7 @@
 #
 # Script to deploy OpenShift Data Foundation onto ARO
+# To be run in an Azure deployment script container, with az CLI installed
+# The az cli is used to retrieve values from the supplied key vault
 #
 # Written by:  Rich Ehrhardt
 # Email: rich_ehrhardt@au1.ibm.com
@@ -26,17 +28,46 @@ if [[ -z $OCP_USERNAME ]]; then OCP_USERNAME="kubeadmin"; fi
 mkdir -p ${WORKSPACE_DIR}
 mkdir -p ${TMP_DIR}
 
+#######
+# Login to Azure CLI
+az account show > /dev/null 2>&1
+if (( $? != 0 )); then
+    # Login with service principal details
+    az login --identity
+else
+    log-output "INFO: Using existing Azure CLI login"
+fi
+
 ######
 # Check environment variables
 ENV_VAR_NOT_SET=""
 
 if [[ -z $API_SERVER ]]; then ENV_VAR_NOT_SET="API_SERVER"; fi
-if [[ -z $OCP_PASSWORD ]]; then ENV_VAR_NOT_SET="OCP_PASSWORD"; fi
 if [[ -z $CLUSTER_LOCATION ]]; then ENV_VAR_NOT_SET="CLUSTER_LOCATION"; fi
+if [[ -z $VAULT_NAME ]]; then 
+  if [[ -z $OCP_PASSWORD ]]; then ENV_VAR_NOT_SET="OCP_PASSWORD"; fi
+elif [[ -z $SECRET_NAME ]]; then
+  ENV_VAR_NOT_SET="SECRET_NAME"
+else
+  log-output "INFO: Will use $VAULT_NAME to retrieve secrets"
+fi
 
 if [[ -n $ENV_VAR_NOT_SET ]]; then
     log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
     exit 1
+fi
+
+
+########
+# Get the cluster credentials from the key vault if necessary
+if [[ -z $OCP_PASSWORD ]] && [[ $VAULT_NAME ]]; then
+  OCP_PASSWORD=$(az keyvault secret show -n "$SECRET_NAME" --vault-name $VAULT_NAME --query 'value' -o tsv)
+  if (( #? != 0 )); then
+    log-output "ERROR: Unable to retrieve secret $SECRET_NAME from $VAULT_NAME"
+    exit 1
+  else
+    log-output "INFO: Successfully retrieved cluster password from $SECRET_NAME in $VAULT_NAME"
+  fi
 fi
 
 #######

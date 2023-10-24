@@ -65,6 +65,7 @@ if [[ -z $OCP_OUTBOUND_TYPE ]]; then OCP_OUTBOUND_TYPE="Loadbalancer"; fi
 if [[ -z $CLUSTER_ACCESS ]]; then CLUSTER_ACCESS="External"; fi
 if [[ -z $VM_NETWORKING_TYPE ]]; then VM_NETWORKING_TYPE="Accelerated"; fi
 if [[ -z $NEW_CLUSTER_RESOURCE_GROUP ]]; then NEW_CLUSTER_RESOURCE_GROUP="true"; fi
+if [[ -z $SECRET_NAME ]]; then SECRET_NAME="cluster-password"; fi
 
 # The following can be "OVNKubernetes" (the default), or "OpenShiftSDN"
 if [[ -z $OCP_NETWORK_TYPE ]]; then OCP_NETWORK_TYPE="OVNKubernetes"; fi
@@ -114,6 +115,10 @@ log-output "INFO: Cluster node networking type is set to $VM_NETWORKING_TYPE"
 log-output "INFO: OpenShift ingress is set to $CLUSTER_ACCESS"
 log-output "INFO: OpenShift UltraSSD is set to $ENABLE_ULTRADISK"
 log-output "INFO: OpenShift cloud type is set to $CLOUD_TYPE"
+if [[ $VAULT_NAME ]]; then 
+  log-output "INFO: Will upload cluster secrets to $VAULT_NAME"
+  log-output "INFO: Will upload cluster password to $VAULT_NAME as $SECRET_NAME"
+fi
 log-output "DEBUG: Debug is set to true"
 
 
@@ -309,7 +314,7 @@ INFRA_ID="$(cat ${WORKSPACE_DIR}/metadata.json | jq -r '.infraID')"
 CLUSTER_ID="$(cat ${WORKSPACE_DIR}/metadata.json | jq -r '.clusterID')"
 
 if [[ ! -z $VAULT_NAME ]]; then
-    az keyvault secret set --name "cluster-password" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password > /dev/null
+    az keyvault secret set --name "$SECRET_NAME" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password > /dev/null
     if (( $? ! = 0 )); then
       log-output "ERROR: Unable to create secret for cluster password in $VAULT_NAME"
       exit 1
@@ -340,7 +345,8 @@ if [[ ! -z $VAULT_NAME ]]; then
         --arg clusterName $CLUSTER_NAME \
         --arg clusterId $CLUSTER_ID \
         --arg infraId $INFRA_ID \
-        '{"clusterDetails": {"apiServer": $apiServer, "consoleURL": $consoleURL, "adminUser": $adminUser, "clusterName": $clusterName, "clusterId": $clusterId, "infraId": $infraId} }' \
+        --arg secretName $SECRET_NAME \
+        '{"clusterDetails": {"apiServer": $apiServer, "consoleURL": $consoleURL, "adminUser": $adminUser, "clusterName": $clusterName, "clusterId": $clusterId, "infraId": $infraId, "secretName": $secretName} }' \
         > $AZ_SCRIPTS_OUTPUT_PATH
 else
     CLUSTER_PASSWORD="$(cat ${WORKSPACE_DIR}/auth/kubeadmin-password)"
