@@ -17,7 +17,7 @@
         },
         "location": {
             "type": "string",
-            "defaultValue": "[ resourceGroup().location ]",
+            "defaultValue": "[resourceGroup().location]",
             "metadata": {
                 "description": "Azure region for the deployment"
             }
@@ -524,11 +524,7 @@
                                             "destinationAddressPrefix": "*",
                                             "access": "Allow",
                                             "priority": 120,
-                                            "direction": "Inbound",
-                                            "sourcePortRanges": [],
-                                            "destinationPortRanges": [],
-                                            "sourceAddressPrefixes": [],
-                                            "destinationAddressPrefixes": []
+                                            "direction": "Inbound"
                                         }
                                     },
                                     {
@@ -543,11 +539,7 @@
                                             "destinationAddressPrefix": "*",
                                             "access": "Allow",
                                             "priority": 130,
-                                            "direction": "Inbound",
-                                            "sourcePortRanges": [],
-                                            "destinationPortRanges": [],
-                                            "sourceAddressPrefixes": [],
-                                            "destinationAddressPrefixes": []
+                                            "direction": "Inbound"
                                         }
                                     }
                                 ]
@@ -573,11 +565,7 @@
                                             "destinationAddressPrefix": "*",
                                             "access": "Allow",
                                             "priority": 100,
-                                            "direction": "Inbound",
-                                            "sourcePortRanges": [],
-                                            "destinationPortRanges": [],
-                                            "sourceAddressPrefixes": [],
-                                            "destinationAddressPrefixes": []
+                                            "direction": "Inbound"
                                         }
                                     },
                                     {
@@ -592,11 +580,7 @@
                                             "destinationAddressPrefix": "*",
                                             "access": "Allow",
                                             "priority": 110,
-                                            "direction": "Inbound",
-                                            "sourcePortRanges": [],
-                                            "destinationPortRanges": [],
-                                            "sourceAddressPrefixes": [],
-                                            "destinationAddressPrefixes": []
+                                            "direction": "Inbound"
                                         }
                                     }
                                 ]
@@ -1238,7 +1222,7 @@
                             "type": "string"
                         },
                         "existingClusterResourceGroup": {
-                            "type": "string"
+                            "type": "bool"
                         },
                         "vaultName": {
                             "type": "string"
