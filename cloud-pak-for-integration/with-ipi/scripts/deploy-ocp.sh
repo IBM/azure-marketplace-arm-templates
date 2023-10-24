@@ -309,9 +309,29 @@ INFRA_ID="$(cat ${WORKSPACE_DIR}/metadata.json | jq -r '.infraID')"
 CLUSTER_ID="$(cat ${WORKSPACE_DIR}/metadata.json | jq -r '.clusterID')"
 
 if [[ ! -z $VAULT_NAME ]]; then
-    az keyvault secret set --name "cluster-password" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password
-    az keyvault secret set --name "kubeconfig" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeconfig
-    az keyvault secret set --name "cluster-metadata" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/metadata.json
+    az keyvault secret set --name "cluster-password" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password > /dev/null
+    if (( $? ! = 0 )); then
+      log-output "ERROR: Unable to create secret for cluster password in $VAULT_NAME"
+      exit 1
+    else
+      log-output "INFO: Cluster password added as secret to key vault $VAULT_NAME"
+    fi
+
+    az keyvault secret set --name "kubeconfig" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeconfig > /dev/null
+    if (( $? ! = 0 )); then
+      log-output "ERROR: Unable to create secret for kubeconfig in $VAULT_NAME"
+      exit 1
+    else
+      log-output "INFO: kubeconfig file added as secret to key vault $VAULT_NAME"
+    fi
+
+    az keyvault secret set --name "cluster-metadata" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/metadata.json > /dev/null
+    if (( $? ! = 0 )); then
+      log-output "ERROR: Unable to create secret for cluster metadata in $VAULT_NAME"
+      exit 1
+    else
+      log-output "INFO: Cluster metadata added as secret to key vault $VAULT_NAME"
+    fi
 
     jq -n -c \
         --arg apiServer $API_SERVER \
