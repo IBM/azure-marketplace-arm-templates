@@ -367,11 +367,4 @@ else
         > $AZ_SCRIPTS_OUTPUT_PATH
 fi
 
-##### DEBUG ONLY. Keeps container running.
-if [[ $DEBUG == true ]]; then
-    while true; do 
-        sleep 30; 
-    done
-else
-  log-output "INFO: OpenShift installation successfully completed"
-fi
+log-output "INFO: OpenShift installation successfully completed"
