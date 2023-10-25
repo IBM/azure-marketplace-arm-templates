@@ -4,8 +4,7 @@
     "metadata": {
         "description": "Azure ARM Template to deploy a Red Hat OpenShift IPI cluster and IBM Cloud Pak for Integration."
     },
-    // TO DO: Upload private key to keyvault within script to avoid making visible in deployment script output
-    // TO DO: Add managed id to cluster resource group
+    // TO DO: Add managed id to cluster resource group - needed?
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -301,7 +300,7 @@
         },
         "controlNsgName": {
             "type": "string",
-            "defaultValue": "[concat(parameters('controlSubnetName'),'-nsg')]",
+            "defaultValue": "[concat(parameters('namePrefix'),'-',parameters('controlSubnetName'),'-nsg')]",
             "metadata": {
                 "description": "Name of the NSG for the control subnet"
             }
@@ -322,7 +321,7 @@
         },
         "workerNsgName": {
             "type": "string",
-            "defaultValue": "[concat(parameters('workerSubnetName'),'-nsg')]",
+            "defaultValue": "[concat(parameters('namePrefix'),'-',parameters('workerSubnetName'),'-nsg')]",
             "metadata": {
                 "description": "Name of the NSG for the worker subnet"
             }
@@ -466,7 +465,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "network-security-groups",
+            "name": "networkSecurityGroups",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -603,9 +602,9 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "virtual-network",
+            "name": "virtualNetwork",
             "dependsOn": [
-                    "[resourceId('Microsoft.Resources/deployments', 'network-security-groups')]"
+                "[resourceId('Microsoft.Resources/deployments', 'networkSecurityGroups')]"
             ],
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "properties": {
@@ -849,7 +848,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "create-ssh-keys",
+            "name": "createSshKeys",
             "condition": "[ equals( parameters('publicSshKey'), '') ]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
@@ -1047,12 +1046,12 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "deploy-ocp-ipi",
+            "name": "deployOpenShift",
             "condition": "[parameters('deployOCP')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
-                "[resourceId('Microsoft.Resources/deployments', 'create-ssh-keys')]",
-                "[resourceId('Microsoft.Resources/deployments', 'virtual-network')]"
+                "[resourceId('Microsoft.Resources/deployments', 'createSshKeys')]",
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1100,7 +1099,7 @@
                         "value": "[parameters('pullSecret')]" 
                     },
                     "publicSshKey": {
-                        "value": "[if( not(equals( parameters('publicSshKey'), '' )), parameters('publicSshKey') ,reference( resourceId('Microsoft.Resources/deployments', 'create-ssh-keys') ).outputs['publicKey'].value )]" 
+                        "value": "[if( not(equals( parameters('publicSshKey'), '' )), parameters('publicSshKey') ,reference( resourceId('Microsoft.Resources/deployments', 'createSshKeys') ).outputs['publicKey'].value )]" 
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -1415,11 +1414,11 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "deploy-odf",
+            "name": "deployOdf",
             "condition": "[parameters('deployODF')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deploy-ocp-ipi')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployOpenShift')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1635,11 +1634,12 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "deploy-cp4i",
+            "name": "deployCloudPakForIntegration",
             "condition": "[parameters('deployCP4I')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
-                "[resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployOpenShift')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployOdf')]"
             ],
             "properties": {
                 "mode": "Incremental",
