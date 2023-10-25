@@ -5,6 +5,7 @@
         "description": "Azure ARM Template to deploy a Red Hat OpenShift IPI cluster and IBM Cloud Pak for Integration."
     },
     // TO DO: Add managed id to cluster resource group - needed?
+    // TO DO: Authorize service principal for openshift resource group
     "parameters": {
         "namePrefix": {
             "type": "string",
