@@ -187,6 +187,17 @@
                 "description": "Public SSH Key for the OpenShift nodes"
             }
         },
+        "storageType": {
+            "type": "string",
+            "allowedValues": [
+                "ODF",
+                "AzureFiles"
+            ],
+            "defaultValue": "ODF",
+            "metadata": {
+                "description": "The type of persistent storage to deploy"
+            }
+        },
         "storageSizePerNode": {
             "type": "string",
             "allowedValues": [
@@ -360,7 +371,11 @@
         }
     },
     "variables": {
-        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+        "storageClass": {
+            "ODF": "ocs-storagecluster-cephfs",
+            "AzureFiles": "azure-files-csi"
+        }
     },
     "resources": [
             { 
@@ -1415,7 +1430,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "deployOdf",
-            "condition": "[parameters('deployODF')]",
+            "condition": "[and(parameters('deployODF'),equals(parameters('storageType'),'ODF'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployOpenShift')]"
@@ -1696,7 +1711,7 @@
                         "value": "[parameters('storageAccountName')]"
                     },
                     "storageClass": {
-                        "value": "" // TODO: Fill in parameter value
+                        "value": "[variables('storageClass')[parameters('storageType')]]" 
                     }
                 },
                 "template": {
