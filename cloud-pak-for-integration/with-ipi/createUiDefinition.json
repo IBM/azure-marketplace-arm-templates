@@ -513,6 +513,7 @@
         "outputs": {
             "namePrefix": "[basics('namePrefix')]",
 			"vnetName": "[steps('networking').vnet.name]",
+			"existingVnet": "[if(equals(steps('networking').vnet.newOrExisting,'new'),false,true)]",
 			"networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
 			"vnetCIDR": "[first( steps('networking').vnet.addressPrefixes ) ]",
 			"controlSubnetCIDR": "[steps('networking').vnet.subnets.controlSubnet.addressPrefix]",
@@ -530,9 +531,8 @@
 			"masterNodeSize": "[steps('openshift').masterNodes]",
 			"workerNodeSize": "[steps('openshift').workerNodes]",
 			"workerNodeQty": "[steps('openshift').workerCount]",
-			"hostEncyrption": "[steps('openshift').encryption]",
+			"hostEncryption": "[steps('openshift').encryption]",
 			"pullSecret": "[steps('openshift').pullSecret]",
-			"publicSshKey": "",
 			"storageSizePerNode": "[steps('openshift').odfNodeSize]",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('cp4i').ibmEntitlementKey]",

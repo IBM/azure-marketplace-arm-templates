@@ -149,7 +149,7 @@
         },
         "workerNodeSize": {
             "type": "string",
-            "defaultValue": "Standard_D4s_v3",
+            "defaultValue": "Standard_D16s_v3",
             "metadata": {
                 "description": "VM size for the worker nodes"
             }
@@ -287,6 +287,13 @@
             "defaultValue": "vnet",
             "metadata": {
                 "description": "Name of the virtual network"
+            }
+        },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the virtual network already exists"
             }
         },
         "vnetCIDR": {
@@ -482,6 +489,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "networkSecurityGroups",
+            "condition": "[not(parameters('existingVnet'))]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -619,6 +627,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "virtualNetwork",
+            "condition": "[not(parameters('existingVnet'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'networkSecurityGroups')]"
             ],
