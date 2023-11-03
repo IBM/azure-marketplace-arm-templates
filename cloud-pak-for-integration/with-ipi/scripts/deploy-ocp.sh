@@ -207,12 +207,12 @@ else
 fi
 
 # Check that the cluster resource group is empty
-# if [[ $(az resource list -g $CLUSTER_RESOURCE_GROUP -o table | grep $CLUSTER_RESOURCE_GROUP) ]]; then
-#   log-output "ERROR: $CLUSTER_RESOURCE_GROUP is not empty."
-#   exit 1
-# else
-#   log-output "INFO: Confirmed $CLUSTER_RESOURCE_GROUP is empty."
-# fi
+if [[ $(az resource list -g $CLUSTER_RESOURCE_GROUP -o table | grep $CLUSTER_RESOURCE_GROUP) ]]; then
+  log-output "ERROR: $CLUSTER_RESOURCE_GROUP is not empty."
+  exit 1
+else
+  log-output "INFO: Confirmed $CLUSTER_RESOURCE_GROUP is empty."
+fi
 
 
 ##########
