@@ -654,7 +654,7 @@
                         "value": "[parameters('controlSubnetName')]"
                     },
                     "controlSubnetNsgId": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','network-security-groups'),'2022-09-01').outputs['controlSubnetNsgId'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','networkSecurityGroups'),'2022-09-01').outputs['controlSubnetNsgId'].value]" 
                     },
                     "workerSubnetName": {
                         "value": "[parameters('workerSubnetName')]"
@@ -663,7 +663,7 @@
                         "value": "[parameters('workerSubnetCIDR')]"
                     },
                     "workerSubnetNsgId": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','network-security-groups'),'2022-09-01').outputs['workerSubnetNsgId'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','networkSecurityGroups'),'2022-09-01').outputs['workerSubnetNsgId'].value]" 
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
@@ -1476,10 +1476,10 @@
                         "value": "[parameters('storageAccountName')]"
                     },
                     "ocpApiServer": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi'),'2022-09-01').outputs['apiServer'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['apiServer'].value]" 
                     },
                     "ocpUsername": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi'),'2022-09-01').outputs['adminUser'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminUser'].value]" 
                     },
                     "vaultName": {
                         "value": "[parameters('vaultName')]"
@@ -1706,13 +1706,13 @@
                         "value": "[parameters('namespace')]" 
                     },
                     "ocpApiServer": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi'),'2022-09-01').outputs['apiServer'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['apiServer'].value]" 
                     },
                     "ocpPassword": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi'),'2022-09-01').outputs['adminPassword'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminPassword'].value]" 
                     },
                     "ocpUsername": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploy-ocp-ipi'),'2022-09-01').outputs['adminUser'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminUser'].value]" 
                     },
                     "rgRoleGuid": {
                         "value": "[parameters('rgRoleGuidCp4i')]" 
