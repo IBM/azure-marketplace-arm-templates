@@ -488,8 +488,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "networkSecurityGroups",
-            "condition": "[not(parameters('existingVnet'))]",
+            "name": "deployNetworkSecurityGroups",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -627,9 +626,8 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "virtualNetwork",
-            "condition": "[not(parameters('existingVnet'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'networkSecurityGroups')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployNetworkSecurityGroups')]"
             ],
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "properties": {
@@ -654,7 +652,7 @@
                         "value": "[parameters('controlSubnetName')]"
                     },
                     "controlSubnetNsgId": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','networkSecurityGroups'),'2022-09-01').outputs['controlSubnetNsgId'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployNetworkSecurityGroups'),'2022-09-01').outputs['controlSubnetNsgId'].value]" 
                     },
                     "workerSubnetName": {
                         "value": "[parameters('workerSubnetName')]"
@@ -663,7 +661,7 @@
                         "value": "[parameters('workerSubnetCIDR')]"
                     },
                     "workerSubnetNsgId": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','networkSecurityGroups'),'2022-09-01').outputs['workerSubnetNsgId'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployNetworkSecurityGroups'),'2022-09-01').outputs['workerSubnetNsgId'].value]" 
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
