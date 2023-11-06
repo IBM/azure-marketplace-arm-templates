@@ -218,6 +218,10 @@
 								{
 									"isValid": "[not(endsWith(steps('openshift').newClusterResourceGroupName,'.'))]",
 									"message": "Must not end with a period"
+								},
+								{
+									"isValid": "[if(equals(steps('openshift').newClusterResourceGroupName, ''),true,empty(filter( steps('openshift').resourceGroups.value, (item) => contains(item.name, steps('openshift').newClusterResourceGroupName ))))]",
+									"message": "Resource group already exists"
 								}
 							]
 						}
