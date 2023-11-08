@@ -1560,8 +1560,8 @@
                     "scope": "Inner"
                 },
                 "parameters": {
-                    "branch": {
-                        "value": "[parameters('branch')]"
+                    "baseUrl": {
+                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/'))]"
                     },
                     "createManagedIdentity": {
                         "value": false
@@ -1661,7 +1661,7 @@
                         "subnetName": {
                             "type": "string"
                         },
-                        "branch": {
+                        "baseUrl": {
                             "type": "string"
                         },
                         "tagsByResource": {
@@ -1670,11 +1670,10 @@
                         
                     },
                     "variables": {
-                    "baseUrl": "[uri('https://raw.githubusercontent.com/ibm-ecosystem-lab/azure-arm-templates/',parameters('branch'))]",
-                    "containerGroupName": "[concat(parameters('namePrefix'), '-odf-cg')]",
-                    "scriptName": "[concat(parameters('namePrefix'),'-odf-script')]",
-                    "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-                    "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+                        "containerGroupName": "[concat(parameters('namePrefix'), '-odf-cg')]",
+                        "scriptName": "[concat(parameters('namePrefix'),'-odf-script')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
                     },
                     "resources": [
                         {
@@ -1736,9 +1735,9 @@
                                         "value": "[if(parameters('existingNodes'),'yes','no')]"
                                     }
                                 ],
-                                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/scripts/deploy-odf.sh'))]",
+                                "primaryScriptUri": "[uri(parameters('baseUrl'),'scripts/deploy-odf.sh')]",
                                 "supportingScriptUris": [
-                                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/scripts/common.sh'))]"
+                                    "[uri(parameters('baseUrl'),'scripts/common.sh')]"
                                 ],
                                 "timeout": "PT90M",
                                 "cleanupPreference": "OnSuccess",
@@ -1810,8 +1809,8 @@
                     "acceptLicense": {
                         "value": "[parameters('acceptLicense')]"
                     },
-                    "branch": {
-                        "value": "[parameters('branch')]"
+                    "baseUrl": {
+                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/'))]"
                     },
                     "cp4iLicense": {
                         "value": "[parameters('cp4iLicense')]"
@@ -1926,7 +1925,7 @@
                         "subnetName": {
                             "type": "string"
                         },
-                        "branch": {
+                        "baseUrl": {
                             "type": "string"
                         },
                         "tagsByResource": {
@@ -1934,7 +1933,6 @@
                         } 
                     },
                     "variables": {
-                        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
                         "containerGroupName": "[concat(parameters('namePrefix'), '-cp4i-cg')]",
                         "scriptName": "[concat(parameters('namePrefix'),'-cp4i-script')]",
                         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
@@ -2008,9 +2006,9 @@
                                         "value": "[parameters('namespace')]"
                                     }
                                 ],
-                                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/byo-ocp-ipi/scripts/deploy-cp4i.sh'))]",
+                                "primaryScriptUri": "[uri(parameters('baseUrl'),'scripts/deploy-cp4i.sh')]",
                                 "supportingScriptUris": [
-                                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/byo-ocp-ipi/scripts/common.sh'))]"
+                                    "[uri(parameters('baseUrl'),'scripts/common.sh')]"
                                 ],
                                 "timeout": "PT120M",
                                 "cleanupPreference": "OnSuccess",
