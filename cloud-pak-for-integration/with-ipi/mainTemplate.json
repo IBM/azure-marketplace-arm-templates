@@ -4,8 +4,11 @@
     "metadata": {
         "description": "Azure ARM Template to deploy a Red Hat OpenShift IPI cluster and IBM Cloud Pak for Integration."
     },
-    // TO DO: Add managed id to cluster resource group - needed?
-    // TO DO: Authorize service principal for openshift resource group
+    // TO DO: Remove allowed values from branch before publishing
+    // ISSUE: Removes existing subnet in existing vnet
+    // TO DO: Add error handling output for deployment scripts
+    // TO DO: Change deployment script and storage to use virtual network
+    // TO DO: Add a check that the resource group is empty before proceeding
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -338,6 +341,20 @@
                 "description": "Name of the OpenShift worker subnet"
             }
         },
+        "endpointSubnetName": {
+            "type": "string",
+            "defaultValue": "endpoint-subnet",
+            "metadata": {
+                "description": "Name of the endpoint subnet"
+            }
+        },
+        "endpointSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "description": "CIDR for the endpoint subnet"
+            }
+        },
         "workerNsgName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-',parameters('workerSubnetName'),'-nsg')]",
@@ -373,6 +390,10 @@
         "branch": {
             "type": "string",
             "defaultValue": "main",
+            "allowedValues": [
+                "main",
+                "52-add-ocp-ipi-build-plan-for-cp4i"
+            ],
             "metadata": {
                 "description": "Github branch for linked deployments."
             }
@@ -405,6 +426,9 @@
             "apiVersion": "2022-09-01",
             "name": "scriptPrerequisites",
             "condition": "[parameters('deployPrereqs')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -419,6 +443,15 @@
                     },
                     "managedIdName": {
                         "value": "[parameters('managedIdName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]" 
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('endpointSubnetCIDR')]" 
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
@@ -435,6 +468,15 @@
                             "type": "string"
                         },
                         "managedIdName": {
+                            "type": "string"
+                        },
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCidr": {
                             "type": "string"
                         },
                         "tagsByResource": {
@@ -480,6 +522,42 @@
                                 "scope": "[resourceGroup().id]",
                                 "principalType": "ServicePrincipal"
                             }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCidr')]",
+                                "serviceEndpoints": [
+                                {
+                                "service": "Microsoft.Storage"
+                                }
+                                ],
+                                "delegations": [
+                                    {
+                                        "name": "Microsoft.ContainerInstance.containerGroups",
+                                        "properties": {
+                                            "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2022-04-01",
+                            "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+                            "name": "[guid(tenantResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')))]",
+                            "properties": {
+                                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), '2023-01-31').principalId]",
+                                "roleDefinitionId": "[tenantResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')]",
+                                "principalType": "ServicePrincipal"
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]"
+                            ]
                         }
                     ]
                 }
@@ -747,7 +825,8 @@
                             "type": "Microsoft.Network/virtualNetworks/subnets",
                             "apiVersion": "2023-04-01",
                             "dependsOn": [
-                                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]"
                             ],
                             "name": "[concat(parameters('vnetName'), '/' ,parameters('workerSubnetName'))]",
                             "properties": {
@@ -1136,6 +1215,9 @@
                     "workerSubnetName": {
                         "value": "[parameters('workerSubnetName')]"
                     },
+                    "endpointSubnetName": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    },
                     "masterNodeSize": {
                         "value": "[parameters('masterNodeSize')]"
                     },
@@ -1237,6 +1319,9 @@
                         "workerSubnetName": {
                             "type": "string"
                         },
+                        "endpointSubnetName": {
+                            "type": "string"
+                        },
                         "hostEncryption": {
                             "type": "bool"
                         },
@@ -1298,7 +1383,12 @@
                             "properties": {
                                 "forceUpdateTag": "[parameters('rgRoleGuid')]",
                                 "containerSettings": {
-                                    "containerGroupName": "[variables('containerGroupName')]"
+                                    "containerGroupName": "[variables('containerGroupName')]",
+                                    "subnetIds": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('endpointSubnetName'))]"
+                                        }
+                                    ]
                                 },
                                 "storageAccountSettings": {
                                     "storageAccountName": "[parameters('storageAccountName')]",
@@ -1306,6 +1396,10 @@
                                 },
                                 "azCliVersion": "[variables('azureCliVersion')]",  
                                 "environmentVariables": [
+                                    {
+                                        "name": "LOCATION",
+                                        "value": "[parameters('location')]"
+                                    },
                                     {
                                         "name": "CLIENT_ID",
                                         "value": "[parameters('clientId')]"
@@ -1490,6 +1584,12 @@
                     },
                     "existingNodes": {
                         "value": "[parameters('existingNodes')]" 
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]" 
                     }
                 },
                 "template": {
@@ -1535,6 +1635,12 @@
                         "existingNodes": {
                             "type": "bool"
                         },
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
                         "branch": {
                             "type": "string"
                         }
@@ -1564,7 +1670,12 @@
                             "properties": {
                                 "forceUpdateTag": "[parameters('rgRoleGuid')]",
                                 "containerSettings": {
-                                    "containerGroupName": "[variables('containerGroupName')]"
+                                    "containerGroupName": "[variables('containerGroupName')]",
+                                    "subnetIds": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+                                        }
+                                    ]
                                 },
                                 "storageAccountSettings": {
                                     "storageAccountName": "[parameters('storageAccountName')]",
@@ -1720,6 +1831,12 @@
                     },
                     "storageClass": {
                         "value": "[variables('storageClass')[parameters('storageType')]]" 
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]" 
                     }
                 },
                 "template": {
@@ -1774,6 +1891,12 @@
                         "namespace": {
                             "type": "string"
                         },
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
                         "branch": {
                             "type": "string"
                         } 
@@ -1802,7 +1925,12 @@
                             "properties": {
                                 "forceUpdateTag": "[parameters('rgRoleGuid')]",
                                 "containerSettings": {
-                                    "containerGroupName": "[variables('containerGroupName')]"
+                                    "containerGroupName": "[variables('containerGroupName')]",
+                                    "subnetIds": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+                                        }
+                                    ]
                                 },
                                 "storageAccountSettings": {
                                     "storageAccountName": "[parameters('storageAccountName')]",
