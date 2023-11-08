@@ -69,7 +69,7 @@ fi
 # Get the cluster credentials from the key vault if necessary
 if [[ -z $OCP_PASSWORD ]] && [[ $VAULT_NAME ]]; then
   OCP_PASSWORD=$(az keyvault secret show -n "$SECRET_NAME" --vault-name $VAULT_NAME --query 'value' -o tsv)
-  if (( #? != 0 )); then
+  if (( $? != 0 )); then
     log-error "Unable to retrieve secret $SECRET_NAME from $VAULT_NAME"
     exit 1
   else
