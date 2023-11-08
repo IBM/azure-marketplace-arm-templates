@@ -5,10 +5,8 @@
         "description": "Azure ARM Template to deploy a Red Hat OpenShift IPI cluster and IBM Cloud Pak for Integration."
     },
     // TO DO: Remove allowed values from branch before publishing
+    // TO DO: Remove duplicate resources that are not used like useridentity and storage
     // ISSUE: Removes existing subnet in existing vnet
-    // TO DO: Add error handling output for deployment scripts
-    // TO DO: Change deployment script and storage to use virtual network
-    // TO DO: Add a check that the resource group is empty before proceeding
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -507,7 +505,8 @@
                             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
                             "apiVersion": "2018-11-30",
                             "name": "[parameters('managedIdName')]",
-                            "location": "[parameters('location')]"
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
                         },
                         {
                             "type": "Microsoft.Authorization/roleAssignments",
@@ -925,7 +924,8 @@
                             "apiVersion": "2018-11-30",
                             "name": "[parameters('managedIdName')]",
                             "condition": "[parameters('createManagedIdentity')]",
-                            "location": "[parameters('location')]"
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
                         },
                         {
                             "type": "Microsoft.Authorization/roleAssignments",
@@ -988,6 +988,9 @@
                     },
                     "vaultName": {
                         "value": "[parameters('vaultName')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
                     }
                 },
                 "template": {
@@ -1020,6 +1023,9 @@
                         },
                         "rgRoleGuid": {
                             "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
                         }
                     },
                     "variables": {
@@ -1035,6 +1041,7 @@
                             "apiVersion": "2023-01-01",
                             "name": "[parameters('storageAccountName')]",
                             "condition": "[parameters('createStorageAccount')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
                             "location": "[parameters('location')]",
                             "sku": {
                                 "name": "Standard_LRS",
@@ -1050,7 +1057,8 @@
                             "apiVersion": "2018-11-30",
                             "condition": "[parameters('createManagedId')]",
                             "name": "[parameters('managedIdName')]",
-                            "location": "[parameters('location')]"
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
                         },
                         {
                             "type": "Microsoft.Authorization/roleAssignments",
@@ -1071,6 +1079,7 @@
                             "apiVersion": "2020-10-01",
                             "comments": "Creates a new SSH key",
                             "name": "[variables('scriptName')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
                             "dependsOn": [
                                 "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]",
                                 "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
@@ -1118,6 +1127,7 @@
                             ],
                             "name": "[ concat(parameters('keyName'), '-public') ]",
                             "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/sshPublicKeys'), parameters('tagsByResource')['Microsoft.Compute/sshPublicKeys'], json('{}')) ]",
                             "properties": {
                                 "publicKey": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.sshKey.publicKey ]"
                             }
@@ -1250,6 +1260,9 @@
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
                     }
                 },
                 "template": {
@@ -1345,6 +1358,9 @@
                         },
                         "baseUrl": {
                             "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
                         }
                     },
                     "variables": {
@@ -1369,6 +1385,7 @@
                             "apiVersion": "2020-10-01",
                             "comments": "Deploys OpenShift IPI cluster on an existing Azure VNet",
                             "name": "[ variables('scriptName') ]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
                             "dependsOn": [
                                 "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]"
                             ],
@@ -1590,6 +1607,9 @@
                     },
                     "subnetName": {
                         "value": "[parameters('endpointSubnetName')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
                     }
                 },
                 "template": {
@@ -1643,6 +1663,9 @@
                         },
                         "branch": {
                             "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
                         }
                         
                     },
@@ -1660,6 +1683,7 @@
                             "comments": "Deploys ODF onto an OpenShift IPI cluster",
                             "name": "[variables('scriptName')]",
                             "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
                             "identity": {
                                 "type": "UserAssigned",
                                 "userAssignedIdentities": {
@@ -1730,6 +1754,7 @@
                             "condition": "[parameters('createStorageAccount')]",
                             "name": "[parameters('storageAccountName')]",
                             "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
                             "sku": {
                                 "name": "Standard_LRS",
                                 "tier": "Standard"
@@ -1744,7 +1769,8 @@
                             "apiVersion": "2018-11-30",
                             "name": "[parameters('managedIdName')]",
                             "condition": "[parameters('createManagedIdentity')]",
-                            "location": "[parameters('location')]"
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
                         },
                         {
                             "type": "Microsoft.Authorization/roleAssignments",
@@ -1837,6 +1863,9 @@
                     },
                     "subnetName": {
                         "value": "[parameters('endpointSubnetName')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
                     }
                 },
                 "template": {
@@ -1899,6 +1928,9 @@
                         },
                         "branch": {
                             "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
                         } 
                     },
                     "variables": {
@@ -1915,6 +1947,7 @@
                             "comments": "Deploys Cloud Pak Integration onto an ARO cluster",
                             "name": "[variables('scriptName')]",
                             "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
                             "identity": {
                                 "type": "UserAssigned",
                                 "userAssignedIdentities": {
@@ -1993,6 +2026,7 @@
                             "condition": "[parameters('createStorageAccount')]",
                             "name": "[parameters('storageAccountName')]",
                             "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
                             "sku": {
                                 "name": "Standard_LRS",
                                 "tier": "Standard"
@@ -2007,7 +2041,8 @@
                             "apiVersion": "2018-11-30",
                             "name": "[parameters('managedIdName')]",
                             "condition": "[parameters('createManagedIdentity')]",
-                            "location": "[parameters('location')]"
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
                         },
                         {
                             "type": "Microsoft.Authorization/roleAssignments",
