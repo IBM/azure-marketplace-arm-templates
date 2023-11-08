@@ -18,7 +18,7 @@
 source common.sh
 
 OUTPUT_FILE="ocp-script-output-$(date -u +'%Y-%m-%d-%H%M%S').log"
-log-output "INFO: Script started" 
+log-info "Script started" 
 
 #######
 # Check for critcal environment variables
@@ -37,8 +37,8 @@ if [[ -z $CLUSTER_RESOURCE_GROUP ]]; then ENV_VAR_NOT_SET="CLUSTER_RESOURCE_GROU
 if [[ -z $NETWORK_RESOURCE_GROUP ]]; then ENV_VAR_NOT_SET="NETWORK_RESOURCE_GROUP"; fi
 
 if [[ -n $ENV_VAR_NOT_SET ]]; then
-    log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
-    exit 1
+  log-error "$ENV_VAR_NOT_SET not set. Please set and retry."
+  exit 1
 fi
 
 ##########
@@ -80,48 +80,48 @@ if [[ -z $ENABLE_ULTRADISK ]]; then ENABLE_ULTRADISK="Disabled"; fi
 
 if [[ -z $DEBUG ]]; then DEBUG=false; fi
 
-log-output "INFO: Workspace directory is set to : $WORKSPACE_DIR"
-log-output "INFO: Binary directory is set to : $BIN_DIR"
-if [[ $CLIENT_ID ]]; then log-output "INFO: Client id is $CLIENT_ID"; fi
-if [[ $CLIENT_SECRET ]]; then log-output "INFO: Client secret is set"; fi
-if [[ $PULL_SECRET ]]; then log-output "INFO: Red Hat pull secret is set"; fi
-log-output "INFO: Network resource group set to $NETWORK_RESOURCE_GROUP"
-log-output "INFO: Virtual network name is set to $VNET_NAME"
-log-output "INFO: Worker subnet name is set to $WORKER_SUBNET_NAME"
-log-output "INFO: Control subnet name is set to $CONTROL_SUBNET_NAME"
-log-output "INFO: OpenShift version is set to $VERSION"
-log-output "INFO: Master hyperthreading is set to $MASTER_HYPERTHREADING"
-log-output "INFO: Master architecture is set to $MASTER_ARCHITECTURE"
-log-output "INFO: Master node disk size is set to $MASTER_NODE_DISK_SIZE"
-log-output "INFO: Master node disk type is set to $MASTER_NODE_DISK_TYPE"
-log-output "INFO: Master node VM type is set to $MASTER_NODE_TYPE"
-log-output "INFO: Master node quantity is set to $MASTER_NODE_QTY"
-log-output "INFO: Worker hyperthreading is set to $WORKER_HYPERTHREADING"
-log-output "INFO: Worker architecture is set to $WORKER_ARCHITECTURE"
-log-output "INFO: Worker disk size is set to $WORKER_NODE_DISK_SIZE"
-log-output "INFO: Worker disk type is set to $WORKER_NODE_DISK_TYPE"
-log-output "INFO: Worker node VM type is set to $WORKER_NODE_TYPE"
-log-output "INFO: Worker node quantity is set to $WORKER_NODE_QTY"
-log-output "INFO: Cluster name is set to $CLUSTER_NAME"
-if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-output "INFO: Cluster resource group is set to $CLUSTER_RESOURCE_GROUP"; fi
-if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-output "INFO: New cluster resource group is set to $NEW_CLUSTER_RESOURCE_GROUP"; fi
-log-output "INFO: Cluster base domain is set to $BASE_DOMAIN"
-log-output "INFO: Base domain resource group is set to $BASE_DOMAIN_RESOURCE_GROUP"
-log-output "INFO: Internal OpenShift network CIDR set to $CLUSTER_CIDR"
-log-output "INFO: Internal host prefix for OpenShift is set to $CLUSTER_HOST_PREFIX"
-log-output "INFO: OpenShift virtual machine network CIDR is set to $MACHINE_CIDR"
-log-output "INFO: OpenShift internal networking set to $OCP_NETWORK_TYPE"
-log-output "INFO: OpenShift internal services network CIDR is set to $SERVICE_NETWORK_CIDR"
-log-output "INFO: OpenShift outbound routing is set to $OCP_OUTBOUND_TYPE"
-log-output "INFO: Cluster node networking type is set to $VM_NETWORKING_TYPE"
-log-output "INFO: OpenShift ingress is set to $CLUSTER_ACCESS"
-log-output "INFO: OpenShift UltraSSD is set to $ENABLE_ULTRADISK"
-log-output "INFO: OpenShift cloud type is set to $CLOUD_TYPE"
+log-info "Workspace directory is set to : $WORKSPACE_DIR"
+log-info "Binary directory is set to : $BIN_DIR"
+if [[ $CLIENT_ID ]]; then log-info "Client id is $CLIENT_ID"; fi
+if [[ $CLIENT_SECRET ]]; then log-info "Client secret is set"; fi
+if [[ $PULL_SECRET ]]; then log-info "Red Hat pull secret is set"; fi
+log-info "Network resource group set to $NETWORK_RESOURCE_GROUP"
+log-info "Virtual network name is set to $VNET_NAME"
+log-info "Worker subnet name is set to $WORKER_SUBNET_NAME"
+log-info "Control subnet name is set to $CONTROL_SUBNET_NAME"
+log-info "OpenShift version is set to $VERSION"
+log-info "Master hyperthreading is set to $MASTER_HYPERTHREADING"
+log-info "Master architecture is set to $MASTER_ARCHITECTURE"
+log-info "Master node disk size is set to $MASTER_NODE_DISK_SIZE"
+log-info "Master node disk type is set to $MASTER_NODE_DISK_TYPE"
+log-info "Master node VM type is set to $MASTER_NODE_TYPE"
+log-info "Master node quantity is set to $MASTER_NODE_QTY"
+log-info "Worker hyperthreading is set to $WORKER_HYPERTHREADING"
+log-info "Worker architecture is set to $WORKER_ARCHITECTURE"
+log-info "Worker disk size is set to $WORKER_NODE_DISK_SIZE"
+log-info "Worker disk type is set to $WORKER_NODE_DISK_TYPE"
+log-info "Worker node VM type is set to $WORKER_NODE_TYPE"
+log-info "Worker node quantity is set to $WORKER_NODE_QTY"
+log-info "Cluster name is set to $CLUSTER_NAME"
+if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-info "Cluster resource group is set to $CLUSTER_RESOURCE_GROUP"; fi
+if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-info "New cluster resource group is set to $NEW_CLUSTER_RESOURCE_GROUP"; fi
+log-info "Cluster base domain is set to $BASE_DOMAIN"
+log-info "Base domain resource group is set to $BASE_DOMAIN_RESOURCE_GROUP"
+log-info "Internal OpenShift network CIDR set to $CLUSTER_CIDR"
+log-info "Internal host prefix for OpenShift is set to $CLUSTER_HOST_PREFIX"
+log-info "OpenShift virtual machine network CIDR is set to $MACHINE_CIDR"
+log-info "OpenShift internal networking set to $OCP_NETWORK_TYPE"
+log-info "OpenShift internal services network CIDR is set to $SERVICE_NETWORK_CIDR"
+log-info "OpenShift outbound routing is set to $OCP_OUTBOUND_TYPE"
+log-info "Cluster node networking type is set to $VM_NETWORKING_TYPE"
+log-info "OpenShift ingress is set to $CLUSTER_ACCESS"
+log-info "OpenShift UltraSSD is set to $ENABLE_ULTRADISK"
+log-info "OpenShift cloud type is set to $CLOUD_TYPE"
 if [[ $VAULT_NAME ]]; then 
-  log-output "INFO: Will upload cluster secrets to $VAULT_NAME"
-  log-output "INFO: Will upload cluster password to $VAULT_NAME as $SECRET_NAME"
+  log-info "Will upload cluster secrets to $VAULT_NAME"
+  log-info "Will upload cluster password to $VAULT_NAME as $SECRET_NAME"
 fi
-log-output "DEBUG: Debug is set to true"
+log-info "DEBUG: Debug is set to true"
 
 
 #######
@@ -133,7 +133,7 @@ if (( $? != 0 )); then
     SP_LOGIN=true
 else
     SP_LOGIN=false
-    log-output "INFO: Using existing Azure CLI login"
+    log-info "Using existing Azure CLI login"
 fi
 
 #########
@@ -141,23 +141,23 @@ fi
 if [[ -z $LOCATION ]]; then
     LOCATION=$(az group show -n $NETWORK_RESOURCE_GROUP --query 'location' -o tsv)
     if (( $? != 0 )); then
-        log-output "ERROR: Unable to determine location. Please set as environment variable."
-        exit 1
+      log-error "Unable to determine location. Please set as environment variable"
+      exit 1
     fi
 fi
-log-output "INFO: Location is set to $LOCATION"
+log-info "Location is set to $LOCATION"
 
 ##########
 # Get environment parameters
 if [[ -z $SUBSCRIPTION_ID ]]; then
     SUBSCRIPTION_ID=$(az account show --query 'id' -o tsv)
 fi
-log-output "INFO: Subscription Id is set to $SUBSCRIPTION_ID"
+log-info "Subscription Id is set to $SUBSCRIPTION_ID"
 
 if [[ -z $TENANT_ID ]]; then
     TENANT_ID=$(az account show --query 'tenantId' -o tsv)
 fi
-log-output "INFO: Tenant Id is set to $TENANT_ID"
+log-info "Tenant Id is set to $TENANT_ID"
 
 ##########
 # Download OpenShift installer
@@ -165,7 +165,7 @@ download-openshift-installer $WORKSPACE_DIR $VERSION $BIN_DIR
 
 ##########
 # Setup Azure credentials for OpenShift
-log-output "INFO: Creating Azure login credentials file"
+log-info "Creating Azure login credentials file"
 jq --null-input \
     --arg subscription_id "${SUBSCRIPTION_ID}" \
     --arg client_id "${CLIENT_ID}" \
@@ -179,10 +179,10 @@ chmod 0600 ~/.azure/osServicePrincipal.json
 az login --service-principal -u $CLIENT_ID -p $CLIENT_SECRET --tenant $TENANT_ID
 
 if (( $? != 0 )); then
-  log-output "ERROR: Unable to login with provided service principal. Check credentials"
+  log-error "Unable to login with provided service principal. Check credentials"
   exit 1
 else
-  log-output "INFO: Successfully logged in with provided service principal credentials"
+  log-info "Successfully logged in with provided service principal credentials"
 fi
 
 ##########
@@ -192,37 +192,37 @@ if [[ $NEW_CLUSTER_RESOURCE_GROUP == true ]]; then
     --location $LOCATION
 
   if (( $? != 0 )); then
-    log-output "ERROR: Unable to create cluster resource group $CLUSTER_RESOURCE_GROUP. Check service principal permissions"
+    log-error "Unable to create cluster resource group $CLUSTER_RESOURCE_GROUP. Check service principal permissions"
     exit 1
   else
-    log-output "INFO: Successfully created cluster resource group $CLUSTER_RESOURCE_GROUP"
+    log-info "Successfully created cluster resource group $CLUSTER_RESOURCE_GROUP"
   fi
 else
   if [[ $(az group list -o table | grep $CLUSTER_RESOURCE_GROUP) ]]; then
-    log-output "INFO: Located existing resource group $CLUSTER_RESOURCE_GROUP"
+    log-info "Located existing resource group $CLUSTER_RESOURCE_GROUP"
   else
-    log-output "ERROR: Unable to find existing resource group $CLUSTER_RESOURCE_GROUP"
+    log-error "Unable to find existing resource group $CLUSTER_RESOURCE_GROUP"
     exit 1
   fi
 fi
 
 # Check that the cluster resource group is empty
 if [[ $(az resource list -g $CLUSTER_RESOURCE_GROUP -o table | grep $CLUSTER_RESOURCE_GROUP) ]]; then
-  log-output "ERROR: $CLUSTER_RESOURCE_GROUP is not empty."
+  log-error "$CLUSTER_RESOURCE_GROUP is not empty."
   exit 1
 else
-  log-output "INFO: Confirmed $CLUSTER_RESOURCE_GROUP is empty."
+  log-info "Confirmed $CLUSTER_RESOURCE_GROUP is empty."
 fi
 
 
 ##########
 # Create openshift install configuration file
 if [[ -f ${WORKSPACE_DIR}/install-config.yaml ]]; then 
-    log-output "INFO: Removing existing OpenShift install configuration"
+    log-info "Removing existing OpenShift install configuration"
     rm ${WORKSPACE_DIR}/install-config.yaml
 fi
 
-log-output "INFO: Creating OpenShift install configuration"
+log-info "Creating OpenShift install configuration"
 cat << EOF >> ${WORKSPACE_DIR}/install-config.yaml
 apiVersion: v1
 baseDomain: ${BASE_DOMAIN} 
@@ -292,18 +292,19 @@ EOF
 
 ###########
 # Create OpenShift cluster
-log-output "INFO: Creating OpenShift cluster"
+log-info "Creating OpenShift cluster"
+log-info "Following logs from openshift-install"
 if [[ $DEBUG != true ]]; then
-    openshift-install create cluster --dir ${WORKSPACE_DIR}/ --log-level=info  
+    openshift-install create cluster --dir ${WORKSPACE_DIR}/ --log-level=info | tee -a $OUTPUT_FILE
 else
-    openshift-install create cluster --dir ${WORKSPACE_DIR}/ --log-level=debug
+    openshift-install create cluster --dir ${WORKSPACE_DIR}/ --log-level=debug | tee -a $OUTPUT_FILE
 fi
 
 if (( $? != 0 )); then
-  log-output "ERROR: Cluster creation failed. Refer to openshift install logs for details"
+  log-error "Cluster creation failed. Refer to openshift install logs for details"
   exit 1
 else
-  log-output "INFO: Cluster creation successfully completed"
+  log-info "Cluster creation successfully completed"
 fi
 
 ##########
@@ -322,26 +323,26 @@ if [[ ! -z $VAULT_NAME ]]; then
 
     az keyvault secret set --name "$SECRET_NAME" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password > /dev/null
     if (( $? ! = 0 )); then
-      log-output "ERROR: Unable to create secret for cluster password in $VAULT_NAME"
+      log-error "Unable to create secret for cluster password in $VAULT_NAME"
       exit 1
     else
-      log-output "INFO: Cluster password added as secret to key vault $VAULT_NAME"
+      log-info "Cluster password added as secret to key vault $VAULT_NAME"
     fi
 
     az keyvault secret set --name "kubeconfig" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeconfig > /dev/null
     if (( $? ! = 0 )); then
-      log-output "ERROR: Unable to create secret for kubeconfig in $VAULT_NAME"
+      log-error "Unable to create secret for kubeconfig in $VAULT_NAME"
       exit 1
     else
-      log-output "INFO: kubeconfig file added as secret to key vault $VAULT_NAME"
+      log-info "kubeconfig file added as secret to key vault $VAULT_NAME"
     fi
 
     az keyvault secret set --name "cluster-metadata" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/metadata.json > /dev/null
     if (( $? ! = 0 )); then
-      log-output "ERROR: Unable to create secret for cluster metadata in $VAULT_NAME"
+      log-error "Unable to create secret for cluster metadata in $VAULT_NAME"
       exit 1
     else
-      log-output "INFO: Cluster metadata added as secret to key vault $VAULT_NAME"
+      log-info "Cluster metadata added as secret to key vault $VAULT_NAME"
     fi
 
     jq -n -c \
@@ -369,4 +370,4 @@ else
         > $AZ_SCRIPTS_OUTPUT_PATH
 fi
 
-log-output "INFO: OpenShift installation successfully completed"
+log-info "OpenShift installation successfully completed"
