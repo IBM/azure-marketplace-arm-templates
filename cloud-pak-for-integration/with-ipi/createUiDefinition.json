@@ -85,7 +85,7 @@
 				"label": "Network Settings",
 				"elements": [
 					{
-						"name": "vnet",
+						"name": "[concat(basics('namePrefix'),'-vnet')]",
 						"type": "Microsoft.Network.VirtualNetworkCombo",
 						"label": {
 							"virtualNetwork": "Virtual Network",
@@ -122,6 +122,18 @@
 								"label": "Worker Subnet",
 								"defaultValue": {
 									"name": "worker-subnet",
+									"addressPrefixSize": "/24"
+								},
+								"constraints": {
+									"minAddressPrefixSize": "/24",
+									"minAddressCount": 50,
+									"requireContiguousAddresses": true
+								}
+							},
+							"endpointSubnet": {
+								"label": "Endpoint Subnet",
+								"defaultValue": {
+									"name": "endpoint-subnet",
 									"addressPrefixSize": "/24"
 								},
 								"constraints": {
@@ -544,6 +556,8 @@
 			"controlSubnetName": "[steps('networking').vnet.subnets.controlSubnet.name]",
 			"workerSubnetCIDR": "[steps('networking').vnet.subnets.workerSubnet.addressPrefix]",
 			"workerSubnetName": "[steps('networking').vnet.subnets.workerSubnet.name]",
+			"endpointSubnetCIDR": "[steps('networking').vnet.subnets.endpointSubnet.addressPrefix]",
+			"endpointSubnetName": "[steps('networking').vnet.subnets.endpointSubnet.name]",
             "ocpVersion": "[steps('openshift').ocpVersion]",
 			"clientId": "[steps('openshift').servicePrincipal.appId]",
 			"clientSecret": "[steps('openshift').servicePrincipal.password]",
