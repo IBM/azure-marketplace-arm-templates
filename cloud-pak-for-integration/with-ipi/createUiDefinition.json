@@ -512,6 +512,26 @@
 						"visible": true
 					}
                 ]
+            },
+            {
+                "name": "tags",
+                "label": "Tags",
+                "elements": [
+                    {
+                        "name": "tagsByResource",
+                        "type": "Microsoft.Common.TagsByResource",
+                        "toolTip": "Create one or more tags to associate with the created resources.",
+                        "resources": [
+                            "Microsoft.Network/networkSecurityGroups",
+                            "Microsoft.Network/virtualNetworks",
+                            "Microsoft.KeyVault/vaults",
+							"Microsoft.ManagedIdentity/userAssignedIdentities",
+							"Microsoft.Storage/storageAccounts",
+							"Microsoft.Resources/deploymentScripts",
+							"Microsoft.Compute/sshPublicKeys"
+                        ]
+                    }
+                ]
             }
          ],
         "outputs": {
@@ -543,7 +563,8 @@
             "acceptLicense": "[steps('cp4i').acceptLicense]",
 			"cp4iVersion": "[steps('cp4i').cp4iEdition.version ]",
 			"cp4iLicense": "[steps('cp4i').cp4iEdition.license ]",
-			"namespace": "[steps('cp4i').nameSpace]"
+			"namespace": "[steps('cp4i').nameSpace]",
+			"tagsByResource": "[steps('tags').tagsByResource]"
          }
     }
 }
