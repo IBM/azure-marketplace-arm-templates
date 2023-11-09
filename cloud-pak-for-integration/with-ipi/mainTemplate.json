@@ -1842,8 +1842,11 @@
                     "ocpApiServer": {
                         "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['apiServer'].value]" 
                     },
-                    "ocpPassword": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminPassword'].value]" 
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "clusterPasswordSecretName": {
+                        "value": "[parameters('clusterPasswordSecretName')]"
                     },
                     "ocpUsername": {
                         "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminUser'].value]" 
@@ -1913,8 +1916,11 @@
                         "ocpUsername": {
                             "type": "string"
                         },
-                        "ocpPassword": {
-                            "type": "secureString"
+                        "vaultName": {
+                            "type": "string"
+                        },
+                        "clusterPasswordSecretName": {
+                            "type": "string"
                         },
                         "namespace": {
                             "type": "string"
@@ -1978,8 +1984,12 @@
                                         "value": "[parameters('ocpUsername')]"
                                     },
                                     {
-                                        "name": "OCP_PASSWORD",
-                                        "secureValue": "[parameters('ocpPassword')]"
+                                        "name": "VAULT_NAME",
+                                        "value": "[parameters('vaultName')]"
+                                    },
+                                    {
+                                        "name": "SECRET_NAME",
+                                        "value": "[parameters('clusterPasswordSecretName')]"
                                     },
                                     {
                                         "name": "STORAGE_CLASS",
