@@ -121,7 +121,7 @@ if [[ $VAULT_NAME ]]; then
   log-info "Will upload cluster secrets to $VAULT_NAME"
   log-info "Will upload cluster password to $VAULT_NAME as $SECRET_NAME"
 fi
-log-info "DEBUG: Debug is set to true"
+log-info "Debug is set to $DEBUG"
 
 
 #######
@@ -322,7 +322,7 @@ if [[ ! -z $VAULT_NAME ]]; then
     az login --identity
 
     az keyvault secret set --name "$SECRET_NAME" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeadmin-password > /dev/null
-    if (( $? ! = 0 )); then
+    if (( $? != 0 )); then
       log-error "Unable to create secret for cluster password in $VAULT_NAME"
       exit 1
     else
@@ -330,7 +330,7 @@ if [[ ! -z $VAULT_NAME ]]; then
     fi
 
     az keyvault secret set --name "kubeconfig" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/auth/kubeconfig > /dev/null
-    if (( $? ! = 0 )); then
+    if (( $? != 0 )); then
       log-error "Unable to create secret for kubeconfig in $VAULT_NAME"
       exit 1
     else
@@ -338,7 +338,7 @@ if [[ ! -z $VAULT_NAME ]]; then
     fi
 
     az keyvault secret set --name "cluster-metadata" --vault-name $VAULT_NAME --file ${WORKSPACE_DIR}/metadata.json > /dev/null
-    if (( $? ! = 0 )); then
+    if (( $? != 0 )); then
       log-error "Unable to create secret for cluster metadata in $VAULT_NAME"
       exit 1
     else
