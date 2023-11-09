@@ -113,11 +113,17 @@ function cli-download() {
     else
         TMP_DIR=${2}
     fi
+    
+    if [[ -z ${3} ]]; then
+        VERSION="stable-4.12"
+    else
+        VERSION="${3}"
+    fi
 
     ARCH=$(uname -m)
     OC_FILETYPE="linux"
     KUBECTL_FILETYPE="linux"
-    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/stable/openshift-client-${OC_FILETYPE}.tar.gz"
+    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
 
     log-output "INFO: Downloading and installing oc and kubectl"
     curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
