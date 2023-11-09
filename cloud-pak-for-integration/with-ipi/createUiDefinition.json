@@ -85,7 +85,7 @@
 				"label": "Network Settings",
 				"elements": [
 					{
-						"name": "[concat(basics('namePrefix'),'-vnet')]",
+						"name": "vnet",
 						"type": "Microsoft.Network.VirtualNetworkCombo",
 						"label": {
 							"virtualNetwork": "Virtual Network",
@@ -96,7 +96,7 @@
 							"subnets": "The name and CIDR for the subnet. Existing subnets must not have any NSGs or delegations."
 						},
 						"defaultValue": {
-							"name": "vnet",
+							"name": "[concat(basics('namePrefix'),'-vnet')]",
 							"addressPrefixSize": "/20"
 						},
 						"constraints": {
