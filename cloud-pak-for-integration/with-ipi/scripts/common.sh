@@ -148,15 +148,21 @@ function cli-download() {
     fi
 
     if [[ -z ${3} ]]; then
-        VERSION="stable-4.12"
+        OC_VERSION="stable-4.12"
     else
-        VERSION="${3}"
+        OC_VERSION="${3}"
+    fi
+
+    # Install glibc dependency if it does not exist (needed for version 4.14 and up)
+    if [[ ! -z /lib/libresolv.so.2 ]]; then
+      apk add gcompat
+      ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
     fi
 
     ARCH=$(uname -m)
     OC_FILETYPE="linux"
     KUBECTL_FILETYPE="linux"
-    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
+    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OC_VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
 
     log-info "Downloading and installing oc and kubectl"
     curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
@@ -297,6 +303,12 @@ function download-openshift-installer() {
     else
         # Install the latest stable subversion
         OCP_VERSION="stable-${VERSION}"
+    fi
+
+    # Install glibc dependency if it does not exist (needed for version 4.14 and up)
+    if [[ ! -z /lib/libresolv.so.2 ]]; then
+      apk add gcompat
+      ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
     fi
 
     URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OCP_VERSION}/openshift-install-${FILETYPE}.tar.gz"

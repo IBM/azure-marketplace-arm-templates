@@ -63,6 +63,7 @@ if [[ -z $STORAGE_CLASS ]]; then STORAGE_CLASS="ocs-storagecluster-cephfs"; fi
 if [[ -z $INSTANCE_NAMESPACE ]]; then export INSTANCE_NAMESPACE=$NAMESPACE; fi
 if [[ -z $VERSION ]]; then export VERSION="2022.2.1"; fi
 if [[ -z $LICENSE_ID ]]; then export LICENSE_ID="L-RJON-CD3JKX"; fi
+if [[ -z $OCP_VERSION ]]; then OCP_VERSION="stable"; fi    # This will download the latest stable client version
 
 # Log values set
 log-info "OCP IPI Cluster API is set to : $API_SERVER"
@@ -141,7 +142,7 @@ mkdir -p ${TMP_DIR}
 #######
 # Download and install CLI's if they do not already exist
 if [[ ! -f ${BIN_DIR}/oc ]] || [[ ! -f ${BIN_DIR}/kubectl ]]; then
-    cli-download $BIN_DIR $TMP_DIR
+    cli-download $BIN_DIR $TMP_DIR $OCP_VERSION
 fi
 
 #####

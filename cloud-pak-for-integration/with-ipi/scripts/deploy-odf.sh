@@ -6,7 +6,7 @@
 # Written by:  Rich Ehrhardt
 # Email: rich_ehrhardt@au1.ibm.com
 
-OUTPUT_FILE="cp4i-script-output-$(date -u +'%Y-%m-%d-%H%M%S').log"
+OUTPUT_FILE="odf-script-output-$(date -u +'%Y-%m-%d-%H%M%S').log"
 source common.sh
 
 ######
@@ -22,6 +22,7 @@ if [[ -z $NEW_CLUSTER ]]; then NEW_CLUSTER="no"; fi
 if [[ -z $STORAGE_SIZE ]]; then export STORAGE_SIZE="2Ti"; fi
 if [[ -z $EXISTING_NODES ]]; then EXISTING_NODES="no"; fi
 if [[ -z $OCP_USERNAME ]]; then OCP_USERNAME="kubeadmin"; fi
+if [[ -z $OCP_VERSION ]]; then OCP_VERSION="stable"; fi   # This will download the latest client
 
 ######
 # Create working directories
@@ -80,7 +81,7 @@ fi
 #######
 # Download and install CLI's if they do not already exist
 if [[ ! -f ${BIN_DIR}/oc ]] || [[ ! -f ${BIN_DIR}/kubectl ]]; then
-    cli-download $BIN_DIR $TMP_DIR
+    cli-download $BIN_DIR $TMP_DIR $OCP_VERSION
 fi
 
 #####
