@@ -4,9 +4,6 @@
     "metadata": {
         "description": "Azure ARM Template to deploy a Red Hat OpenShift IPI cluster and IBM Cloud Pak for Integration."
     },
-    // TO DO: Remove allowed values from branch before publishing
-    // TO DO: Remove duplicate resources that are not used like useridentity and storage
-    // ISSUE: Removes existing subnet in existing vnet
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -386,10 +383,6 @@
         "branch": {
             "type": "string",
             "defaultValue": "main",
-            "allowedValues": [
-                "main",
-                "52-add-ocp-ipi-build-plan-for-cp4i"
-            ],
             "metadata": {
                 "description": "Github branch for linked deployments."
             }
