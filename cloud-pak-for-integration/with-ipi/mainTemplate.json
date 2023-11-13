@@ -18,7 +18,6 @@
         },
         "location": {
             "type": "string",
-            "defaultValue": "[resourceGroup().location]",
             "metadata": {
                 "description": "Azure region for the deployment"
             }
@@ -117,7 +116,6 @@
         },
         "clusterResourceGroup": {
             "type": "string",
-            "defaultValue": "[concat( parameters('namePrefix'), '-', substring( uniqueString(resourceGroup().id), 1, 5 ), '-openshift') ]",
             "metadata": {
                 "description": "The name of the empty resource group into which the cluster resources will be built."
             }
@@ -722,6 +720,9 @@
                     "vnetCIDR": {
                         "value": "[parameters('vnetCIDR')]"
                     },
+                    "existingVnet": {
+                        "value": "[parameters('existingVnet')]"
+                    },
                     "controlSubnetCIDR": {
                         "value": "[parameters('controlSubnetCIDR')]"
                     },
@@ -757,6 +758,9 @@
                         "location": {
                             "type": "string"
                         },
+                        "existingVnet": {
+                            "type": "bool"
+                        },
                         "controlSubnetName": {
                             "type": "string"
                         },
@@ -786,6 +790,7 @@
                             "type": "Microsoft.Network/virtualNetworks",
                             "apiVersion": "2022-07-01",
                             "name": "[parameters('vnetName')]",
+                            "condition": "[parameters('existingVnet')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
                             "properties": {
