@@ -160,6 +160,7 @@ function cli-download() {
       if (( $? != 0 )); then
         log-error "Unable to install glibc compatibility libraries"
         exit 1
+      fi
       ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
     fi
 
