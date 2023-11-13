@@ -983,6 +983,14 @@ EOF
     done
 
     log-info "Instance started"
+
+    # Output Platform Navigator console URL
+    CP4I_CONSOLE=$(${BIN_DIR}/oc get route cp4i-navigator-pn -n cp4i -o jsonpath='https://{.spec.host}{"\n"}')
+    jq -n -c \
+      --arg cp4iConsole $CP4I_CONSOLE \
+      '{"cp4iDetails": {"cp4iConsoleURL": $cp4iConsole}}' \
+      > $AZ_SCRIPTS_OUTPUT_PATH
+
 else
     log-info "License not accepted. Please manually install desired components"
 fi

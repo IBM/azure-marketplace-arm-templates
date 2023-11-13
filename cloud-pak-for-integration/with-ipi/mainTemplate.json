@@ -2067,12 +2067,28 @@
                                 "principalType": "ServicePrincipal"
                             }
                         }
-                    ]
+                    ],
+                    "outputs": {
+                        "cp4iConsoleUrl": {
+                            "type": "string",
+                            "condition": "[equals(parameters('acceptLicense'),'accept')]",
+                            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.cp4iDetails.cp4iConsoleURL ]"
+                        }
+                    }
                 }
             }
         }
     ],
     "outputs": {
-
+        "clusterURL": {
+            "type": "string",
+            "condition": "[parameters('deployOCP')]",
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['consoleURL'].value]"
+        },
+        "platformNavigatorURL": {
+            "type": "string",
+            "condition": "[equals(parameters('acceptLicense'),'accept')]",
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['cp4iConsoleUrl'].value]"
+        }
     }
 }
