@@ -155,7 +155,11 @@ function cli-download() {
 
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
     if [[ ! -z /lib/libresolv.so.2 ]]; then
+      log-info "Installing glibc compatibility libraries"
       apk add gcompat
+      if (( $? != 0 )); then
+        log-error "Unable to install glibc compatibility libraries"
+        exit 1
       ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
     fi
 
