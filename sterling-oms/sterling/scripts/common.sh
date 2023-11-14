@@ -16,6 +16,19 @@ function log-output() {
     echo ${MSG}
 }
 
+function log-info() {
+    MSG=${1}
+
+    log-output "INFO: $MSG"
+}
+
+function log-error() {
+    MSG=${1}
+
+    log-output "ERROR: $MSG"
+    echo $MSG >&2
+}
+
 function az-login() {
     CLIENT_ID=${1}
     CLIENT_SECRET=${2}
@@ -23,7 +36,7 @@ function az-login() {
     SUBSCRIPTION_ID=${4}
 
     if [[ -z $CLIENT_ID ]] || [[ -z $CLIENT_SECRET ]] || [[ -z $TENANT_ID ]] || [[ -z $SUBSCRIPTION_ID ]]; then
-        log-output "ERROR: Incorrect usage. Supply client id, client secret, tenant id and subcription id to login"
+        log-error "Incorrect usage. Supply client id, client secret, tenant id and subcription id to login"
         exit 1
     fi
 
@@ -32,20 +45,20 @@ function az-login() {
         # Login with service principal details
         az login --service-principal -u "$CLIENT_ID" -p "$CLIENT_SECRET" -t "$TENANT_ID" > /dev/null 2>&1
         if (( $? != 0 )); then
-            log-output "ERROR: Unable to login to service principal. Check supplied details in credentials.properties."
+            log-error "Unable to login to service principal. Check supplied details in credentials.properties."
             exit 1
         else
-            log-output "Successfully logged on with service principal"
+            log-info "Successfully logged on with service principal"
         fi
         az account set --subscription "$SUBSCRIPTION_ID" > /dev/null 2>&1
         if (( $? != 0 )); then
-            log-output "ERROR: Unable to use subscription id $SUBSCRIPTION_ID. Please check and try agian."
+            log-error "Unable to use subscription id $SUBSCRIPTION_ID. Please check and try agian."
             exit 1
         else
-            log-output "Successfully changed to subscription : $(az account show --query name -o tsv)"
+            log-info "Successfully changed to subscription : $(az account show --query name -o tsv)"
         fi
     else
-        log-output "Using existing Azure CLI login"
+        log-info "Using existing Azure CLI login"
     fi
 }
 
@@ -70,40 +83,40 @@ function oc-login() {
     fi
 
     if ! ${BIN_DIR}/oc status 1> /dev/null 2> /dev/null; then
-        log-output "INFO: Logging into OpenShift cluster $ARO_CLUSTER"
+        log-info "Logging into OpenShift cluster $ARO_CLUSTER"
         API_SERVER=$(az aro list --query "[?contains(name,'$ARO_CLUSTER')].[apiserverProfile.url]" -o tsv)
         CLUSTER_PASSWORD=$(az aro list-credentials --name $ARO_CLUSTER --resource-group $RESOURCE_GROUP --query kubeadminPassword -o tsv)
         # Below loop added to allow authentication service to start on new clusters
         count=0
         while ! ${BIN_DIR}/oc login $API_SERVER -u kubeadmin -p $CLUSTER_PASSWORD 1> /dev/null 2> /dev/null ; do
-            log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
+            log-info "Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
             sleep 60
             count=$(( $count + 1 ))
             if (( $count > 15 )); then
-                log-output "ERROR: Timeout waiting to log into cluster"
+                log-error "Timeout waiting to log into cluster"
                 exit 1;    
             fi
         done
-        log-output "INFO: Successfully logged into cluster $ARO_CLUSTER"
+        log-info "Successfully logged into cluster $ARO_CLUSTER"
     else   
         CURRENT_SERVER=$(echo "$(${BIN_DIR}/oc status | grep server | awk '{printf $6}')/" )
         API_SERVER=$(az aro list --query "[?contains(name,'$CLUSTER')].[apiserverProfile.url]" -o tsv)
         if [[ $CURRENT_SERVER == $API_SERVER ]]; then
-            log-output "INFO: Already logged into cluster"
+            log-info "Already logged into cluster"
         else
             CLUSTER_PASSWORD=$(az aro list-credentials --name $ARO_CLUSTER --resource-group $RESOURCE_GROUP --query kubeadminPassword -o tsv)
             # Below loop added to allow authentication service to start on new clusters
             count=0
             while ! ${BIN_DIR}/oc login $API_SERVER -u kubeadmin -p $CLUSTER_PASSWORD > /dev/null 2>&1 ; do
-                log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
+                log-info "Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
                 sleep 60
                 count=$(( $count + 1 ))
                 if (( $count > 15 )); then
-                    log-output "ERROR: Timeout waiting to log into cluster"
+                    log-error "Timeout waiting to log into cluster"
                     exit 1;    
                 fi
             done
-            log-output "INFO: Successfully logged into cluster $ARO_CLUSTER"
+            log-info "Successfully logged into cluster $ARO_CLUSTER"
         fi
     fi
 }
@@ -122,27 +135,44 @@ function cli-download() {
         TMP_DIR=${2}
     fi
 
+    if [[ -z ${3} ]]; then
+        OC_VERSION="stable-4.12"
+    else
+        OC_VERSION="${3}"
+    fi
+
+    # Install glibc dependency if it does not exist (needed for version 4.14 and up)
+    if [[ ! -z /lib/libresolv.so.2 ]]; then
+      log-info "Installing glibc compatibility libraries"
+      apk add gcompat
+      if (( $? != 0 )); then
+        log-error "Unable to install glibc compatibility libraries"
+        exit 1
+      fi
+      ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
+    fi
+
     ARCH=$(uname -m)
     OC_FILETYPE="linux"
     KUBECTL_FILETYPE="linux"
-    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/stable/openshift-client-${OC_FILETYPE}.tar.gz"
+    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OC_VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
 
-    log-output "INFO: Downloading and installing oc and kubectl"
+    log-info "Downloading and installing oc and kubectl"
     curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
 
     if ! error=$(tar xzf ${TMP_DIR}/openshift-client.tgz -C ${TMP_DIR} oc kubectl 2>&1) ; then
-        log-output "ERROR: Unable to extract oc or kubectl from tar file"
-        log-output "$error"
+        log-error "Unable to extract oc or kubectl from tar file with error $error"
+        exit 1
     fi
 
     if ! error=$(mv ${TMP_DIR}/oc ${BIN_DIR}/oc 2>&1) ; then
-        log-output "ERROR: Unable to move oc to $BIN_DIR"
-        log-output "$error"
+        log-error "Unable to move oc to $BIN_DIR with error $error"
+        exit 1
     fi
 
     if ! error=$(mv ${TMP_DIR}/kubectl ${BIN_DIR}/kubectl 2>&1) ; then
-        log-output "ERROR: Unable to move kubectl to $BIN_DIR"
-        log-output "$error"
+        log-error "Unable to move kubectl to $BIN_DIR with error $error"
+        exit 1
     fi
 }
 
@@ -190,11 +220,11 @@ function wait_for_subscription() {
 
     count=0;
     while [[ $(subscription_status $SUB_NAMESPACE $SUBSCRIPTION) != "Succeeded" ]]; do
-        log-output "INFO: Waiting for subscription $SUBSCRIPTION to be ready. Waited $(( $count * 30 )) seconds. Will wait up to $(( $TIMEOUT_COUNT * 30 )) seconds."
+        log-info "Waiting for subscription $SUBSCRIPTION to be ready. Waited $(( $count * 30 )) seconds. Will wait up to $(( $TIMEOUT_COUNT * 30 )) seconds."
         sleep 30
         count=$(( $count + 1 ))
         if (( $count > $TIMEOUT_COUNT )); then
-            log-output "ERROR: Timeout exceeded waiting for subscription $SUBSCRIPTION to be ready"
+            log-error "Timeout exceeded waiting for subscription $SUBSCRIPTION to be ready"
             exit 1
         fi
     done
@@ -228,11 +258,11 @@ function wait_for_catalog() {
 
     count=0;
     while [[ $(catalog_status $CATALOG) != "READY" ]]; do
-        log-output "INFO: Waiting for catalog source $CATALOG to be ready. Waited $(( $count * 30 )) seconds. Will wait up to $(( $TIMEOUT_COUNT * 30 )) seconds."
+        log-info "Waiting for catalog source $CATALOG to be ready. Waited $(( $count * 30 )) seconds. Will wait up to $(( $TIMEOUT_COUNT * 30 )) seconds."
         sleep 30
         count=$(( $count + 1 ))
         if (( $count > $TIMEOUT_COUNT )); then
-            log-output "ERROR: Timeout exceeded waiting for catalog source $CATALOG to be ready"
+            log-error "Timeout exceeded waiting for catalog source $CATALOG to be ready"
             exit 1
         fi
     done   
@@ -322,46 +352,46 @@ function wait_for_cluster_operators() {
         BIN_DIR="${3}"
     fi
 
-    log-output "INFO: Checking for cluster operator status"
+    log-info "Checking for cluster operator status"
     # Attempt to login to cluster if not already
     if ! ${BIN_DIR}/oc status 1> /dev/null 2> /dev/null; then
-        log-output "INFO: Attempting login to OpenShift cluster $ARO_CLUSTER"
+        log-info "Attempting login to OpenShift cluster $ARO_CLUSTER"
         API_SERVER=$(az aro list --query "[?contains(name,'$ARO_CLUSTER')].[apiserverProfile.url]" -o tsv)
         CLUSTER_PASSWORD=$(az aro list-credentials --name $ARO_CLUSTER --resource-group $RESOURCE_GROUP --query kubeadminPassword -o tsv)
         # Below loop added to allow authentication service to start on new clusters
         count=0
         while ! ${BIN_DIR}/oc login $API_SERVER -u kubeadmin -p $CLUSTER_PASSWORD --insecure-skip-tls-verify=true 1> /dev/null 2> /dev/null ; do
-            log-output "INFO: Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
+            log-info "Waiting to log into cluster. Waited $count minutes. Will wait up to 15 minutes."
             sleep 60
             count=$(( $count + 1 ))
             if (( $count > 15 )); then
-                log-output "ERROR: Timeout waiting to log into cluster"
+                log-error "Timeout waiting to log into cluster"
                 exit 1;    
             fi
         done
-        log-output "INFO: Successfully logged into cluster $ARO_CLUSTER"
+        log-info "Successfully logged into cluster $ARO_CLUSTER"
         existing_login="no"
     else
-        log-output "INFO: Already logged into cluster"
+        log-info "Already logged into cluster"
         existing_login="yes"
     fi
 
     # Wait for cluster operators to be available
     count=0
     while ${BIN_DIR}/oc get clusteroperators | awk '{print $4}' | grep True; do
-        log-output "INFO: Waiting on cluster operators to be availabe. Waited $count minutes. Will wait up to 30 minutes."
+        log-info "Waiting on cluster operators to be availabe. Waited $count minutes. Will wait up to 30 minutes."
         sleep 60
         count=$(( $count + 1 ))
         if (( $count > 30 )); then
-            log-output "ERROR: Timeout waiting for cluster operators to be available"
+            log-error "Timeout waiting for cluster operators to be available"
             exit 1;
         fi
     done
-    log-output "INFO: Cluster operators are ready"
+    log-info "Cluster operators are ready"
 
     # Log out of cluster to allow secure login
     if [[ $existing_login == "no" ]]; then
-        log-output "INFO: Logging out of temporary cluster login"
+        log-info "Logging out of temporary cluster login"
         oc logout 1> /dev/null 2> /dev/null
     fi
 }
