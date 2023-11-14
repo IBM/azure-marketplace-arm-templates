@@ -58,6 +58,7 @@ if [[ -z $CASSANDRA_USERNAME ]]; then export CASSANDRA_USERNAME="admin"; fi
 if [[ -z $CASSANDRA_PASSWORD ]]; then export CASSANDRA_PASSWORD="$ADMIN_PASSWORD"; fi
 if [[ -z $ES_USERNAME ]]; then export ES_USERNAME="admin"; fi
 if [[ -z $ES_PASSWORD ]]; then export ES_PASSWORD="$ADMIN_PASSWORD"; fi
+if [[ -z $OC_VERSION ]]; then export OC_VERSION="stable-4.12"; fi
 
 # Set edition specific parameters
 export OMS_VERSION=$WHICH_OMS
@@ -119,7 +120,7 @@ OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/stable
 
 # Download and install CLI's if they do not already exist
 if [[ ! -f ${BIN_DIR}/oc ]] || [[ ! -f ${BIN_DIR}/kubectl ]]; then
-    cli-download $BIN_DIR $TMP_DIR
+    cli-download $BIN_DIR $TMP_DIR $OC_VERSION
 fi
 
 #######

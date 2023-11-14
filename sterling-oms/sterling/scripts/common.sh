@@ -122,10 +122,27 @@ function cli-download() {
         TMP_DIR=${2}
     fi
 
+    if [[ -z ${3} ]]; then
+        OC_VERSION="stable-4.12"
+    else
+        OC_VERSION="${3}"
+    fi
+
+    # Install glibc dependency if it does not exist (needed for version 4.14 and up)
+    if [[ ! -z /lib/libresolv.so.2 ]]; then
+      log-info "Installing glibc compatibility libraries"
+      apk add gcompat
+      if (( $? != 0 )); then
+        log-error "Unable to install glibc compatibility libraries"
+        exit 1
+      fi
+      ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
+    fi
+
     ARCH=$(uname -m)
     OC_FILETYPE="linux"
     KUBECTL_FILETYPE="linux"
-    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/stable/openshift-client-${OC_FILETYPE}.tar.gz"
+    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OC_VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
 
     log-output "INFO: Downloading and installing oc and kubectl"
     curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
