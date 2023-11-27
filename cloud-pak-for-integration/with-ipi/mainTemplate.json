@@ -783,7 +783,7 @@
                             "type": "Microsoft.Network/virtualNetworks",
                             "apiVersion": "2022-07-01",
                             "name": "[parameters('vnetName')]",
-                            "condition": "[parameters('existingVnet')]",
+                            "condition": "[not(parameters('existingVnet'))]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
                             "properties": {
