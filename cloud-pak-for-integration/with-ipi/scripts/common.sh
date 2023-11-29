@@ -147,49 +147,54 @@ function cli-download() {
         local TMP_DIR=${2}
     fi
 
-    if [[ -z ${3} ]]; then
-        local OC_VERSION="stable-4.12"
-        local OCP_RELEASE="12"
+    if [[ -z ${3} ]] || [[ ${3}  == "4" ]]; then
+        # Install the latest stable version
+        local OC_VERSION="stable"
+        local OCP_RELEASE=14
+    elif [[ ${VERSION} =~ [0-9][.][0-9]+[.][0-9]+ ]]; then
+        # Install a specific version and patch level
+        local OC_VERSION="${VERSION}"
+        local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
     else
-        local OC_VERSION="${3}"
+        # Install the latest stable subversion
+        local OC_VERSION="stable-${VERSION}"
         local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
     fi
 
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
-    if [[ ! -z /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
-      log-info "Installing glibc compatibility libraries"
-      apk add gcompat > /dev/null
-      if (( $? != 0 )); then
-        log-error "Unable to install glibc compatibility libraries"
-        exit 1
-      fi
-      ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
+    if [[ ! -f /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
+        log-info "Installing glibc compatibility libraries"
+        apk add gcompat > /dev/null
+        if (( $? != 0 )); then
+            log-error "Unable to install glibc compatibility libraries"
+            exit 1
+        fi
+        ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
     fi
 
     local ARCH=$(uname -m)
     local OC_FILETYPE="linux"
     local OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OC_VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
 
-    log-info "Downloading and installing oc and kubectl"
-    curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
+    if [[ -f ${BIN_DIR}/oc ]]; then
+        log-info "Openshift client binary already installed"
+    else
+        log-info "Downloading and installing oc"
+        curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
 
-    if ! error=$(tar xzf ${TMP_DIR}/openshift-client.tgz -C ${TMP_DIR} oc kubectl 2>&1) ; then
-        log-error "Unable to extract oc or kubectl from tar file"
-        log-error "$error"
-        exit 1
+        if ! error=$(tar xzf ${TMP_DIR}/openshift-client.tgz -C ${TMP_DIR} oc 2>&1) ; then
+            log-error "Unable to extract oc from tar file"
+            log-error "$error"
+            exit 1
+        fi
+
+        if ! error=$(mv ${TMP_DIR}/oc ${BIN_DIR}/oc 2>&1) ; then
+            log-error "Unable to move oc to $BIN_DIR"
+            log-error "$error"
+            exit 1
+        fi
     fi
 
-    if ! error=$(mv ${TMP_DIR}/oc ${BIN_DIR}/oc 2>&1) ; then
-        log-error "Unable to move oc to $BIN_DIR"
-        log-error "$error"
-        exit 1
-    fi
-
-    if ! error=$(mv ${TMP_DIR}/kubectl ${BIN_DIR}/kubectl 2>&1) ; then
-        log-error "Unable to move kubectl to $BIN_DIR"
-        log-error "$error"
-        exit 1
-    fi
 }
 
 function reset-output() {
@@ -314,10 +319,8 @@ function download-openshift-installer() {
         local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
     fi
 
-    log-info "OCP_RELEASE = $OCP_RELEASE"
-
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
-    if [[ ! -z /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
+    if [[ ! -f /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
       log-info "Installing glibc compatibility libraries"
       apk add gcompat > /dev/null
       if (( $? != 0 )); then
@@ -355,7 +358,7 @@ function download-openshift-installer() {
 
         log-info "Extracting openshift-install"
         if ! error=$(tar xzf ${DEST_DIR}/openshift-install-${FILETYPE}.tar.gz -C ${DEST_DIR} openshift-install 2>&1) ; then
-            log-error "Unable to extract oc or kubectl from tar file"
+            log-error "Unable to extract openshift-install from tar file"
             log-error "$error"
             exit 1
         fi
