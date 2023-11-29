@@ -136,27 +136,29 @@ function oc-login() {
 function cli-download() {
     
     if [[ -z ${1} ]]; then
-        BIN_DIR="/usr/local/bin"
+        local BIN_DIR="/usr/local/bin"
     else
-        BIN_DIR=${1}
+        local BIN_DIR=${1}
     fi
 
     if [[ -z ${2} ]]; then
-        TMP_DIR="/tmp"
+        local TMP_DIR="/tmp"
     else
-        TMP_DIR=${2}
+        local TMP_DIR=${2}
     fi
 
     if [[ -z ${3} ]]; then
-        OC_VERSION="stable-4.12"
+        local OC_VERSION="stable-4.12"
+        local OCP_RELEASE="12"
     else
-        OC_VERSION="${3}"
+        local OC_VERSION="${3}"
+        local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
     fi
 
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
-    if [[ ! -z /lib/libresolv.so.2 ]]; then
+    if [[ ! -z /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
       log-info "Installing glibc compatibility libraries"
-      apk add gcompat
+      apk add gcompat > /dev/null
       if (( $? != 0 )); then
         log-error "Unable to install glibc compatibility libraries"
         exit 1
@@ -164,10 +166,9 @@ function cli-download() {
       ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
     fi
 
-    ARCH=$(uname -m)
-    OC_FILETYPE="linux"
-    KUBECTL_FILETYPE="linux"
-    OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OC_VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
+    local ARCH=$(uname -m)
+    local OC_FILETYPE="linux"
+    local OC_URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OC_VERSION}/openshift-client-${OC_FILETYPE}.tar.gz"
 
     log-info "Downloading and installing oc and kubectl"
     curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
@@ -292,34 +293,44 @@ function cleanup_file() {
 }
 
 function download-openshift-installer() {
-    DEST_DIR=${1}
-    VERSION=${2}
-    BIN_DIR=${3}
+    local DEST_DIR=${1}
+    local VERSION=${2}
+    local BIN_DIR=${3}
 
-    ARCH=$(uname -m)
-    FILETYPE="linux"
+    local ARCH=$(uname -m)
+    local FILETYPE="linux"
 
     if [[ -z $VERSION ]] || [[ ${VERSION}  == "4" ]]; then
         # Install the latest stable version
-        OCP_VERSION="stable"
+        local OCP_VERSION="stable"
+        local OCP_RELEASE=14
     elif [[ ${VERSION} =~ [0-9][.][0-9]+[.][0-9]+ ]]; then
         # Install a specific version and patch level
-        OCP_VERSION="${VERSION}"
+        local OCP_VERSION="${VERSION}"
+        local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
     else
         # Install the latest stable subversion
-        OCP_VERSION="stable-${VERSION}"
+        local OCP_VERSION="stable-${VERSION}"
+        local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
     fi
 
+    log-info "OCP_RELEASE = $OCP_RELEASE"
+
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
-    if [[ ! -z /lib/libresolv.so.2 ]]; then
-      apk add gcompat
+    if [[ ! -z /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
+      log-info "Installing glibc compatibility libraries"
+      apk add gcompat > /dev/null
+      if (( $? != 0 )); then
+        log-error "Unable to install glibc compatibility libraries"
+        exit 1
+      fi
       ln -s /lib/libgcompat.so.0 /lib/libresolv.so.2
     fi
 
     URL="https://mirror.openshift.com/pub/openshift-v4/${ARCH}/clients/ocp/${OCP_VERSION}/openshift-install-${FILETYPE}.tar.gz"
 
     if [[ -z ${BIN_DIR} ]]; then
-        BIN_DIR="$(pwd)"
+        local BIN_DIR="$(pwd)"
         log-info "Setting openshift-install binary installation directory to $BIN_DIR"
     else
         log-info "Openshift-install binary installation directory is set to $BIN_DIR"
@@ -329,7 +340,7 @@ function download-openshift-installer() {
         log-info "Openshift install binary already installed"
     else
         if [[ -z ${DEST_DIR} ]]; then
-            DEST_DIR="$(pwd)"
+            local DEST_DIR="$(pwd)"
             log-info "Setting openshift-install download directory to $DEST_DIR"
         else
             log-info "Openshift-install download directory is set to $DEST_DIR"
