@@ -147,7 +147,7 @@ function cli-download() {
         local TMP_DIR=${2}
     fi
 
-    if [[ -z ${3} ]] || [[ ${3}  == "4" ]]; then
+    if [[ -z ${3} ]] || [[ ${3}  == "4" ]] || [[ ${3} == "stable" ]]; then
         # Install the latest stable version
         local OC_VERSION="stable"
         local OCP_RELEASE=14
@@ -157,8 +157,8 @@ function cli-download() {
         local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
     else
         # Install the latest stable subversion
-        local OC_VERSION="stable-${VERSION}"
-        local OCP_RELEASE=$(( $(echo $VERSION | awk -F'.' '{print $2}') ))
+        local OC_VERSION="stable-${3}"
+        local OCP_RELEASE=$(( $(echo ${3} | awk -F'.' '{print $2}') ))
     fi
 
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
@@ -443,8 +443,9 @@ function wait_for_cluster_operators() {
     log-info "Cluster operators are ready"
 
     # Log out of cluster to allow secure login
-    if [[ $existing_login == "no" ]]; then
-        log-info "Logging out of temporary cluster login"
-        oc logout 1> /dev/null 2> /dev/null
-    fi
+    # Not needed for unmanaged
+    # if [[ $existing_login == "no" ]]; then
+    #     log-info "Logging out of temporary cluster login"
+    #     oc logout 1> /dev/null 2> /dev/null
+    # fi
 }
