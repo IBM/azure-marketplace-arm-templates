@@ -160,10 +160,6 @@
 						"constraints": {
 							"allowedValues": [
 								{
-									"label": "4.14",
-									"value": "4.14"
-								},
-								{
 									"label": "4.12",
 									"value": "4.12"
 								}
