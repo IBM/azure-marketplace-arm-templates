@@ -11,3 +11,7 @@ Deploys an IBM Cloud Pak for Integration onto an existing Red Hat OpenShift Inst
 ## Deploy with ARO
 
 Deploys an Azure Red Hat OpenShift (ARO) managed cluster and then deploys an IBM Cloud Pak for Integration instance onto that cluster.
+
+## Deploy with OCP IPI
+
+Deploys a self-managed OpenShift Installer Provisioned Infrastructure cluster and then deploys an IBM Cloud Pak for Integration instance onto that cluster.
