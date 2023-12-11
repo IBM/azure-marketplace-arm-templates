@@ -11,9 +11,9 @@ Azure marketplace listing that:
 
 ## Installation
 
-From the Marketplace search for the `IBM Cloud Pak for Integration (BYOL) on Red Hat OpenShift` tile.
+From the Azure Marketplace search for the `IBM Cloud Pak for Integration (BYOL) on Red Hat OpenShift` tile.
 
-Choose the `New self-managed cluster` plan.
+Choose the `New self-managed cluster` plan and click on `Create`.
 
 ### Basics tab
 
