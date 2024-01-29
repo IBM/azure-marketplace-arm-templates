@@ -12,7 +12,7 @@
         },
         "aroVersion": {
             "type": "string",
-            "defaultValue": "4.10.54",
+            "defaultValue": "4.12.25",
             "metadata": {
                 "description": "OpenShift version to deploy. Format 4.x.x"
             }
@@ -217,30 +217,39 @@
                     "addressPrefixes": [
                         "[parameters('vnetCIDR')]"
                     ]
-                },
-                "subnets": [
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2023-04-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "name": "[concat(parameters('vnetName'), '/' ,parameters('controlSubnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('controlSubnetCIDR')]",
+                "privateLinkServiceNetworkPolicies": "Disabled",
+                "serviceEndpoints": [
                     {
-                        "name": "[parameters('controlSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[parameters('controlSubnetCIDR')]",
-                            "privateLinkServiceNetworkPolicies": "Disabled",
-                            "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.ContainerRegistry"
-                                }
-                            ]
-                        }
-                    },
+                        "service": "Microsoft.ContainerRegistry"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2023-04-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]"
+            ],
+            "name": "[concat(parameters('vnetName'), '/' ,parameters('workerSubnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('workerSubnetCIDR')]",
+                "serviceEndpoints": [
                     {
-                        "name": "[parameters('workerSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[parameters('workerSubnetCIDR')]",
-                            "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.ContainerRegistry"
-                                }
-                            ]
-                        }
+                        "service": "Microsoft.ContainerRegistry"
                     }
                 ]
             }
@@ -337,6 +346,8 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('workerSubnetName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
                 "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
                 "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'contributor')))]",
