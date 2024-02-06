@@ -1,0 +1,17 @@
+sip-iv-audit:10.0.2309.1-amd64
+sip-iv-audit-onboard:10.0.2309.1-amd64
+sip-carrier-onboard:10.0.2309.1-amd64
+sip-carrier:10.0.2309.1-amd64
+sip-catalog:10.0.2309.1-amd64
+sip-catalog-onboard:10.0.2309.1-amd64
+sip-promising:10.0.2309.1-amd64
+sip-rules:10.0.2309.1-amd64
+sip-rules-onboard:10.0.2309.1-amd64
+sip-search:10.0.2309.1-amd64
+sip-search-onboard:10.0.2309.1-amd64
+sip-iv-backend:10.0.2309.1-amd64
+sip-iv-appserver:10.0.2309.1-amd64
+sip-iv-onboard:10.0.2309.1-amd64
+sip-logstash:10.0.2309.1-amd64
+oms-gateway:10.0.2309.1-amd64
+sip-api-docs:10.0.2309.1-amd64

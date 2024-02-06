@@ -1,0 +1,3 @@
+ubi-minimal:latest
+openjdk-11:latest
+openssl:latest

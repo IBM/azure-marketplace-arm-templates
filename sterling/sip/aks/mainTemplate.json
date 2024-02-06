@@ -1,0 +1,366 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names. Must start with a letter and be 3 to 10 characters."
+            }
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure region for the deployment"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "[ concat( toLower( parameters('namePrefix') ), substring( uniqueString(resourceGroup().id), 1, 7 ) ) ]",
+            "minLength": 3,
+            "maxLength": 24,
+            "metadata": {
+                "description": "Storage account name for the deployment scripts"
+            }
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[ concat( parameters('namePrefix'), '-id' ) ]",
+            "minLength": 3,
+            "maxLength": 24,
+            "metadata": {
+                "description": "Name of the managed identity for the resource group"
+            }
+        },
+        "vaultName": {
+            "type": "string",
+            "defaultValue": "[ concat( parameters('namePrefix'), '-', substring( uniqueString(resourceGroup().id), 1, 5 ), '-keyvault' ) ]",
+            "metadata": {
+                "description": "Name of the key vault to store credentials"
+            }
+        },
+        "clusterPasswordSecretName": {
+            "type": "string",
+            "defaultValue": "cluster-password",
+            "metadata": {
+                "description": "Name of the secret to create in the key vault for the cluster password"
+            }
+        },
+        "keyName": {
+            "type": "string",
+            "defaultValue": "[ concat(parameters('namePrefix'), '-sshkey') ]",
+            "metadata": {
+                "description": "Name of the secret to create in the key vault for the private SSH key"
+            }
+        },
+        "deployPrereqs": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to run the script prerequisites (for debug only)"
+            }
+        },
+        "deployKeyVault": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create the key vault (for debug only)"
+            }
+        },
+        "hostEncryption": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether hosts should have host-level encryption enabled, \"Encryption At Host\" (requires activation for Azure subscription)"
+            }
+        },
+        "publicSshKey": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Public SSH Key for the AKS nodes"
+            }
+        },
+        "namespace": {
+            "type": "string",
+            "defaultValue": "cp4i",
+            "metadata": {
+                "description": "Namespace for CP4I instance"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group containing the virtual network"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the virtual network already exists"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network"
+            }
+        },
+        "aksSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the AKS subnet"
+            }
+        },
+        "aksSubnetName": {
+            "type": "string",
+            "defaultValue": "control-subnet",
+            "metadata": {
+                "description": "Name of the AKS subnet"
+            }
+        },
+        "aksNsgName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-',parameters('aksSubnetName'),'-nsg')]",
+            "metadata": {
+                "description": "Name of the NSG for the AKS subnet"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for linked deployments."
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
+    },
+    "resources": [
+        // Create or verify base VNet
+        // Script prereqs with endpoint subnet
+        // ACR with endpoint subnet
+        // AKS with nsg and aks subnet
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployNetworkSecurityGroups",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "aksNsgName": {
+                        "value": "[parameters('aksNsgName')]" 
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "aksNsgName": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/networkSecurityGroups",
+                            "apiVersion": "2022-11-01",
+                            "name": "[parameters('aksNsgName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
+                            "properties": {
+                                "securityRules": [
+                                    {
+                                        "name": "AllowAnyPort6443Inbound",
+                                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('aksNsgName'), 'AllowAnyPort6443Inbound')]",
+                                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                                        "properties": {
+                                            "protocol": "TCP",
+                                            "sourcePortRange": "*",
+                                            "destinationPortRange": "6443",
+                                            "sourceAddressPrefix": "*",
+                                            "destinationAddressPrefix": "*",
+                                            "access": "Allow",
+                                            "priority": 120,
+                                            "direction": "Inbound"
+                                        }
+                                    },
+                                    {
+                                        "name": "AllowAnyPort443Inbound",
+                                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('aksNsgName'), 'AllowAnyPort22623Inbound')]",
+                                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                                        "properties": {
+                                            "protocol": "TCP",
+                                            "sourcePortRange": "*",
+                                            "destinationPortRange": "443",
+                                            "sourceAddressPrefix": "*",
+                                            "destinationAddressPrefix": "*",
+                                            "access": "Allow",
+                                            "priority": 130,
+                                            "direction": "Inbound"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "outputs": {
+                        "aksSubnetNsgid": {
+                            "type": "string",
+                            "value": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('aksNsgName'))]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "virtualNetwork",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployNetworkSecurityGroups')]"
+            ],
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    "existingVnet": {
+                        "value": "[parameters('existingVnet')]"
+                    },
+                    "aksSubnetName": {
+                        "value": "[parameters('aksSubnetName')]"
+                    },
+                    "aksSubnetCIDR": {
+                        "value": "[parameters('aksSubnetCIDR')]"
+                    },
+                    "aksSubnetNsgId": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployNetworkSecurityGroups'),'2022-09-01').outputs['aksSubnetNsgId'].value]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "existingVnet": {
+                            "type": "bool"
+                        },
+                        "aksSubnetName": {
+                            "type": "string"
+                        },
+                        "aksSubnetCIDR": {
+                            "type": "string"
+                        },
+                        "aksSubnetNsgId": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "variables": {
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2022-07-01",
+                            "name": "[parameters('vnetName')]",
+                            "condition": "[not(parameters('existingVnet'))]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                            ],
+                            "name": "[concat(parameters('vnetName'), '/' ,parameters('aksSubnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('aksSubnetCIDR')]",
+                                "privateEndpointNetworkPolicies": "Disabled",
+                                "privateLinkServiceNetworkPolicies": "Enabled",
+                                "networkSecurityGroup": {
+                                    "id": "[parameters('aksSubnetNsgId')]"
+                                },
+                                "serviceEndpoints": [
+                                    {
+                                        "service": "Microsoft.ContainerRegistry"
+                                    },
+                                    {
+                                        "service": "Microsoft.Storage"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
