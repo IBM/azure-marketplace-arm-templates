@@ -16,9 +16,9 @@
                 "description": "Azure region for the deployment"
             }
         },
-        "storageAccountName": {
+        "scriptStorageAccountName": {
             "type": "string",
-            "defaultValue": "[ concat( toLower( parameters('namePrefix') ), substring( uniqueString(resourceGroup().id), 1, 7 ) ) ]",
+            "defaultValue": "[ concat( toLower( parameters('namePrefix') ), 'script', substring( uniqueString(resourceGroup().id), 1, 7 ) ) ]",
             "minLength": 3,
             "maxLength": 24,
             "metadata": {
@@ -139,6 +139,34 @@
                 "description": "Name of the NSG for the AKS subnet"
             }
         },
+        "endpointSubnetName": {
+            "type": "string",
+            "defaultValue": "endpoint-subnet",
+            "metadata": {
+                "description": "Name of the subnet to attach the private link services to"
+            }
+        },
+        "endpointSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/27",
+            "metadata": {
+                "description": "Address prefix for the private link subnet"
+            }
+        },
+        "scriptSubnetName": {
+            "type": "string",
+            "defaultValue": "script-subnet",
+            "metadata": {
+                "description": "Name of the subnet to attach the deployment script container to"
+            }
+        },
+        "scriptSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.32/27",
+            "metadata": {
+                "description": "Address prefix for the script subnet"
+            }
+        },
         "tagsByResource": {
             "type": "object",
             "defaultValue": {},
@@ -158,6 +186,7 @@
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
     },
     "resources": [
+        // GUID deployment
         // Create or verify base VNet
         // Script prereqs with endpoint subnet
         // ACR with endpoint subnet
@@ -359,6 +388,48 @@
                             }
                         }
                     ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "scriptPrerequisites",
+            "condition": "[parameters('deployPrereqs')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('scriptSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('scriptSubnetCidr')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/script-prerequisites/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
                 }
             }
         }
