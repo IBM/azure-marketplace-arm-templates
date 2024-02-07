@@ -29,11 +29,17 @@
                 "description": "Days to retain logs"
             }
         },
-        "dailyWorkspaceCap": {
-            "type": "int",
-            "defaultValue": 5,
+        "logAnalyticsSku": {
+            "type": "string",
+            "defaultValue": "PerGB2018",
+            "allowedValues": [
+                "Free",
+                "Standalone",
+                "PerNode",
+                "PerGB2018"
+            ],
             "metadata": {
-                "description": "Daily cap on data ingestion volume (GiB)"
+                "description": "SKU for the log analytics service."
             }
         },
         "managedIdName": {
@@ -102,10 +108,7 @@
                 "publicNetworkAccessForQuery": "[parameters('publicAccess')]",
                 "retentionInDays": "[parameters('logRetentionPeriod')]",
                 "sku": {
-                    "name": "PerGB2018"
-                },
-                "workspaceCapping": {
-                    "dailyQuotaGb": "[parameters('dailyWorkspaceCap')]"
+                    "name": "[parameters('logAnalyticsSku')]"
                 }
             }
         }
