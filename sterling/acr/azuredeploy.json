@@ -102,6 +102,11 @@
         }
     },
     "variables": {
+        "privateEndpointName": "[concat(parameters('namePrefix'),'-acr-endpoint')]",
+        "privateEndpointGroupName": "registry",
+        "privateDnsZoneGroupName": "[concat(variables('privateEndpointGroupName'),'PrivateDnsZoneGroup')]",
+        "publicDnsZoneForwarder": "[if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')]",
+        "privateDnsZoneName": "[format('privatelink.{0}', variables('publicDnsZoneForwarder'))]"
     },
     "resources": [
         {
@@ -122,7 +127,6 @@
         {
             "type": "Microsoft.Network/virtualNetworks/subnets",
             "apiVersion": "2020-11-01",
-            "condition": "[parameters('createSubnet')]",
             "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
             "properties": {
                 "addressPrefix": "[parameters('subnetCIDR')]",
@@ -138,7 +142,7 @@
         {
             "type": "Microsoft.Network/privateDnsZones",
             "apiVersion": "2020-06-01",
-            "name": "[concat('privatelink.', parameters('acrLoginServer'))]",
+            "name": "[variables('privateDnsZoneName')]",
             "location": "global",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/privateDnsZones'), parameters('tagsByResource')['Microsoft.Network/privateDnsZones'], json('{}')) ]",
             "properties": {}
@@ -146,8 +150,9 @@
         {
             "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
             "apiVersion": "2020-06-01",
-            "name": "[concat('privatelink.', parameters('acrLoginServer'), '/', parameters('vnetName'), '-link')]",
+            "name": "[format('{0}/{1}', variables('privateDnsZoneName'), format('link_to_{0}', toLower(parameters('vnetName'))))]",
             "location": "global",
+            "condition": "[equals(parameters('registrySku'), 'Premium')]",
             "properties": {
                 "registrationEnabled": false,
                 "virtualNetwork": {
@@ -155,14 +160,15 @@
                 }
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', concat('privatelink.', parameters('acrLoginServer')))]"
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
             ]
         },
         {
             "type": "Microsoft.Network/privateEndpoints",
             "apiVersion": "2021-03-01",
-            "name": "oms-pe-acr",
+            "name": "[variables('privateEndpointName')]",
             "location": "[parameters('location')]",
+            "condition": "[equals(parameters('registrySku'), 'Premium')]",
             "properties": {
                 "subnet": {
                     "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
@@ -172,33 +178,36 @@
                         "properties": {
                             "privateLinkServiceId": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
                             "groupIds": [
-                                "registry"
+                                "[variables('privateEndpointGroupName')]"
                             ]
                         },
-                        "name": "oms-pe-acr"
+                        "name": "[variables('privateEndpointName')]"
                     }
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]"
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
             ]
         },
         {
             "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
             "apiVersion": "2022-07-01",
-            "name": "[concat('oms-pe-acr', '/dnsgroupname')]",
+            "name": "[format('${)}/${1}', variables('privateEndpointName'), variables('privateDnsZoneGroupName'))]",
             "properties": {
                 "privateDnsZoneConfigs": [
                     {
                         "name": "registry",
                         "properties": {
-                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones',concat('privatelink.', parameters('acrLoginServer')))]"
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones',variables('privateDnsZoneName'))]"
                         }
                     }
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', 'oms-pe-acr')]"
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointName'))]",
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointName'))]"
             ]
         },
         {
