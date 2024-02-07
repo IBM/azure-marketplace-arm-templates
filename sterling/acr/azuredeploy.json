@@ -92,6 +92,13 @@
             "metadata": {
                 "description": "CIDR for the subnet if creating"
             }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }   
         }
     },
     "variables": {
@@ -102,6 +109,7 @@
             "apiVersion": "2021-09-01",
             "name": "[parameters('registryName')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ContainerRegistry/registries'), parameters('tagsByResource')['Microsoft.ContainerRegistry/registries'], json('{}')) ]",
             "sku": {
                 "name": "[parameters('registrySku')]"
             },
@@ -196,6 +204,7 @@
             "type": "Microsoft.OperationalInsights/workspaces",
             "apiVersion": "2022-10-01",
             "condition": "[and(parameters('createAnalyticsWorkspace'), parameters('deployLogAnalytics'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.OperationalInsights/workspaces'), parameters('tagsByResource')['Microsoft.OperationalInsights/workspaces'], json('{}')) ]",
             "name": "[parameters('workspaceName')]",
             "location": "[parameters('location')]",
             "properties": {

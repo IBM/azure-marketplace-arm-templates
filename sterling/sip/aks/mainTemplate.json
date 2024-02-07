@@ -77,6 +77,34 @@
                 "description": "Flag to determine whether to create the key vault (for debug only)"
             }
         },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Azure monitor for resources"
+            }
+        },
+        "workspaceName": {
+            "type": "bool",
+            "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace"
+            }
+        },
+        "logRetentionPeriod": {
+            "type": "int",
+            "defaultValue": 7,
+            "metadata": {
+                "description": "Days to retain collected logs"
+            }
+        },
+        "dailyWorkspaceCap": {
+            "type": "int",
+            "defaultValue": 5,
+            "metadata": {
+                "description": "Daily cap on data ingestion volume (GiB)"
+            }
+        },
         "hostEncryption": {
             "type": "bool",
             "defaultValue": true,
@@ -175,6 +203,13 @@
                 "description": "Address prefix for the script subnet"
             }
         },
+        "privateDeployment": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether deployment will have access from the internet or not. Set true to only allow access from VNet."
+            }
+        },
         "tagsByResource": {
             "type": "object",
             "defaultValue": {},
@@ -268,7 +303,52 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "scriptPrerequisites",
+            "name": "deployMonitoring",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "publicAccess": {
+                        "value": "[if(parameters('privateDeployment'),'Disabled','Enabled')]" 
+                    },
+                    "logRetentionPeriod": {
+                        "value": "[parameters('logRetentionPeriod')]"
+                    },
+                    "dailyWorkspaceCap": {
+                        "value": "[parameters('dailyWorkspaceCap')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "createManagedId": {
+                        "value": false
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/log-analytics/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployPrerequisites",
             "condition": "[parameters('deployPrereqs')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
@@ -311,6 +391,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "deployKeyVault",
+            "condition": "[if(equals(parameters('publicSshKey'), ''),'true',parameters('deployKeyVault'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
@@ -347,7 +428,7 @@
             "condition": "[equals(parameters('publicSshKey'), '')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]",
-                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -386,6 +467,52 @@
                 "templateLink": {
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/ssh-key/azuredeploy.json'))]",
                     "contentVersion":"1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployAcr",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createSubnet": {
+                        "value": true
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/acr/azuredeploy.json'))]"
                 }
             }
         }
