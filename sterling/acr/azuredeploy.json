@@ -51,6 +51,54 @@
                 "description": "Container Registry SKU"
             }
         },
+        "registryPolicies": {
+            "type": "object",
+            "defaultValue": {
+                "quarantinePolicy": {
+                    "status": "disabled"
+                },
+                "trustPolicy": {
+                    "type": "Notary",
+                    "status": "disabled"
+                },
+                "retentionPolicy": {
+                    "days": 15,
+                    "status": "enabled"
+                }
+            },
+            "metadata": {
+                "description": "Policies for the registry including quarantune, trust and retention."
+            }
+        },
+        "publicNetworkAccess": {
+            "type": "string",
+            "defaultValue": "Disabled",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "metadata": {
+                "description": "Flag to enable or disable internet access to the registry"
+            }
+        },
+        "enableAdminUser": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to enable admin user for the registry with push/pull authority"
+            }
+        },
+        "networkRuleDefaultAction": {
+            "type": "string",
+            "defaultValue": "Deny",
+            "allowedValues": [
+                "Allow",
+                "Deny"
+            ],
+            "metadata": {
+                "description": "Default network action when no other rules match"
+            }
+        },
         "deployLogAnalytics": {
             "type": "bool",
             "defaultValue": true,
@@ -119,9 +167,14 @@
                 "name": "[parameters('registrySku')]"
             },
             "properties": {
-                "publicNetworkAccess": "Disabled",
-                "zoneRedundancy": "Disabled",
-                "adminUserEnabled": true
+                "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+                "adminUserEnabled": "[parameters('enableAdminUser')]",
+                "networkRuleSet": {
+                    "defaultAction": "[parameters('networkRuleDefaultAction')]"
+                },
+                "dataEndpointEnabled": true,
+                "networkRuleBypassOptions": "AzureServices",
+                "policies": "[parameters('registryPolicies')]"
             }
         },
         {
