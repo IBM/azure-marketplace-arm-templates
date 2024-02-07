@@ -1,6 +1,15 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
+    // GUID deployment
+    // AKS with nsg and aks subnet (and app gw?)
+    // Cassandra service
+    // Kafka service
+    // SIP
+    // NAT gateway in vnet creation with publicIP
+    // Bastion host option
+    // Management VM option
+    // Private link for KeyVault
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -85,7 +94,7 @@
             }
         },
         "workspaceName": {
-            "type": "bool",
+            "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
             "metadata": {
                 "description": "Name for the analytics workspace"
@@ -93,16 +102,36 @@
         },
         "logRetentionPeriod": {
             "type": "int",
-            "defaultValue": 7,
+            "defaultValue": 60,
+            "maxValue": 730,
             "metadata": {
-                "description": "Days to retain collected logs"
+                "description": "Days to retain logs. Use -1 for unlimited SKU. 730 is the maximum for all other SKU's "
             }
         },
-        "dailyWorkspaceCap": {
-            "type": "int",
-            "defaultValue": 5,
+        "logAnalyticsSku": {
+            "type": "string",
+            "defaultValue": "PerGB2018",
+            "allowedValues": [
+                "Free",
+                "Standalone",
+                "PerNode",
+                "PerGB2018"
+            ],
             "metadata": {
-                "description": "Daily cap on data ingestion volume (GiB)"
+                "description": "SKU for the log analytics service."
+            }
+        },
+        "registrySku": {
+            "type": "string",
+            "defaultValue": "Premium",
+            "allowedValues": [
+                "Basic",
+                "Classic",
+                "Standard",
+                "Premium"
+            ],
+            "metadata": {
+                "description": "Container Registry SKU"
             }
         },
         "hostEncryption": {
@@ -121,9 +150,9 @@
         },
         "namespace": {
             "type": "string",
-            "defaultValue": "cp4i",
+            "defaultValue": "sip",
             "metadata": {
-                "description": "Namespace for CP4I instance"
+                "description": "Namespace for SIP instance"
             }
         },
         "networkResourceGroup": {
@@ -229,10 +258,6 @@
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
     },
     "resources": [
-        // GUID deployment
-        // ACR with endpoint subnet
-        // AKS with nsg and aks subnet
-        // SIP
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
@@ -310,9 +335,6 @@
             ],
             "properties": {
                 "mode": "Incremental",
-                "expressionEvaluationOptions": {
-                    "scope": "Inner"
-                },
                 "parameters": {
                     "workspaceName": {
                         "value": "[parameters('workspaceName')]"
@@ -326,8 +348,8 @@
                     "logRetentionPeriod": {
                         "value": "[parameters('logRetentionPeriod')]"
                     },
-                    "dailyWorkspaceCap": {
-                        "value": "[parameters('dailyWorkspaceCap')]"
+                    "logAnalyticsSku": {
+                        "value": "[parameters('logAnalyticsSku')]"
                     },
                     "managedIdName": {
                         "value": "[parameters('managedIdName')]"
@@ -391,9 +413,10 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "deployKeyVault",
-            "condition": "[if(equals(parameters('publicSshKey'), ''),'true',parameters('deployKeyVault'))]",
+            "condition": "[if(equals(parameters('publicSshKey'), ''),true(),parameters('deployKeyVault'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -475,7 +498,8 @@
             "apiVersion": "2022-09-01",
             "name": "deployAcr",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -488,6 +512,9 @@
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
+                    },
+                    "registrySku": {
+                        "value": "[parameters('registrySku')]"
                     },
                     "deployLogAnalytics": {
                         "value": "[parameters('deployLogAnalytics')]"
@@ -505,7 +532,7 @@
                         "value": "[parameters('endpointSubnetName')]"
                     },
                     "subnetCIDR": {
-                        "value": "[parameters('endpointSubnetName')]"
+                        "value": "[parameters('endpointSubnetCidr')]"
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"

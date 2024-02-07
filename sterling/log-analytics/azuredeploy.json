@@ -24,9 +24,10 @@
         },
         "logRetentionPeriod": {
             "type": "int",
-            "defaultValue": 7,
+            "defaultValue": 60,
+            "maxValue": 730,
             "metadata": {
-                "description": "Days to retain logs"
+                "description": "Days to retain logs. Use -1 for unlimited SKU. 730 is the maximum for all other SKU's "
             }
         },
         "logAnalyticsSku": {
