@@ -193,7 +193,7 @@
         {
             "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
             "apiVersion": "2022-07-01",
-            "name": "[format('${)}/${1}', variables('privateEndpointName'), variables('privateDnsZoneGroupName'))]",
+            "name": "[format('{0}/{1}', variables('privateEndpointName'), variables('privateDnsZoneGroupName'))]",
             "properties": {
                 "privateDnsZoneConfigs": [
                     {
