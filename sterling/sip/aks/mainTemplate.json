@@ -1,15 +1,6 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    // GUID deployment
-    // AKS with nsg and aks subnet (and app gw?)
-    // Cassandra service
-    // Kafka service
-    // SIP
-    // NAT gateway in vnet creation with publicIP
-    // Bastion host option
-    // Management VM option
-    // Private link for KeyVault
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -432,6 +423,27 @@
                     },
                     "managedIdName": {
                         "value": "[parameters('managedIdName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "networkRuleDefaultAction": {
+                        "value": "[if(parameters('privateDeployment'),'Deny','Allow')]"
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('endpointSubnetCidr')]"
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"

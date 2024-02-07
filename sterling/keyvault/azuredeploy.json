@@ -28,6 +28,79 @@
                 "description": "Name for the managed identity that will manage the key vault"
             }
         },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "networkRuleDefaultAction": {
+            "type": "string",
+            "defaultValue": "Deny",
+            "allowedValues": [
+                "Allow",
+                "Deny"
+            ],
+            "metadata": {
+                "description": "Default network action when no other rules match"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Log Analytics"
+            }
+        },
+        "createAnalyticsWorkspace": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an analytics workspace"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "keyvault-log-analytics-workspace",
+            "metadata": {
+                "description": "Name for the analytics workspace. Specify if not creating new one."
+            }
+        },
+        "workspaceSku": {
+            "type": "string",
+            "defaultValue": "PerGB2018",
+            "allowedValues": [
+                "Free",
+                "Standalone",
+                "PerNode",
+                "PerGB2018"
+            ],
+            "metadata": {
+                "description": "SKU for the log analytics workspace service."
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "endpoint-subnet",
+            "metadata": {
+                "description": "Name of the subnet to connect private endpoint onto"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "description": "CIDR for the subnet if creating"
+            }
+        },
+        "privateDeployment": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the KeyVault will have access from the internet or not. Set true to only allow access from VNet."
+            }
+        },
         "tagsByResource": {
             "type": "object",
             "defaultValue": {},
@@ -41,7 +114,12 @@
         "vaultSku": {
                 "name": "standard",
                 "family": "A"
-        }
+        },
+        "privateEndpointName": "[concat(parameters('vaultName'),'-endpoint')]",
+        "privateEndpointGroupName": "keyvault",
+        "privateDnsZoneGroupName": "[concat(variables('privateEndpointGroupName'),'PrivateDnsZoneGroup')]",
+        "publicDnsZoneForwarder": "[if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')]",
+        "privateDnsZoneName": "[format('privatelink.{0}', variables('publicDnsZoneForwarder'))]"
     },
     "resources": [
         {
@@ -53,7 +131,11 @@
             "properties":{
                 "enableRbacAuthorization": true,
                 "tenantId": "[tenant().tenantId]",
-                "sku": "[variables('vaultSku')]"
+                "sku": "[variables('vaultSku')]",
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "defaultAction": "[parameters('networkRuleDefaultAction')]"
+                }
             }
         },
         {
@@ -77,6 +159,133 @@
                 "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
                 "principalType": "ServicePrincipal"
                 }       
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-11-01",
+            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "condition": "[parameters('privateDeployment')]",
+            "properties": {
+                "addressPrefix": "[parameters('subnetCIDR')]",
+                "serviceEndpoints": [
+                    {
+                        "service": "Microsoft.ContainerRegistry"
+                    }
+                ],
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "privateEndpointNetworkPolicies": "Disabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('privateDnsZoneName')]",
+            "location": "global",
+            "condition": "[parameters('privateDeployment')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/privateDnsZones'), parameters('tagsByResource')['Microsoft.Network/privateDnsZones'], json('{}')) ]",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name": "[format('{0}/{1}', variables('privateDnsZoneName'), format('{0}-link', toLower(parameters('vnetName'))))]",
+            "location": "global",
+            "condition": "[parameters('privateDeployment')]",
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('privateEndpointName')]",
+            "location": "[parameters('location')]",
+            "condition": "[parameters('privateDeployment')]",
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.KeyVault/vaults', parameters('vaultName'))]",
+                            "groupIds": [
+                                "[variables('privateEndpointGroupName')]"
+                            ]
+                        },
+                        "name": "[variables('privateEndpointName')]"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaultName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2022-07-01",
+            "name": "[format('{0}/{1}', variables('privateEndpointName'), variables('privateDnsZoneGroupName'))]",
+            "condition": "[parameters('privateDeployment')]",
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "registry",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones',variables('privateDnsZoneName'))]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointName'))]",
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('vaultName'))]",
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "condition": "[and(parameters('createAnalyticsWorkspace'), parameters('deployLogAnalytics'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.OperationalInsights/workspaces'), parameters('tagsByResource')['Microsoft.OperationalInsights/workspaces'], json('{}')) ]",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "[parameters('workspaceSku')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('vaultName'))]",
+            "name": "default",
+            "properties": {
+            "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+            "logs": [
+                {
+                "category": "AuditEvent",
+                "enabled": true
+                }
+            ],
+            "metrics": [
+                {
+                "category": "AllMetrics",
+                "enabled": true
+                }
+            ]
+            },
+            "dependsOn": [
+            "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+            "[resourceId('Microsoft.KeyVault/vaults', parameters('vaultName'))]"
+            ]
         }
     ],
     "outputs": {}
