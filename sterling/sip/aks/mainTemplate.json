@@ -84,6 +84,13 @@
                 "description": "Flag to determine whether to deploy Azure monitor for resources"
             }
         },
+        "deployManagementVm": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy a management VM for the cluster"
+            }
+        },
         "workspaceName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
@@ -174,6 +181,45 @@
                 "description": "CIDR for Virtual Network"
             }
         },
+        "outboundRouting": {
+            "type": "string",
+            "defaultValue": "NAT Gateway",
+            "allowedValues": [
+                "Azure Default",
+                "NAT Gateway",
+                "User Defined"
+            ],
+            "metadata": {
+                "description": "Routing method for outbound traffic"
+            }
+        },
+        "natGatewayName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-nat-gateway')]",
+            "metadata": {
+                "description": "Name of the NAT gateway to create if using NAT for outbound traffic"
+            }
+        },
+        "natGwPublicIPPrefixName": {
+            "type": "string",
+            "defaultValue": "ngw-pip",
+            "metadata": {
+                "description": "Name of the public IP prefix if using NAT Gateway routing"
+            }
+        },
+        "natGwPublicIPPrefixLength": {
+            "type": "int",
+            "defaultValue": 28,
+            "allowedValues": [
+                28,
+                29,
+                30,
+                31
+            ],
+            "metadata": {
+                "description": "Specifies the length of the public IP prefix."
+            }
+        },
         "aksSubnetCIDR": {
             "type": "string",
             "defaultValue": "10.0.0.0/24",
@@ -221,6 +267,109 @@
             "defaultValue": "10.0.1.32/27",
             "metadata": {
                 "description": "Address prefix for the script subnet"
+            }
+        },
+        "vmSubnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Subnet name to attach to VM"
+            }
+        },
+        "vmSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.64/27",
+            "metadata": {
+                "description": "Address prefix for the management VM subnet"
+            }
+        },
+        "vmAdminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VM"
+            }
+        },
+        "vmAdminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Default admin password or SSH key for VM"
+            }
+        },
+        "vmAuthType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2ms",
+            "metadata": {
+                "description": "Size of Dev VM"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the Management VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "Ubuntu 20.04 LTS",
+            "allowedValues": [
+                "Ubuntu 18.04 LTS",
+                "Ubuntu 20.04 LTS",
+                "Ubuntu 22.04 LTS"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "vmCreatePublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "vmPublicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "vmDomainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
             }
         },
         "privateDeployment": {
@@ -554,6 +703,100 @@
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/acr/azuredeploy.json'))]"
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployManagementVm",
+            "condition": "[parameters('deployManagementVm')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "outboundRouting": {
+                        "value": "[parameters('outboundRouting')]"   
+                    },
+                    "createNatGateway": {
+                        "value": false
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('vmSubnetCidr')]"
+                    },
+                    "ngwName": {
+                        "value": "[parameters('natGatewayName')]" 
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('vmAdminUserName')]" 
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('vmAdminPassword')]" 
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "authType": {
+                        "value": "[parameters('vmAuthType')]"  
+                    },
+                    "encryptionAtHost": {
+                        "value": "[parameters('hostEncryption')]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]" 
+                    },
+                    "vmDiskType": {
+                        "value": "[parameters('vmDiskType')]" 
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]"
+                    },
+                    "createPublicIP": {
+                        "value": "[parameters('vmCreatePublicIP')]" 
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('vmPublicIPName')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('vmDomainName')]" 
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/aks-management-vm/azuredeploy.json'))]"
+                }
+            } 
         }
     ]
 }

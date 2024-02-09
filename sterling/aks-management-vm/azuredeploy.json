@@ -26,9 +26,9 @@
         },
         "subnetName": {
             "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'),'-dev-subnet')]",
+            "defaultValue": "vm-subnet",
             "metadata": {
-                "description": "Existing subnet name to attach to VM"
+                "description": "Subnet name to attach to VM"
             }
         },
         "subnetCIDR": {
@@ -212,7 +212,7 @@
                 "1", "2", "3"
             ],
             "metadata": {
-                "description": "Availability zone for the Dev VM"
+                "description": "Availability zone for the Management VM"
             }
         },
         "vmOSVersion": {
