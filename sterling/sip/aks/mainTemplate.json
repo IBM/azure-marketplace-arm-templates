@@ -468,6 +468,94 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
+            "name": "deployNatGateway",
+            "condition": "[equals(parameters('outboundRouting'),'NAT Gateway')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "ngwName": {
+                        "value": "[parameters('natGatewayName')]" 
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "publicIPPrefixLength": {
+                        "value": "[parameters('natGwPublicIPPrefixLength')]" 
+                    },
+                    "publicIPPrefixName": {
+                        "value": "[parameters('natGwPublicIPPrefixName')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "ngwName": {
+                            "type": "string"
+                        },
+                        "publicIPPrefixName": {
+                            "type": "string"
+                        },
+                        "publicIPPrefixLength": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/publicIPPrefixes",
+                            "apiVersion": "2022-05-01",
+                            "name": "[parameters('publicIPPrefixName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPPrefixes'), parameters('tagsByResource')['Microsoft.Network/publicIPPrefixes'], json('{}')) ]",
+                            "sku": {
+                                "name": "Standard",
+                                "tier": "Regional"
+                            },
+                            "properties": {
+                                "prefixLength": "[parameters('publicIPPrefixLength')]",
+                                "publicIPAddressVersion": "IPv4"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/natGateways",
+                            "apiVersion": "2022-05-01",
+                            "name": "[parameters('ngwName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/natGateways'), parameters('tagsByResource')['Microsoft.Network/natGateways'], json('{}')) ]",
+                            "sku": {
+                                "name": "Standard"
+                            },
+                            "properties": {
+                                "idleTimeoutInMinutes": 4,
+                                "publicIpPrefixes": [
+                                    {
+                                    "id": "[resourceId('Microsoft.Network/publicIPPrefixes', parameters('publicIPPrefixName'))]"
+                                    }
+                                ]
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/publicIPPrefixes', parameters('publicIPPrefixName'))]"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
             "name": "deployMonitoring",
             "condition": "[parameters('deployLogAnalytics')]",
             "dependsOn": [
@@ -711,6 +799,7 @@
             "condition": "[parameters('deployManagementVm')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
             ],
