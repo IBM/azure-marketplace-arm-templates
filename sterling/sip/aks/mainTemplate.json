@@ -91,6 +91,13 @@
                 "description": "Flag to determine whether to deploy a management VM for the cluster"
             }
         },
+        "deployBastion": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy a bastion service to access the environment"
+            }
+        },
         "workspaceName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
@@ -269,6 +276,13 @@
                 "description": "Address prefix for the script subnet"
             }
         },
+        "bastionSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.64/27",
+            "metadata": {
+                "description": "CIDR for the bastion subnet"
+            }
+        },
         "vmSubnetName": {
             "type": "string",
             "defaultValue": "vm-subnet",
@@ -278,7 +292,7 @@
         },
         "vmSubnetCidr": {
             "type": "string",
-            "defaultValue": "10.0.1.64/27",
+            "defaultValue": "10.0.1.96/27",
             "metadata": {
                 "description": "Address prefix for the management VM subnet"
             }
@@ -550,6 +564,52 @@
                             ]
                         }
                     ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployBastion",
+            "condition": "[parameters('deployBastion')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "bastionSubnetCIDR": {
+                        "value": "[parameters('bastionSubnetCidr')]"
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/bastion/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
                 }
             }
         },
