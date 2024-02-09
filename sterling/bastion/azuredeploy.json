@@ -183,6 +183,7 @@
             "apiVersion": "2022-07-01",
             "name": "[variables('publicIpAddressName')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
             "sku": {
                 "name": "Standard"
             },
@@ -195,6 +196,7 @@
             "apiVersion": "2022-07-01",
             "name": "[variables('bastionHostName')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/bastionHosts'), parameters('tagsByResource')['Microsoft.Network/bastionHosts'], json('{}')) ]",
             "properties": {
                 "ipConfigurations": [
                     {
