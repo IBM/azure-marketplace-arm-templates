@@ -293,13 +293,6 @@
                 "description": "SSH public key for AKS node administrator access"
             }
         },
-        "aksKubeDashboardEnabled": {
-            "type": "bool",
-            "defaultValue": false,
-            "metadata": {
-                "description": "Flag to determine whether to deploy the Kubernetes dashboard for the AKS cluster"
-            }
-        },
         "aksAutoScalerScanInterval": {
             "type": "string",
             "defaultValue": "10s",
@@ -965,9 +958,6 @@
                     "omsagent": {
                         "enabled": "[parameters('deployLogAnalytics')]",
                         "config": "[if(parameters('deployLogAnalytics'),variables('aksOmsAgentConfig'),json('null'))]"
-                    },
-                    "kubeDashboard": {
-                        "enabled": "[parameters('aksKubeDashboardEnabled')]"
                     },
                     "azurepolicy": {
                         "enabled": "[parameters('aksEnableAzurePolicy')]",
