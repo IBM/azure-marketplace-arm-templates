@@ -45,13 +45,6 @@
                 "description": "Name of the NAT Gateway"
             }
         },
-        "vmBootstrap": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Bootstrap script for management VM"
-            }
-        },
         "adminUserName": {
             "type": "string",
             "defaultValue": "azureuser",
@@ -333,6 +326,7 @@
         "baseSecurityProfile": {
             "encryptionAtHost": "[parameters('encryptionAtHost')]"
         },
+        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - echo adminuser=',parameters('adminUserName'),' >> /root/script-parameters.txt\n')]",
         "publicIP": {
             "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
         },
@@ -609,7 +603,7 @@
                     "computerName": "[variables('vmName')]",
                     "adminUsername": "[parameters('adminUserName')]",
                     "adminPassword": "[parameters('adminPassword')]",
-                    "customData": "[base64(parameters('vmBootstrap'))]",
+                    "customData": "[base64(variables('vmBootstrap'))]",
                     "linuxConfiguration": "[if(equals(parameters('authType'), 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
                 },
                 "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'),variables('securityProfile'),variables('baseSecurityProfile'))]",
