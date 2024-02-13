@@ -817,7 +817,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "configureSubnet",
+            "name": "configureSubnets",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/natGateways', parameters('ngwName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
@@ -1051,7 +1051,7 @@
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'configureSubnet')]",
+                "[resourceId('Microsoft.Resources/deployments', 'configureSubnets')]",
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]",
                 "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
             ]
