@@ -720,7 +720,6 @@
         "contributorRoleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
         "kubernetesClusterAdminRoleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b1ff04bb-8a4e-4dc4-8eb5-8693973ce19b')]",
         "rgRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('contributorRoleDefinitionId'), resourceGroup().id)]",
-        "vnetRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('contributorRoleDefinitionId'), variables('vnetId')[parameters('virtualNetworkNewOrExisting')])]",
         "kubernetesRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('contributorRoleDefinitionId'), variables('aksClusterId'))]",
         "aksOmsAgentConfig": {
             "logAnalyticsWorkspaceResourceID": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
@@ -769,23 +768,8 @@
         {
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "2022-04-01",
-            "name": "[variables('vnetRoleDefinitionName')]",
-            "comments": "Give access to the VNet to the managed identity",
-            "dependsOn": [
-                "[parameters('managedIdName')]"
-            ],
-            "properties": {
-                "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
-                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
-                "scope": "[variables('vnetId')[parameters('virtualNetworkNewOrExisting')]]",
-                "principalType": "ServicePrincipal"
-            }
-        },
-        {
-            "type": "Microsoft.Authorization/roleAssignments",
-            "apiVersion": "2022-04-01",
             "name": "[variables('kubernetesRoleDefinitionName')]",
-            "comments": "Give access to the VNet to the managed identity",
+            "comments": "Give kubernetes cluster admin access to the AKS cluster for the managed identity",
             "dependsOn": [
                 "[parameters('managedIdName')]",
                 "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
@@ -1099,8 +1083,7 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'configureSubnets')]",
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]",
-                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
-                "[resourceId('Microsoft.Authorization/roleAssignments', variables('vnetRoleDefinitionName'))]"
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
             ]
         },
         {
