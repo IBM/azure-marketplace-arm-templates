@@ -326,7 +326,7 @@
         "baseSecurityProfile": {
             "encryptionAtHost": "[parameters('encryptionAtHost')]"
         },
-        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - echo adminuser=',parameters('adminUserName'),' >> /root/script-parameters.txt\n')]",
+        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - echo adminuser=',parameters('adminUserName'),' >> /root/script-parameters.txt\n - echo resourcegroup=',resourceGroup().name,' >> /root/script-parameters.txt\n')]",
         "publicIP": {
             "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
         },
@@ -667,7 +667,7 @@
                 "typeHandlerVersion": "2.0",
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
-                    "script": "H4sIAJMkxGUCA02PvW7DMAyEdz/FNZkd793SH6BBXXQw2p22GEeIIgkiBSNBH76yXSAdj3f34bh9aHrrm57kVG3xRGIHyJBsVGhAjoaUoSfGZwfyBsKa42xdyNPI5Yb9e4fBZVFOu6pAvv6XKskmgApuZd11fYWxonWOYyLDc/PgRcm5pUo3PLeHasjJoZYWJ9Uoj01DZ9pdpPmL7m85ccm9cI8fLOzllQJrwwjry9KZ9v1RFaALo/Woa2vYq9XrHHv11Lt17dEmngp03ZiPE4oIEzYhsu+6t83d4KX1C/GVcKQ9AQAA"
+                    "script": "H4sIANZCzGUCA7VUS2/aQBC++1dMKarhsND22IoDJTRFJRBh6CWK0GIPZoXxuvuAkMd/7+zaBPJoDpXqg+V9zDfffPON379rL0TeXnC9Ct7DN65FDDpWojBgJNgi4QbBrBDGEfA8AY3GFu5ow3OeIu1B92cEcWa1QdUijOlK6AOEsrkGrkFJaQI6O0fjwWKZL0VqFSbAk43IwWpU0DAuNJYb1LBUcuOvLihUG8WLCrMZiCVcXQFbQtvBtsttVnDFN0gcdMvcGLi+/urC8wDo6Z5dDEbzWdSfdOqNmJs3I+EeUoVFSczzuge+WwP7HnZCCO8KJXID9c8PYTPATKNLQFXzNYkBqUWtYbEHw9ciT30FS6G0qSrUK2mzBBalpjLP9vTCpmfp+M2Hg2jaaUC9kWlgK2ivSI0mNF+WgfFKQv3uMejq4/VDM1gKJ/PstG2BtokETt0ou3lcsz0kQhtmi1TxBF3kINeGZ5kP5bfQGw6C2KoMmB7CyphCf2m3+Zq3NrpdXe3eUhvp3hkuSCiP7c1EYEOZAmklPdqvC2hUTmgGBJ3JlPrOmEgwN8LsXUA/54sMD6LhjuBLtna5A1rIHdRkgXkU/agdD9BHnbJf2wXGJoMP/qvMZKTMtEvM15pY+YsszsQTor4YV7Uz7dGZlAsY1I/6A4shfKWIkND8Q706g2jav4TpGIbj88EIBiP6dLPSG87oZOJHhQqVri7nFa61ddbnoGlJOmyFFk6PkwEDVwlFKdTSqhjJqtIWfxmtp5f+33hN+tF4Nun15+eT8eyyGrG3h+tArWT2LwOWSeknjFIddHqFTORniTpVJsrI7sDIkN5nFRe2hdpFb147rCMbx4gJCVjyemT0iRhVo/ii5Gocn2U/HUrXbKf4aTdz0iagjXnlifmoe9HveMLOpiXdFOpPYclwvy2qPYSE33IYoS9Kb5sHN5/8VUtjH5O+auZalTFFw2LyjrMzd78gdugUKxV8ScXlJ7hnRdCB3KLaKWGQ4Q0VQs2q/QH6H561bgYAAA=="
                 }
             }
         }
