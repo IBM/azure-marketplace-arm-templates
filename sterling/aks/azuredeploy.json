@@ -105,7 +105,7 @@
         },
         "publicIPPrefixName": {
             "type": "string",
-            "defaultValue": "ngw-pip",
+            "defaultValue": "[concat(parameters('namePrefix'),'-ngw-pip')]",
             "metadata": {
                 "description": "Name of the public IP prefix if using NAT Gateway routing"
             }
