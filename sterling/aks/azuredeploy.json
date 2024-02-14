@@ -37,37 +37,37 @@
         },
         "vnetCIDR": {
             "type": "string",
-            "defaultValue": "10.0.0.0/20",
+            "defaultValue": "10.0.0.0/16",
             "metadata": {
                 "description": "CIDR for Virtual Network if being created otherwise ignored"
             }
         },
         "aksSubnetName": {
             "type": "string",
-            "defaultValue": "control-subnet",
+            "defaultValue": "aks-subnet",
             "metadata": {
-                "description": "Subnet name for the AKS worker plan nodes"
+                "description": "Subnet name for the AKS cluster nodes"
             }
         },
         "aksSubnetCIDR": {
             "type": "string",
             "defaultValue": "10.0.0.0/24",
             "metadata": {
-                "description": "IP address CIDR for the AKS control plane nodes"
+                "description": "IP address CIDR for the AKS cluster nodes"
             }
         },
         "podSubnetName": {
             "type": "string",
-            "defaultValue": "worker-subnet",
+            "defaultValue": "pod-subnet",
             "metadata": {
-                "description": "Subnet name for the AKS worker plan nodes"
+                "description": "Subnet name for the AKS pod IP address when azure network plugin is used."
             }
         },
         "podSubnetCIDR": {
             "type": "string",
-            "defaultValue": "10.0.1.0/24",
+            "defaultValue": "10.0.64.0/18",
             "metadata": {
-                "description": "IP address CIDR for the AKS worker plane nodes"
+                "description": "IP address CIDR for the AKS pod IP address when azure network plugin is used. Must have sufficient IP addresses for all possible pods."
             }
         },
         "ngwName": {
@@ -351,7 +351,7 @@
         },
         "aksSystemNodePoolName": {
             "type": "string",
-            "defaultValue": "control",
+            "defaultValue": "controlpool",
             "metadata": {
                 "description": "The name of the AKS control node pool"
             }
@@ -364,7 +364,7 @@
                 "AvailabilitySet"
             ],
             "metadata": {
-                "description": "The type of VM pool for the system nodes - virtual machine set or availability set"
+                "description": "The type of VM pool for the control nodes - virtual machine set or availability set"
             }
         },
         "aksSystemNodeCount": {
@@ -477,14 +477,16 @@
         },
         "aksSystemNodeTaints": {
             "type": "array",
-            "defaultValue": [],
+            "defaultValue": [
+                "CriticalAddonsOnly=true:NoSchedule"
+            ],
             "metadata": {
                 "description": "Array of additional taints for the AKS control plane nodes"
             }
         },
         "aksUserNodePoolName": {
             "type": "string",
-            "defaultValue": "worker",
+            "defaultValue": "workerpool",
             "metadata": {
                 "description": "The name of the AKS control node pool"
             }
@@ -668,7 +670,7 @@
             "type": "string",
             "defaultValue": "192.168.0.0/16",
             "metadata": {
-                "description": "IP address prefix for the pod network"
+                "description": "IP address prefix for the pod network when kubenet is used"
             }
         },
         "aksLoadBalancerSku": {
@@ -687,21 +689,23 @@
             "defaultValue": "azure",
             "allowedValues": [
                 "azure",
-                "kubenet"
+                "kubenet",
+                "none"
             ],
             "metadata": {
-                "description": "Specifies the type of AKS network plugin to be used - azure or kubenet"
+                "description": "Specifies the type of AKS network plugin to be used - azure, kubenet or none"
             }
         },
         "aksNetworkPolicy": {
             "type": "string",
-            "defaultValue": "azure",
+            "defaultValue": "calico",
             "allowedValues": [
                 "azure",
-                "calico"
+                "calico",
+                "cilium"
             ],
             "metadata": {
-                "description": "Specifies the network policy for building networks in the AKS cluster - Calico or Azure"
+                "description": "Specifies the network policy for building networks in the AKS cluster - Calico, Cilium or Azure"
             }
         },
         "tagsByResource": {
@@ -713,9 +717,11 @@
         }
     },
     "variables": {
-        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-        "rgRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
-        "vnetRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), variables('vnetId')[parameters('virtualNetworkNewOrExisting')])]",
+        "contributorRoleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "kubernetesClusterAdminRoleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b1ff04bb-8a4e-4dc4-8eb5-8693973ce19b')]",
+        "rgRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('contributorRoleDefinitionId'), resourceGroup().id)]",
+        "vnetRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('contributorRoleDefinitionId'), variables('vnetId')[parameters('virtualNetworkNewOrExisting')])]",
+        "kubernetesRoleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('contributorRoleDefinitionId'), variables('aksClusterId'))]",
         "aksOmsAgentConfig": {
             "logAnalyticsWorkspaceResourceID": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
         },
@@ -735,7 +741,8 @@
             "enableAzureRBAC": "[parameters('aksEnableAadRbac')]",
             "adminGroupObjectIDs": [ "[parameters('aksAdminGroupObjectId')]" ],
             "tenantID": "[parameters('aksAadTenantId')]"
-        }
+        },
+        "aksClusterId": "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
     },
     "resources": [
         {
@@ -753,7 +760,7 @@
                 "[parameters('managedIdName')]"
             ],
             "properties": {
-                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
                 "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
                 "scope": "[resourceGroup().id]",
                 "principalType": "ServicePrincipal"
@@ -768,9 +775,25 @@
                 "[parameters('managedIdName')]"
             ],
             "properties": {
-                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
                 "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
                 "scope": "[variables('vnetId')[parameters('virtualNetworkNewOrExisting')]]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('kubernetesRoleDefinitionName')]",
+            "comments": "Give access to the VNet to the managed identity",
+            "dependsOn": [
+                "[parameters('managedIdName')]",
+                "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('kubernetesClusterAdminRoleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[variables('aksClusterId')]",
                 "principalType": "ServicePrincipal"
             }
         },
@@ -854,6 +877,9 @@
                     "aksSubnetCIDR": {
                         "value": "[parameters('aksSubnetCIDR')]"
                     },
+                    "configurePodSubnet": {
+                        "value": "[if(equals(parameters('aksNetworkPlugin'),'azure'),bool('true'),bool('false'))]"
+                    },
                     "podSubnetName": {
                         "value": "[parameters('podSubnetName')]"
                     },
@@ -882,6 +908,9 @@
                         },
                         "aksSubnetName": {
                             "type": "string"
+                        },
+                        "configurePodSubnet": {
+                            "type": "bool"
                         },
                         "podSubnetCIDR": {
                             "type": "string"
@@ -923,6 +952,7 @@
                             "type": "Microsoft.Network/virtualNetworks/subnets",
                             "apiVersion": "2020-11-01",
                             "name": "[concat(parameters('vnetName'),'/',parameters('podSubnetName'))]",
+                            "condition": "[parameters('configurePodSubnet')]",
                             "properties": {
                                 "addressPrefix": "[parameters('podSubnetCIDR')]",
                                 "natGateway": "[variables('ngwId')[parameters('configureNatGateway')]]",
@@ -992,7 +1022,7 @@
                 "networkProfile": {
                     "dnsServiceIP": "[parameters('aksDnsServiceIp')]",
                     "dockerBridgeCidr": "[parameters('aksDockerBridgeCidr')]",
-                    "podCidr": "[parameters('aksPodCidr')]",
+                    "podCidr": "[if(equals(parameters('aksNetworkPlugin'),'kubenet'),parameters('aksPodCidr'),json('null'))]",
                     "serviceCidr": "[parameters('aksServiceCidr')]",
                     "loadBalancerSku": "[if(parameters('aksClusterPrivate'),'Standard',parameters('aksLoadBalancerSku'))]",
                     "loadBalancerProfile": "[json('null')]",
@@ -1026,13 +1056,13 @@
                         "osSKU": "[parameters('aksSystemNodeOsSku')]",
                         "osDiskSizeGB": "[parameters('aksSystemOsDiskSize')]",
                         "vnetSubnetID": "[variables('aksSubnetId')]",
-                        "podSubnetID": "[variables('podSubnetId')]",
-                        "maxCount": "[parameters('aksSystemNodeMax')]",
-                        "minCount": "[parameters('aksSystemNodeMin')]",
+                        "podSubnetID": "[if(equals(parameters('aksNetworkPlugin'),'azure'),variables('podSubnetId'),json('null'))]",
+                        "maxCount": "[if(parameters('aksSystemNodeAutoScaling'),parameters('aksSystemNodeMax'),json('null'))]",
+                        "minCount": "[if(parameters('aksSystemNodeAutoScaling'),parameters('aksSystemNodeMin'),json('null'))]",
                         "enableAutoScaling": "[parameters('aksSystemNodeAutoScaling')]",
-                        "scaleSetPriority": "[parameters('aksSystemNodeScaleSetPriority')]",
-                        "scaleSetEvictionPolicy": "[parameters('aksSystemNodeScaleSetEvictionPolicy')]",
-                        "availabilityZones": "[if(equals(parameters('aksSystemNodeVmPoolType'),'VirtualMachineScaleSets'),parameters('aksSystemNodeAvailabilityZone'),json('[]'))]",
+                        "scaleSetPriority": "[if(equals(parameters('aksSystemNodeVmPoolType'),'VirtualMachineScaleSets'),parameters('aksSystemNodeScaleSetPriority'),json('null'))]",
+                        "scaleSetEvictionPolicy": "[if(and(equals(parameters('aksSystemNodeVmPoolType'),'VirtualMachineScaleSets'),equals(parameters('aksSystemNodeScaleSetPriority'),'Spot')),parameters('aksSystemNodeScaleSetEvictionPolicy'),json('null'))]",
+                        "availabilityZones": "[if(equals(parameters('aksSystemNodeVmPoolType'),'VirtualMachineScaleSets'),parameters('aksSystemNodeAvailabilityZone'),json('null'))]",
                         "maxPods": "[parameters('aksSystemNodeMaxPods')]",
                         "enableEncryptionAtHost": "[parameters('aksEnableEncryptionAtHost')]",
                         "enableFIPS": "[parameters('aksEnableFips')]",
@@ -1051,12 +1081,12 @@
                         "osSKU": "[parameters('aksUserNodeOsSku')]",
                         "osDiskSizeGB": "[parameters('aksUserOsDiskSize')]",
                         "vnetSubnetID": "[variables('aksSubnetId')]",
-                        "podSubnetID": "[variables('podSubnetId')]",
-                        "maxCount": "[parameters('aksUserNodeMax')]",
-                        "minCount": "[parameters('aksUserNodeMin')]",
+                        "podSubnetID": "[if(equals(parameters('aksNetworkPlugin'),'azure'),variables('podSubnetId'),json('null'))]",
+                        "maxCount": "[if(parameters('aksUserNodeAutoScaling'),parameters('aksUserNodeMax'),json('null'))]",
+                        "minCount": "[if(parameters('aksUserNodeAutoScaling'),parameters('aksUserNodeMin'),json('null'))]",
                         "enableAutoScaling": "[parameters('aksUserNodeAutoScaling')]",
-                        "scaleSetPriority": "[parameters('aksUserNodeScaleSetPriority')]",
-                        "scaleSetEvictionPolicy": "[parameters('aksUserNodeScaleSetEvictionPolicy')]",
+                        "scaleSetPriority": "[if(equals(parameters('aksUserNodeVmPoolType'),'VirtualMachineScaleSets'),parameters('aksUserNodeScaleSetPriority'),json('null'))]",
+                        "scaleSetEvictionPolicy": "[if(and(equals(parameters('aksUserNodeVmPoolType'),'VirtualMachineScaleSets'),equals(parameters('aksUserNodeScaleSetPriority'),'Spot')),parameters('aksUserNodeScaleSetEvictionPolicy'),json('null'))]",
                         "availabilityZones": "[if(equals(parameters('aksUserNodeVmPoolType'),'VirtualMachineScaleSets'),parameters('aksUserNodeAvailabilityZone'),json('[]'))]",
                         "maxPods": "[parameters('aksUserNodeMaxPods')]",
                         "enableEncryptionAtHost": "[parameters('aksEnableEncryptionAtHost')]",
