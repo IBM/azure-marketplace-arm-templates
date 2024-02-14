@@ -770,6 +770,7 @@
             "apiVersion": "2022-04-01",
             "name": "[variables('kubernetesRoleDefinitionName')]",
             "comments": "Give kubernetes cluster admin access to the AKS cluster for the managed identity",
+            "scope": "[concat('Microsoft.ContainerService/managedClusters', '/', parameters('aksClusterName'))]",
             "dependsOn": [
                 "[parameters('managedIdName')]",
                 "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
@@ -777,7 +778,6 @@
             "properties": {
                 "roleDefinitionId": "[variables('kubernetesClusterAdminRoleDefinitionId')]",
                 "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
-                "scope": "[variables('aksClusterId')]",
                 "principalType": "ServicePrincipal"
             }
         },
@@ -941,7 +941,15 @@
                                 "addressPrefix": "[parameters('podSubnetCIDR')]",
                                 "natGateway": "[variables('ngwId')[parameters('configureNatGateway')]]",
                                 "privateEndpointNetworkPolicies": "Disabled",
-                                "privateLinkServiceNetworkPolicies": "Enabled"
+                                "privateLinkServiceNetworkPolicies": "Enabled",
+                                "delegations": [
+                                    {
+                                        "name": "ContainerDelegation",
+                                        "properties": {
+                                            "serviceName": "Microsoft.ContainerService/managedClusters"
+                                        }
+                                    }
+                                ]
                             },
                             "dependsOn": [
                                 "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('aksSubnetName'))]"
@@ -1104,7 +1112,8 @@
         "apiVersion": "2021-05-01-preview",
         "scope": "[format('Microsoft.ContainerService/managedClusters/{0}', parameters('aksClusterName'))]",
         "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Insights/diagnosticSettings'), parameters('tagsByResource')['Microsoft.Insights/diagnosticSettings'], json('{}')) ]",
-        "name": "default",
+        "condition": "[parameters('deployLogAnalytics')]",
+        "name": "aksDefaultDiagnosticSettings",
         "properties": {
           "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
           "logs": [
