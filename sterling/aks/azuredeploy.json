@@ -1139,7 +1139,7 @@
             },
             {
               "category": "cluster-autoscaler",
-              "enabled": true
+              "enabled": "[or(parameters('aksSystemNodeAutoScaling'),parameters('aksUserNodeAutoScaling'))]"
             },
             {
               "category": "guard",
