@@ -488,7 +488,7 @@
             "type": "string",
             "defaultValue": "workerpool",
             "metadata": {
-                "description": "The name of the AKS control node pool"
+                "description": "The name of the AKS worker node pool"
             }
         },
         "aksUserNodeVmPoolType": {
@@ -499,21 +499,21 @@
                 "AvailabilitySet"
             ],
             "metadata": {
-                "description": "The type of VM pool for the system nodes - virtual machine set or availability set"
+                "description": "The type of VM pool for the worker nodes - virtual machine set or availability set"
             }
         },
         "aksUserNodeCount": {
             "type": "int",
             "defaultValue": 3,
             "metadata": {
-                "description": "Number of AKS control nodes to deploy by default"
+                "description": "Number of AKS worker nodes to deploy by default"
             }
         },
         "aksUserNodeSize": {
             "type": "string",
             "defaultValue": "Standard_D8s_v3",
             "metadata": {
-                "description": "VM size of each AKS control plane node"
+                "description": "VM size of each AKS worker plane node"
             }
         },
         "aksUserNodeType": {
@@ -539,28 +539,28 @@
             "type": "int",
             "defaultValue": 128,
             "metadata": {
-                "description": "Size in GiB of the OS disk for the AKS control plan nodes"
+                "description": "Size in GiB of the OS disk for the AKS worker plan nodes"
             }
         },
         "aksUserNodeMax": {
             "type": "int",
             "defaultValue": 10,
             "metadata": {
-                "description": "Maximum number of AKS control plane nodes to scale up to"
+                "description": "Maximum number of AKS worker plane nodes to scale up to"
             }
         },
         "aksUserNodeMin": {
             "type": "int",
             "defaultValue": 1,
             "metadata": {
-                "description": "Minimum number of AKS control plane nodes to scale up to"
+                "description": "Minimum number of AKS worker plane nodes to scale up to"
             }
         },
         "aksUserNodeAutoScaling": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": "Flag to determine whether to use auto scaling with the AKS control plane nodes"
+                "description": "Flag to determine whether to use auto scaling with the AKS worker plane nodes"
             }
         },
         "aksUserNodeScaleSetPriority": {
@@ -571,7 +571,7 @@
                 "Regular"
             ],
             "metadata": {
-                "description": "Auto-scaler priority for the AKS control plan nodes"
+                "description": "Auto-scaler priority for the AKS worker plan nodes"
             }
         },
         "aksUserNodeScaleSetEvictionPolicy": {
@@ -582,7 +582,7 @@
                 "Deallocate"
             ],
             "metadata": {
-                "description": "Auto-scaler eviction policy for the AKS control plan nodes"
+                "description": "Auto-scaler eviction policy for the AKS worker plane nodes"
             }
         },
         "aksUserNodeAvailabilityZone": {
@@ -593,21 +593,21 @@
                 "3"
             ],
             "metadata": {
-                "description": "Array of the availability zones to be used for the AKS control plane nodes (only relevant when pool type is virtual machine scale set.)"
+                "description": "Array of the availability zones to be used for the AKS worker plane nodes (only relevant when pool type is virtual machine scale set.)"
             }
         },
         "aksUserNodeMaxPods": {
             "type": "int",
             "defaultValue": 30,
             "metadata": {
-                "description": "Maximum number of pods that can run on an AKS control plane node"
+                "description": "Maximum number of pods that can run on an AKS worker plane node"
             }
         },
         "aksUserNodeLabels": {
             "type": "object",
             "defaultValue": {},
             "metadata": {
-                "description": "Additional labels for the AKS control plane nodes"
+                "description": "Additional labels for the AKS worker plane nodes"
             }
         },
         "aksUserNodeTaints": {
