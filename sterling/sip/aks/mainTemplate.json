@@ -160,6 +160,481 @@
                 "description": "Namespace for SIP instance"
             }
         },
+        "aksClusterName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-aks')]",
+            "metadata": {
+                "description": "Name for the AKS cluster"
+            }
+        },
+        "aksSkuTier": {
+            "type": "string",
+            "defaultValue": "Premium",
+            "allowedValues": [
+                "Free",
+                "Standard",
+                "Premium"
+            ],
+            "metadata": {
+                "description": "SKU tier for the AKS cluster. "
+            }
+        },
+        "aksClusterPrivate": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the AKS cluster will private only - i.e. will not have any public ingress"
+            }
+        },
+        "aksClusterDisableLocalAccounts": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether local kubernetes accounts should be disabled. Setting this requires all users to be defined in EntraID"
+            }
+        },
+        "aksClusterNodeOsUpgradeChannel": {
+            "type": "string",
+            "defaultValue": "NodeImage",
+            "allowedValues": [
+                "NodeImage",
+                "None",
+                "Unmanaged"
+            ]
+        },
+        "aksClusterUpgradeChannel": {
+            "type": "string",
+            "defaultValue": "patch",
+            "allowedValues": [
+                "none-image",
+                "none",
+                "patch",
+                "rapid",
+                "stable"
+            ]
+        },
+        "aksEnablePodIdentityProfile": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the AKS pod identity profile should be enabled. Requires feature to be enabled in subscription"
+            }
+        },
+        "aksEnableAadIntegration": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable AKS EntraID integration"
+            }
+        },
+        "aksEnableAadRbac": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable EntraID RBAC authentication for kubernetes users"
+            }
+        },
+        "aksAdminGroupObjectId": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "EntraID group object Id that will have admin access to the AKS cluster. Only valid and required if AAD RBAC is enabled."
+            }
+        },
+        "aksAadTenantId": {
+            "type": "string",
+            "defaultValue": "[tenant().tenantId]",
+            "metadata": {
+                "description": "Tenant Id for the EntraID group object that will have admin access to the AKS cluster. Only valid if AAD RBAC is enabled."
+            }
+        },
+        "aksKubernetesVersion": {
+            "type": "string",
+            "defaultValue": "1.27",
+            "metadata": {
+                "description": "Version of kubneretes to be used for the AKS cluster"
+            }
+        },
+        "aksClusterDnsPrefix": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('aksClusterName'),substring( uniqueString(resourceGroup().id), 1, 4 ))]",
+            "metadata": {
+                "description": "Domain name prefix for the AKS cluster"
+            }
+        },
+        "aksEnableRbac": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use RBAC for the AKS cluster"
+            }
+        },
+        "aksEnableAzurePolicy": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to enable Azure policy in the AKS cluster"
+            }
+        },
+        "aksAdminUserName": {
+            "type": "string",
+            "defaultValue": "aksadmin",
+            "metadata": {
+                "description": "Default administrator user for AKS nodes"
+            }
+        },
+        "aksAutoScalerScanInterval": {
+            "type": "string",
+            "defaultValue": "10s",
+            "metadata": {
+                "description": "Scan interval for the auto-scaler of the AKS cluster."
+            }
+        },
+        "aksAutoScalerDownDelayPostAdd": {
+            "type": "string",
+            "defaultValue": "10m",
+            "metadata": {
+                "description": "Auto scaler scale down delay after add for the AKS cluster."
+            }
+        },
+        "aksAutoScalerDownDelayPostDelete": {
+            "type": "string",
+            "defaultValue": "20s",
+            "metadata": {
+                "description": "Auto scaler scale down delay after delete for the AKS cluster."
+            }
+        },
+        "aksAutoScalerDownDelayPostFailure": {
+            "type": "string",
+            "defaultValue": "3m",
+            "metadata": {
+                "description": "Auto scaler scale down delay after failure for the AKS cluster."
+            }
+        },
+        "aksAutoScalerScaleDownUnneededTime": {
+            "type": "string",
+            "defaultValue": "10m",
+            "metadata": {
+                "description": "Auto-scaler scale down unneeded time for the AKS cluster."
+            }
+        },
+        "aksAutoScalerScaleDownUnReadyTime": {
+            "type": "string",
+            "defaultValue": "20m",
+            "metadata": {
+                "description": "Auto-scaler scale down unready time for the AKS cluster."
+            }
+        },
+        "aksAutoScalerScaleDownUtilThreshold": {
+            "type": "string",
+            "defaultValue": "0.5",
+            "metadata": {
+                "description": "Auto-scaler utilization threshold for the AKS cluster."
+            }
+        },
+        "aksAutoScalerMaxGraceTerminationTime": {
+            "type": "string",
+            "defaultValue": "600",
+            "metadata": {
+                "description": "Auto-scaler maximum graceful termination time interval in seconds for the AKS cluster."
+            }
+        },
+        "aksSystemNodePoolName": {
+            "type": "string",
+            "defaultValue": "controlpool",
+            "metadata": {
+                "description": "The name of the AKS control node pool"
+            }
+        },
+        "aksSystemNodeVmPoolType": {
+            "type": "string",
+            "defaultValue": "VirtualMachineScaleSets",
+            "allowedValues": [
+                "VirtualMachineScaleSets",
+                "AvailabilitySet"
+            ],
+            "metadata": {
+                "description": "The type of VM pool for the control nodes - virtual machine set or availability set"
+            }
+        },
+        "aksSystemNodeCount": {
+            "type": "int",
+            "defaultValue": 3,
+            "metadata": {
+                "description": "Number of AKS control nodes to deploy by default"
+            }
+        },
+        "aksSystemNodeSize": {
+            "type": "string",
+            "defaultValue": "Standard_D8s_v3",
+            "metadata": {
+                "description": "VM size of each AKS control plane node"
+            }
+        },
+        "aksSystemNodeOsSku": {
+            "type": "string",
+            "defaultValue": "Ubuntu",
+            "allowedValues": [
+                "AzureLinux",
+                "Ubuntu"
+            ]
+        },
+        "aksSystemOsDiskSize": {
+            "type": "int",
+            "defaultValue": 128,
+            "metadata": {
+                "description": "Size in GiB of the OS disk for the AKS control plan nodes"
+            }
+        },
+        "aksSystemNodeMax": {
+            "type": "int",
+            "defaultValue": 6,
+            "metadata": {
+                "description": "Maximum number of AKS control plane nodes to scale up to"
+            }
+        },
+        "aksSystemNodeAutoScaling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use auto scaling with the AKS control plane nodes"
+            }
+        },
+        "aksSystemNodeScaleSetPriority": {
+            "type": "string",
+            "defaultValue": "Regular",
+            "allowedValues": [
+                "Spot",
+                "Regular"
+            ],
+            "metadata": {
+                "description": "Auto-scaler priority for the AKS control plan nodes"
+            }
+        },
+        "aksSystemNodeScaleSetEvictionPolicy": {
+            "type": "string",
+            "defaultValue": "Delete",
+            "allowedValues": [
+                "Delete",
+                "Deallocate"
+            ],
+            "metadata": {
+                "description": "Auto-scaler eviction policy for the AKS control plan nodes"
+            }
+        },
+        "aksSystemNodeAvailabilityZone": {
+            "type": "array",
+            "defaultValue": [
+                "1",
+                "2",
+                "3"
+            ],
+            "metadata": {
+                "description": "Array of the availability zones to be used for the AKS control plane nodes (only relevant when pool type is virtual machine scale set.)"
+            }
+        },
+        "aksSystemNodeMaxPods": {
+            "type": "int",
+            "defaultValue": 30,
+            "metadata": {
+                "description": "Maximum number of pods that can run on an AKS control plane node"
+            }
+        },
+        "aksSystemNodeLabels": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Additional labels for the AKS control plane nodes"
+            }
+        },
+        "aksUserNodePoolName": {
+            "type": "string",
+            "defaultValue": "workerpool",
+            "metadata": {
+                "description": "The name of the AKS control node pool"
+            }
+        },
+        "aksUserNodeVmPoolType": {
+            "type": "string",
+            "defaultValue": "VirtualMachineScaleSets",
+            "allowedValues": [
+                "VirtualMachineScaleSets",
+                "AvailabilitySet"
+            ],
+            "metadata": {
+                "description": "The type of VM pool for the system nodes - virtual machine set or availability set"
+            }
+        },
+        "aksUserNodeCount": {
+            "type": "int",
+            "defaultValue": 3,
+            "metadata": {
+                "description": "Number of AKS control nodes to deploy by default"
+            }
+        },
+        "aksUserNodeSize": {
+            "type": "string",
+            "defaultValue": "Standard_D8s_v3",
+            "metadata": {
+                "description": "VM size of each AKS control plane node"
+            }
+        },
+        "aksUserNodeOsSku": {
+            "type": "string",
+            "defaultValue": "Ubuntu",
+            "allowedValues": [
+                "AzureLinux",
+                "Ubuntu"
+            ]
+        },
+        "aksUserOsDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "metadata": {
+                "description": "Size in GiB of the OS disk for the AKS worker plan nodes"
+            }
+        },
+        "aksUserNodeMax": {
+            "type": "int",
+            "defaultValue": 10,
+            "metadata": {
+                "description": "Maximum number of AKS worker plane nodes to scale up to"
+            }
+        },
+        "aksUserNodeAutoScaling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use auto scaling with the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeScaleSetPriority": {
+            "type": "string",
+            "defaultValue": "Regular",
+            "allowedValues": [
+                "Spot",
+                "Regular"
+            ],
+            "metadata": {
+                "description": "Auto-scaler priority for the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeScaleSetEvictionPolicy": {
+            "type": "string",
+            "defaultValue": "Delete",
+            "allowedValues": [
+                "Delete",
+                "Deallocate"
+            ],
+            "metadata": {
+                "description": "Auto-scaler eviction policy for the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeAvailabilityZone": {
+            "type": "array",
+            "defaultValue": [
+                "1",
+                "2",
+                "3"
+            ],
+            "metadata": {
+                "description": "Array of the availability zones to be used for the AKS worker plane nodes (only relevant when pool type is virtual machine scale set.)"
+            }
+        },
+        "aksUserNodeMaxPods": {
+            "type": "int",
+            "defaultValue": 30,
+            "metadata": {
+                "description": "Maximum number of pods that can run on an AKS worker plane node"
+            }
+        },
+        "aksUserNodeLabels": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Additional labels for the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeTaints": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Array of additional taints for the AKS worker plane nodes"
+            }
+        },
+        "aksEnableEncryptionAtHost": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable encryption at host on AKS cluster nodes. Not supported on all VM sizes or Azure regions. Refer https://docs.microsoft.com/azure/aks/enable-host-encryption"
+            }
+        },
+        "aksEnableFips": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable FIPS on AKS cluster nodes. Refer to https://learn.microsoft.com/en-us/azure/aks/use-multiple-node-pools#add-a-fips-enabled-node-pool-preview"
+            }
+        },
+        "aksEnableUltraSsd": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable Ultra SSD support for the AKS cluster nodes"
+            }
+        },
+        "aksServiceCidr": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/16",
+            "metadata": {
+                "description": "IP address prefix for the internal AKS services"
+            }
+        },
+        "aksDnsServiceIp": {
+            "type": "string",
+            "defaultValue": "172.16.0.10",
+            "metadata": {
+                "description": "IP address for the internal DNS service. Must be within the serviceCIDR"
+            }
+        },
+        "aksDockerBridgeCidr": {
+            "type": "string",
+            "defaultValue": "172.17.0.1/16",
+            "metadata": {
+                "description": "IP address prefix for the docker bridge network. Must not overlap with any other internal or external IP addresses."
+            }
+        },
+        "aksPodCidr": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/16",
+            "metadata": {
+                "description": "IP address prefix for the pod network when kubenet is used"
+            }
+        },
+        "aksNetworkPlugin": {
+            "type": "string",
+            "defaultValue": "azure",
+            "allowedValues": [
+                "azure",
+                "kubenet",
+                "none"
+            ],
+            "metadata": {
+                "description": "Specifies the type of AKS network plugin to be used - azure, kubenet or none"
+            }
+        },
+        "aksNetworkPolicy": {
+            "type": "string",
+            "defaultValue": "calico",
+            "allowedValues": [
+                "azure",
+                "calico",
+                "cilium"
+            ],
+            "metadata": {
+                "description": "Specifies the network policy for building networks in the AKS cluster - Calico, Cilium or Azure"
+            }
+        },
         "networkResourceGroup": {
             "type": "string",
             "defaultValue": "[resourceGroup().name]",
@@ -183,7 +658,7 @@
         },
         "vnetCIDR": {
             "type": "string",
-            "defaultValue": "10.0.0.0/20",
+            "defaultValue": "10.0.0.0/16",
             "metadata": {
                 "description": "CIDR for Virtual Network"
             }
@@ -239,6 +714,20 @@
             "defaultValue": "control-subnet",
             "metadata": {
                 "description": "Name of the AKS subnet"
+            }
+        },
+        "podSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.64.0/18",
+            "metadata": {
+                "description": "IP address CIDR for the AKS pod IP address when azure network plugin is used. Must have sufficient IP addresses for all possible pods."
+            }
+        },
+        "podSubnetName": {
+            "type": "string",
+            "defaultValue": "pod-subnet",
+            "metadata": {
+                "description": "Subnet name for the AKS pod IP address when azure network plugin is used."
             }
         },
         "aksNsgName": {
@@ -323,9 +812,9 @@
         },
         "vmSize": {
             "type": "string",
-            "defaultValue": "Standard_B2ms",
+            "defaultValue": "Standard_B1s",
             "metadata": {
-                "description": "Size of Dev VM"
+                "description": "Size of AKS management VM"
             }
         },
         "vmDiskType": {
@@ -355,9 +844,8 @@
         },
         "vmOSVersion": {
             "type": "string",
-            "defaultValue": "Ubuntu 20.04 LTS",
+            "defaultValue": "Ubuntu 22.04 LTS",
             "allowedValues": [
-                "Ubuntu 18.04 LTS",
                 "Ubuntu 20.04 LTS",
                 "Ubuntu 22.04 LTS"
             ],
@@ -808,7 +1296,7 @@
             "name": "deployAcr",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -849,6 +1337,280 @@
                 },
                 "templateLink": {
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/acr/azuredeploy.json'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployAks",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAcr')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "aksSubnetName": {
+                        "value": "[parameters('aksSubnetName')]"
+                    },
+                    "aksSubnetCIDR": {
+                        "value": "[parameters('aksSubnetCIDR')]"
+                    },
+                    "podSubnetName": {
+                        "value": "[parameters('podSubnetName')]"
+                    },
+                    "podSubnetCIDR": {
+                        "value": "[parameters('podSubnetCIDR')]"
+                    },
+                    "ngwName": {
+                        "value": "[parameters('natGatewayName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "outboundRouting": {
+                        "value": "[parameters('outboundRouting')]"
+                    },
+                    "createNatGateway": {
+                        "value": false
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "aksClusterName": {
+                        "value": "[parameters('aksClusterName')]"
+                    },
+                    "aksSkuTier": {
+                        "value": "[parameters('aksSkuTier')]"
+                    },
+                    "aksClusterPrivate": {
+                        "value": "[parameters('aksClusterPrivate')]"
+                    },
+                    "aksClusterDisableLocalAccounts": {
+                        "value": "[parameters('aksClusterDisableLocalAccounts')]"
+                    },
+                    "aksClusterNodeOsUpgradeChannel": {
+                        "value": "[parameters('aksClusterNodeOsUpgradeChannel')]"
+                    },
+                    "aksClusterUpgradeChannel": {
+                        "value": "[parameters('aksClusterUpgradeChannel')]"
+                    },
+                    "aksEnablePodIdentityProfile": {
+                        "value": "[parameters('aksEnablePodIdentityProfile')]"
+                    },
+                    "aksEnableAadIntegration": {
+                        "value": "[parameters('aksEnableAadIntegration')]"
+                    },
+                    "aksEnableAadRbac": {
+                        "value": "[parameters('aksEnableAadRbac')]"
+                    },
+                    "aksAdminGroupObjectId": {
+                        "value": "[parameters('aksAdminGroupObjectId')]"
+                    },
+                    "aksAadTenantId": {
+                        "value": "[parameters('aksAadTenantId')]"
+                    },
+                    "aksKubernetesVersion": {
+                        "value": "[parameters('aksKubernetesVersion')]"
+                    },
+                    "aksClusterDnsPrefix": {
+                        "value": "[parameters('aksClusterDnsPrefix')]"
+                    },
+                    "aksEnableRbac": {
+                        "value": "[parameters('aksEnableRbac')]"
+                    },
+                    "aksEnableAzurePolicy": {
+                        "value": "[parameters('aksEnableAzurePolicy')]"
+                    },
+                    "aksAdminUserName": {
+                        "value": "[parameters('aksAdminUserName')]"
+                    },
+                    "aksSshPublicKey": {
+                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2022-09-0').outputs['publicKey'].value,parameters('publicSshKey'))]"       
+                    },
+                    "aksAutoScalerScanInterval": {
+                        "value": "[parameters('aksAutoScalerScanInterval')]"
+                    },
+                    "aksAutoScalerDownDelayPostAdd": {
+                        "value": "[parameters('aksAutoScalerDownDelayPostAdd')]"
+                    },
+                    "aksAutoScalerDownDelayPostDelete": {
+                        "value": "[parameters('aksAutoScalerDownDelayPostDelete')]"
+                    },
+                    "aksAutoScalerDownDelayPostFailure": {
+                        "value": "[parameters('aksAutoScalerDownDelayPostFailure')]"
+                    },
+                    "aksAutoScalerScaleDownUnneededTime": {
+                        "value": "[parameters('aksAutoScalerScaleDownUnneededTime')]"
+                    },
+                    "aksAutoScalerScaleDownUnReadyTime": {
+                        "value": "[parameters('aksAutoScalerScaleDownUnReadyTime')]"
+                    },
+                    "aksAutoScalerScaleDownUtilThreshold": {
+                        "value": "[parameters('aksAutoScalerScaleDownUtilThreshold')]"
+                    },
+                    "aksAutoScalerMaxGraceTerminationTime": {
+                        "value": "[parameters('aksAutoScalerMaxGraceTerminationTime')]"
+                    },
+                    "aksSystemNodePoolName": {
+                        "value": "[parameters('aksSystemNodePoolName')]"
+                    },
+                    "aksSystemNodeVmPoolType": {
+                        "value": "[parameters('aksSystemNodeVmPoolType')]"
+                    },
+                    "aksSystemNodeCount": {
+                        "value": "[parameters('aksSystemNodeCount')]"
+                    },
+                    "aksSystemNodeSize": {
+                        "value": "[parameters('aksSystemNodeSize')]"
+                    },
+                    "aksSystemNodeType": {
+                        "value": "Linux"
+                    },
+                    "aksSystemNodeOsSku": {
+                        "value": "[parameters('aksSystemNodeOsSku')]"
+                    },
+                    "aksSystemOsDiskSize": {
+                        "value": "[parameters('aksSystemOsDiskSize')]"
+                    },
+                    "aksSystemNodeMax": {
+                        "value": "[parameters('aksSystemNodeMax')]"
+                    },
+                    "aksSystemNodeMin": {
+                        "value": 3
+                    },
+                    "aksSystemNodeAutoScaling": {
+                        "value": "[parameters('aksSystemNodeAutoScaling')]"
+                    },
+                    "aksSystemNodeScaleSetPriority": {
+                        "value": "[parameters('aksSystemNodeScaleSetPriority')]"
+                    },
+                    "aksSystemNodeScaleSetEvictionPolicy": {
+                        "value": "[parameters('aksSystemNodeScaleSetEvictionPolicy')]"
+                    },
+                    "aksSystemNodeAvailabilityZone": {
+                        "value": "[parameters('aksSystemNodeAvailabilityZone')]"
+                    },
+                    "aksSystemNodeMaxPods": {
+                        "value": "[parameters('aksSystemNodeMaxPods')]"
+                    },
+                    "aksSystemNodeLabels": {
+                        "value": "[parameters('aksSystemNodeLabels')]"
+                    },
+                    "aksSystemNodeTaints": {
+                        "value": [
+                            "CriticalAddonsOnly=true:NoSchedule"
+                        ]
+                    },
+                    "aksUserNodePoolName": {
+                        "value": "[parameters('aksUserNodePoolName')]"
+                    },
+                    "aksUserNodeVmPoolType": {
+                        "value": "[parameters('aksUserNodeVmPoolType')]"
+                    },
+                    "aksUserNodeCount": {
+                        "value": "[parameters('aksUserNodeCount')]"
+                    },
+                    "aksUserNodeSize": {
+                        "value": "[parameters('aksUserNodeSize')]"
+                    },
+                    "aksUserNodeType": {
+                        "value": "Linux"
+                    },
+                    "aksUserNodeOsSku": {
+                        "value": "[parameters('aksUserNodeOsSku')]"
+                    },
+                    "aksUserOsDiskSize": {
+                        "value": "[parameters('aksUserOsDiskSize')]"
+                    },
+                    "aksUserNodeMax": {
+                        "value": "[parameters('aksUserNodeMax')]"
+                    },
+                    "aksUserNodeMin": {
+                        "value": 2
+                    },
+                    "aksUserNodeMaxPods": {
+                        "value": "[parameters('aksUserNodeMaxPods')]"
+                    },
+                    "aksUserNodeAutoScaling": {
+                        "value": "[parameters('aksUserNodeAutoScaling')]"
+                    },
+                    "aksUserNodeScaleSetPriority": {
+                        "value": "[parameters('aksUserNodeScaleSetPriority')]"
+                    },
+                    "aksUserNodeScaleSetEvictionPolicy": {
+                        "value": "[parameters('aksUserNodeScaleSetEvictionPolicy')]"
+                    },
+                    "aksUserNodeAvailabilityZone": {
+                        "value": "[parameters('aksUserNodeAvailabilityZone')]"
+                    },
+                    "aksUserNodeLabels": {
+                        "value": "[parameters('aksUserNodeLabels')]"
+                    },
+                    "aksUserNodeTaints": {
+                        "value": "[parameters('aksUserNodeTaints')]"
+                    },
+                    "aksEnableEncryptionAtHost": {
+                        "value": "[parameters('aksEnableEncryptionAtHost')]"
+                    },
+                    "aksEnableFips": {
+                        "value": "[parameters('aksEnableFips')]"
+                    },
+                    "aksEnableUltraSsd": {
+                        "value": "[parameters('aksEnableUltraSsd')]"
+                    },
+                    "aksEnableNodePublicIp": {
+                        "value": false
+                    },
+                    "aksDnsServiceIp": {
+                        "value": "[parameters('aksDnsServiceIp')]"
+                    },
+                    "aksServiceCidr": {
+                        "value": "[parameters('aksServiceCidr')]"
+                    },
+                    "aksDockerBridgeCidr": {
+                        "value": "[parameters('aksDockerBridgeCidr')]"
+                    },
+                    "aksPodCidr": {
+                        "value": "[parameters('aksPodCidr')]"
+                    },
+                    "aksLoadBalancerSku": {
+                        "value": "standard"
+                    },
+                    "aksNetworkPlugin": {
+                        "value": "[parameters('aksNetworkPlugin')]"
+                    },
+                    "aksNetworkPolicy": {
+                        "value": "[parameters('aksNetworkPolicy')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/aks/azuredeploy.json'))]"
                 }
             }
         },
