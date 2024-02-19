@@ -37,13 +37,20 @@ fi
 case $VERSION in
     2022.2.1)   
         log-info "Importing specifications for version 2022.2.1"
-        SOURCE_FILE="./version-2022-2-1.json"
+        SOURCE_FILE="version-2022-2-1.json"
         ;;
     *)         
         log-error "Unknown version $VERSION"
         exit 1
         ;;
 esac
+
+if [[ -f $SOURCE_FILE ]]; then
+  log-info "Using version source file $SOURCE_FILE"
+else
+  log-error "Version source file $SOURCE_FILE not found"
+  exit 1
+fi
 
 ######
 # Create working directories
