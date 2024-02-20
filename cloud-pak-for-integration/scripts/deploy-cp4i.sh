@@ -24,6 +24,18 @@ else
     log-info "Using existing Azure CLI login"
 fi
 
+########
+# If OCP_DIST not set, predict based on other variables
+if [[ -z $OCP_DIST ]]; then
+  log-info "OCP_DIST not set. Predicting OCP type"
+  if [[ -z $API_SERVER ]] && [[ $ARO_CLUSTER ]]; then
+    OCP_DICT="ARO"
+  else
+    OCP_DIST="IPI"
+  fi
+  log-info "OCP_DIST predicted to be $OCP_DIST"
+fi
+
 #######
 # Get OpenShift distribution and check environment variables
 ENV_CHECK=$(check-env-vars $OCP_DIST)
