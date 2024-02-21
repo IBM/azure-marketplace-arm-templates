@@ -14,6 +14,11 @@ source default-values.sh
 OUTPUT_FILE="cp4i-script-output-$(date -u +'%Y-%m-%d-%H%M%S').log"
 log-info "Script started" 
 
+######
+# Create working directories
+mkdir -p ${WORKSPACE_DIR}
+mkdir -p ${TMP_DIR}
+
 #######
 # Login to Azure CLI
 az account show > /dev/null 2>&1
@@ -46,28 +51,40 @@ fi
 
 #######
 # Import relevant CP4I version settings
-case $VERSION in
-    2022.2.1)   
-        log-info "Importing specifications for version 2022.2.1"
-        SOURCE_FILE="version-2022-2-1.json"
-        ;;
-    *)         
-        log-error "Unknown version $VERSION"
-        exit 1
-        ;;
-esac
 
-if [[ -f $SOURCE_FILE ]]; then
-  log-info "Using version source file $SOURCE_FILE"
+# Set the supplied version or use the default
+if [[ -z $VERSION ]]; then
+  log-info "No version specified. Will default to $DEFAULT_VERSION"
+  VERSION="$DEFAULT_VERSION"
 else
-  log-error "Version source file $SOURCE_FILE not found"
-  exit 1
+  log-info "Will deploy IBM Cloud Pak for Integration version $VERSION"
 fi
 
-######
-# Create working directories
-mkdir -p ${WORKSPACE_DIR}
-mkdir -p ${TMP_DIR}
+# Set the supplied license or use the default
+if [[ -z $LICENSE_ID ]]; then
+  log-info "No license ID specified. Will default to $DEFAULT_LICENSE_ID"
+  LICENSE_ID="$DEFAULT_LICENSE_ID"
+else
+  log-info "Will deploy IBM Cloud Pak for Integration version $LICENSE_ID"
+fi
+
+# Check that the version spec file exists and download
+VERSION_URL="${VERSION_URI}/${BRANCH}/${VERSION_PATH}/specs-${VERSION}.json"
+wget --spider $VERSION_URL 2>&1
+if (( $? != 0 )); then
+  log-error "Version specification file not found at $VERSION_URL"
+  exit 1
+else
+  log-info "Importing version specification file"
+  wget -q -P $WORKSPACE_DIR $VERSION_URL 2>&1 /dev/null
+  if (( $? != 0 )); then
+    log-error "Unable to download version file $VERSION_URL"
+    exit 1
+  else
+    log-info "Successfully downloaded version file $VERSION_URL"
+  fi
+fi
+SOURCE_FILE="${WORKSPACE_DIR}/specs-${VERSION}.json"
 
 #######
 # Download and install CLI's if they do not already exist
@@ -272,26 +289,27 @@ done
 if [[ $LICENSE == "accept" ]]; then
     if [[ -z $(${BIN_DIR}/oc get PlatformNavigator -n ${INSTANCE_NAMESPACE} | grep ${INSTANCE_NAMESPACE}-navigator ) ]]; then
         log-info "Creating Platform Navigator instance"
-        if [[ -f ${WORKSPACE_DIR}/platform-navigator-instance.yaml ]]; then rm ${WORKSPACE_DIR}/platform-navigator-instance.yaml; fi
-        cat << EOF >> ${WORKSPACE_DIR}/platform-navigator-instance.yaml
-apiVersion: integration.ibm.com/v1beta1
-kind: PlatformNavigator
-metadata:
-  name: ${INSTANCE_NAMESPACE}-navigator
-  namespace: ${INSTANCE_NAMESPACE}
-spec:
-  requestIbmServices:
-    licensing: true
-  license:
-    accept: true
-    license: ${LICENSE_ID}
-  mqDashboard: true
-  replicas: ${REPLICAS}
-  version: '${VERSION}'
-  storage:
-    class: ${STORAGE_CLASS}
-EOF
-        ${BIN_DIR}/oc create -n ${INSTANCE_NAMESPACE} -f ${WORKSPACE_DIR}/platform-navigator-instance.yaml
+
+        # Check that the PN instance template file exists and download
+        PN_INSTANCE_NAME="$(cat $SOURCE_FILE | jq -r '.defaults.pnInstanceYaml')"
+        PN_INSTANCE_YAML_URL="${VERSION_URI}/${BRANCH}/${VERSION_PATH}/${PN_INSTANCE_NAME}"
+        wget --spider ${PN_INSTANCE_YAML_URL} 2>&1
+        if (( $? != 0 )); then
+          log-error "Platform Navigator template not found at ${PN_INSTANCE_YAML_URL}"
+          exit 1
+        else
+          log-info "Importing version specification file"
+          wget -q -P $WORKSPACE_DIR ${PN_INSTANCE_YAML_URL} 2>&1 /dev/null
+          if (( $? != 0 )); then
+            log-error "Unable to download Platform Navigator template file ${PN_INSTANCE_YAML_URL}"
+            exit 1
+          else
+            log-info "Successfully downloaded Platform Navigator template file ${PN_INSTANCE_YAML_URL}"
+          fi
+        fi
+        PN_TEMPLATE_FILE="${WORKSPACE_DIR}/${PN_INSTANCE_NAME}"
+
+        envsubst < ${PN_TEMPLATE_FILE} | oc apply -f -
 
         if (( $? != 0 )); then
           log-error "Unable to create Platform Navigator instance"
