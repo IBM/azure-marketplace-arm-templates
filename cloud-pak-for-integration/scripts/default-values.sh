@@ -2,7 +2,7 @@
 
 if [[ -z $OCP_USERNAME ]]; then OCP_USERNAME="kubeadmin"; fi
 if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
-if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="/workspace"; fi
+if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="/mnt/azscripts/azscriptinput"; fi
 if [[ -z $BIN_DIR ]]; then export BIN_DIR="/usr/local/bin"; fi
 if [[ -z $TMP_DIR ]]; then TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
 if [[ -z $NAMESPACE ]]; then export NAMESPACE="cp4i"; fi
