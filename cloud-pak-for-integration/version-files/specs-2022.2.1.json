@@ -1,0 +1,202 @@
+{
+    "defaults": {
+        "namespace": "cp4i",
+        "instanceNamespace": "cp4i",
+        "clusterScoped": "false",
+        "replicas": 1,
+        "storage_class": "ocs-storagecluster-cephfs",
+        "pnInstanceYaml": "pn-instance-2022-2-1.yaml"
+    },
+    "catalogSources": [
+        {
+            "name": "ibm-apiconnect-catalog",
+            "displayName": "APIC from CASE 4.0.4",
+            "image": "icr.io/cpopen/ibm-apiconnect-catalog@sha256:a89b72f4794b74caec423059d0551660951c9d772d9892789d3bdf0407c3f61a",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-appconnect-catalog",
+            "displayName": "App Connect from CASE 5.0.7",
+            "image": "icr.io/cpopen/appconnect-operator-catalog@sha256:ccb9190be75128376f64161dccfb6d64915b63207206c9b74d05611ab88125ce",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-aspera-hsts-operator-catalog",
+            "displayName": "Aspera from CASE 1.5.8",
+            "image": "icr.io/cpopen/aspera-hsts-catalog@sha256:ba2b97642692c627382e738328ec5e4b566555dcace34d68d0471439c1efc548",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-cloud-databases-redis-catalog",
+            "displayName": "Redis from CASE 1.6.6",
+            "image": "icr.io/cpopen/ibm-cloud-databases-redis-catalog@sha256:fddf96636005a9c276aec061a3b514036ce6d79bd91fd7e242126b2f52394a78",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-common-service-catalog",
+            "displayName": "IBM Foundation Services from CASE 1.15.12",
+            "image": "icr.io/cpopen/ibm-common-service-catalog@sha256:fbf8ef961f3ff3c98ca4687f5586741ea97085ab5b78691baa056a5d581eecf5",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-datapower-operator-catalog",
+            "displayName": "DataPower from CASE 1.6.7",
+            "image": "icr.io/cpopen/datapower-operator-catalog@sha256:1b3e967cfa0c4615ad183ba0f19cca5f64fbad9eb833ee5dad9b480b38d80010",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-eventstreams-catalog",
+            "displayName": "Event Streams from CASE 3.2.0",
+            "image": "icr.io/cpopen/ibm-eventstreams-catalog@sha256:ac87cfecba0635a67c7d9b6c453c752cba9b631ffdd340223e547809491eb708",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-integration-asset-repository-catalog",
+            "displayName": "Automation Assets from CASE 1.5.9",
+            "image": "icr.io/cpopen/ibm-integration-asset-repository-catalog@sha256:1af42da7f7c8b12818d242108b4db6f87862504f1c57789213539a98720b0fed",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-mq-operator-catalog",
+            "displayName": "MQ from CASE 2.0.12",
+            "image": "icr.io/cpopen/ibm-mq-operator-catalog@sha256:ea21ed79f877458392ac160a358f72a4b33c755220f5d9eaccfdb89ab2232a3b",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        },
+        {
+            "name": "ibm-integration-platform-navigator-catalog",
+            "displayName": "CP4I from CASE 1.7.10",
+            "image": "icr.io/cpopen/ibm-integration-platform-navigator-catalog@sha256:3435a5d0e2375d0524bd3baaa0dad772280efe6cacc13665ac8b2760ad3ebb35",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryPollInterval": "45m"
+        }
+    ],
+    "subscriptions": [
+        {
+            "name": "IBM Common Services",
+            "metadata": {
+                "name": "ibm-common-service-operator-ibm-common-service-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-common-service-operator",
+                "channel": "v3",
+                "source": "ibm-common-service-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Cloud Redis Databases",
+            "metadata": {
+                "name": "ibm-cloud-databases-redis-operator-ibm-cloud-databases-redis-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-cloud-databases-redis-operator",
+                "channel": "",
+                "source": "ibm-cloud-databases-redis-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Integration Platform Navigator",
+            "metadata": {
+                "name": "ibm-integration-platform-navigator-ibm-integration-platform-navigator-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-integration-platform-navigator",
+                "channel": "v6.0",
+                "source": "ibm-integration-platform-navigator-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Aspera",
+            "metadata": {
+                "name": "aspera-hsts-operator-ibm-aspera-hsts-operator-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "aspera-hsts-operator",
+                "channel": "v1.5",
+                "source": "ibm-aspera-hsts-operator-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM App Connect",
+            "metadata": {
+                "name": "ibm-appconnect-ibm-appconnect-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-appconnect",
+                "channel": "v5.0-lts",
+                "source": "ibm-appconnect-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Event Streams",
+            "metadata": {
+                "name": "ibm-eventstreams-ibm-eventstreams-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-eventstreams",
+                "channel": "v3.2",
+                "source": "ibm-eventstreams-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM MQ",
+            "metadata": {
+                "name": "ibm-mq-ibm-mq-operator-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-mq",
+                "channel": "v2.0",
+                "source": "ibm-mq-operator-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Integration Asset Repository",
+            "metadata": {
+                "name": "ibm-integration-asset-repository-ibm-integration-asset-repository-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-integration-asset-repository",
+                "channel": "v1.5",
+                "source": "ibm-integration-asset-repository-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM API Connect",
+            "metadata": {
+                "name": "ibm-apiconnect-ibm-apiconnect-catalog-openshift-marketplace"
+            },
+            "spec": {
+                "name": "ibm-apiconnect",
+                "channel": "v3.3",
+                "source": "ibm-apiconnect-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        }
+    ]
+}
