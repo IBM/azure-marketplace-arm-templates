@@ -262,6 +262,16 @@ function cli-download() {
         local OCP_RELEASE=$(( $(echo ${3} | awk -F'.' '{print $2}') ))
     fi
 
+    # Install the gettext package if not already installed
+    if [[ -z $(which envsubst) ]]; then 
+        log-info "Installing gettext package"
+        apk add gettext > /dev/null
+        if (( $? != 0 )); then
+            log-error "Unable to install gettext package"
+            exit 1
+        fi
+    fi
+
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
     if [[ ! -f /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
         log-info "Installing glibc compatibility libraries"
