@@ -70,7 +70,7 @@ fi
 
 # Check that the version spec file exists and download
 VERSION_URL="${VERSION_URI}/${BRANCH}/${VERSION_PATH}/specs-${VERSION}.json"
-wget --spider $VERSION_URL 2>&1
+wget --spider $VERSION_URL 2>&1 /dev/null
 if (( $? != 0 )); then
   log-error "Version specification file not found at $VERSION_URL"
   exit 1

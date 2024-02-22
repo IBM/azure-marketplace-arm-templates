@@ -1,0 +1,13 @@
+apiVersion: integration.ibm.com/v1beta1
+kind: PlatformNavigator
+metadata:
+  name: integration-quickstart
+  namespace: ${INSTANCE_NAMESPACE}
+  labels:
+    backup.integration.ibm.com/component: platformnavigator 
+spec:
+  license:
+    accept: true
+    license: ${LICENSE_ID}
+  replicas: 1
+  version: '${VERSION}'
