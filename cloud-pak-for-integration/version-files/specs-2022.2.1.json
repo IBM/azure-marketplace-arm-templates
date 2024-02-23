@@ -5,7 +5,7 @@
         "clusterScoped": "false",
         "replicas": 1,
         "storage_class": "ocs-storagecluster-cephfs",
-        "pnInstanceYaml": "pn-instance-2022-2-1.yaml"
+        "pnInstanceYaml": "pn-instance-2022-2.yaml"
     },
     "catalogSources": [
         {
