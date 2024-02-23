@@ -57,3 +57,8 @@ To run the tool, specify the input version file and the output specification fil
 ```shell
 generate-spec-file.sh version-2023-1.yaml spec-2023.4.1.json
 ```
+
+>**IMPORTANT**
+As a final check, review the details in the specifications file before use and test prior to use with the marketplace listing. 
+
+In particular, check the subscription details. Some operators have a different operator image than what is generated. A list of available operator literals is [here](https://www.ibm.com/docs/en/cloud-paks/cp-integration/2023.4?topic=operators-installing-by-using-cli#operators-available__title__1). A well known one is the Aspera subscription which will generate a spec with `ibm-aspera-hsts-operator` when it the literal is `aspera-hsts-operator`.

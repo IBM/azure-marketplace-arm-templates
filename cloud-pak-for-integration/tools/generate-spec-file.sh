@@ -156,7 +156,7 @@ EOF
         "spec": {
             "name": "${OPERATORS[$i]}",
             "channel": "${CHANNEL}",
-            "source": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metatdata.name")",
+            "source": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metadata.name")",
             "installPlanApproval": "Automatic"
         }
     }
