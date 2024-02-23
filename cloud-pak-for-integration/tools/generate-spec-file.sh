@@ -8,7 +8,7 @@ CLUSTER_SCOPED="false"
 REPLICAS=1
 STORAGE_CLASS="ocs-storagecluster-cephfs"
 PN_INSTANCE_YAML="pn-instance-2023-4-1.yaml"
-CATALOG_FILE="catalogSources.json"
+
 TEMP_FILE="temp.json"
 export ARCH="amd64"
 
@@ -127,7 +127,7 @@ EOF
         if [[ -z $CHANNEL ]]; then
             CHANNEL="$(echo "v$(echo ${CASE_VERSION} | awk -F"." '{print $1}').$(echo ${CASE_VERSION} | awk -F"." '{print $2}')")"
         fi
-        cat << EOF | jq '.catalogSources += [input]' $OUTPUT_FILE - > $TEMP_FILE
+        cat << EOF | jq '.subscriptions += [input]' $OUTPUT_FILE - > $TEMP_FILE
     {
         "name": "$package",
         "metadata": {
@@ -147,3 +147,6 @@ EOF
         i=$(( $i + 1 ))
     done
 done
+
+echo 
+echo "Completed. Version specification file saved to $OUTPUT_FILE"
