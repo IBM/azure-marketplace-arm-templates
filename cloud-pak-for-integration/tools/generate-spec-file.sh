@@ -107,8 +107,15 @@ do
         exit 1
     fi
 
-    # Read the list of cases, including dependencies
-    #CASE_LIST=$()
+    # Read the list of operators for the case, including dependencies
+    COMPONENT_LIST="$HOME/.ibm-pak/data/cases/${CASE_NAME}/${CASE_VERSION}/component-set-config.yaml"
+    if [[ -f $COMPONENT_LIST ]]; then
+        OPERATOR_LIST=$(cat $COMPONENT_LIST | yq '.cases[].name')
+        OPERATORS=( $OPERATOR_LIST )
+    else
+        echo "ERROR: Component list not found for $package $CASE_NAME $CASE_VERSION"
+        exit 1
+    fi
 
     # Create the catalog source entries
     i=0;
@@ -126,28 +133,28 @@ do
     }
 EOF
         mv $TEMP_FILE $OUTPUT_FILE
-
-        # Create the operator entry
-        CHANNEL="$(cat $VERSION_FILE | yq -o=json | jq --arg PACKAGE "$package" -r '.[] | select(.name==$PACKAGE) | .operatorChannel')"
-        if [[ -z $CHANNEL ]]; then
-            CHANNEL="$(echo "v$(echo ${CASE_VERSION} | awk -F"." '{print $1}').$(echo ${CASE_VERSION} | awk -F"." '{print $2}')")"
-        fi
-        
-        # Set the operator name and if a dependency, use the catalog displayName
+       
+        # Set the operator name, channel and if a dependency, use the catalog displayName
         if (( $i > 0 )); then 
             OPERATOR_NAME="$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .spec.displayName")"
+            OPERATOR_VERSION="$(cat $COMPONENT_LIST | yq -r ".cases[] | select(.name==\"${OPERATORS[$i]}\") | .version")"
+            CHANNEL="$(echo "v$(echo ${OPERATOR_VERSION} | awk -F"." '{print $1}').$(echo ${OPERATOR_VERSION} | awk -F"." '{print $2}')")"
         else 
             OPERATOR_NAME="$package" 
+            CHANNEL="$(cat $VERSION_FILE | yq -o=json | jq --arg PACKAGE "$package" -r '.[] | select(.name==$PACKAGE) | .operatorChannel')"
+            if [[ -z $CHANNEL ]]; then
+                CHANNEL="$(echo "v$(echo ${CASE_VERSION} | awk -F"." '{print $1}').$(echo ${CASE_VERSION} | awk -F"." '{print $2}')")"
+            fi
         fi
 
         cat << EOF | jq '.subscriptions += [input]' $OUTPUT_FILE - > $TEMP_FILE
     {
         "name": "$OPERATOR_NAME",
         "metadata": {
-            "name": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metadata.name")"
+            "name": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metadata.name")-openshift-marketplace"
         },
         "spec": {
-            "name": "${CASE_NAME}",
+            "name": "${OPERATORS[$i]}",
             "channel": "${CHANNEL}",
             "source": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metatdata.name")",
             "installPlanApproval": "Automatic"
