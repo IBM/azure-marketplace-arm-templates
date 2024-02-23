@@ -92,18 +92,23 @@ cat $VERSION_FILE | yq -r '.[].name' | while read package;
 do
     CASE_NAME="$(cat $VERSION_FILE | yq -o=json | jq --arg PACKAGE "$package" -r '.[] | select(.name==$PACKAGE) | .operatorPackageName')"
     CASE_VERSION="$(cat $VERSION_FILE | yq -o=json | jq --arg PACKAGE "$package" -r '.[] | select(.name==$PACKAGE) | .operatorVersion')"
-    oc ibm-pak get $CASE_NAME --version $CASE_VERSION 
-    oc ibm-pak generate mirror-manifests $CASE_NAME icr.io --version $CASE_VERSION 
+    OUTPUT=$(oc ibm-pak get $CASE_NAME --version $CASE_VERSION) 
+    if (( $? != 0 )); then echo "ERROR: Unable to get $CASE_NAME version $CASE_VERSION details"; exit 1; fi
+    OUTPUT=$(oc ibm-pak generate mirror-manifests $CASE_NAME icr.io --version $CASE_VERSION) 
+    if (( $? != 0 )); then echo "ERROR: Unable to generate manifest for $CASE_NAME version $CASE_VERSION"; exit 1; fi
+    
+    # Determine the catalog source file to use
     if [[ -f $HOME/.ibm-pak/data/mirror/${CASE_NAME}/${CASE_VERSION}/catalog-sources.yaml ]]; then
-        echo "Using catalog-sources.yaml"
         CATALOG_SOURCE="$HOME/.ibm-pak/data/mirror/${CASE_NAME}/${CASE_VERSION}/catalog-sources.yaml"
     elif [[ -f $HOME/.ibm-pak/data/mirror/${CASE_NAME}/${CASE_VERSION}/catalog-sources-linux-${ARCH}.yaml ]]; then
-        echo "Using catalog-sources-linux-$ARCH.yaml"
         CATALOG_SOURCE="$HOME/.ibm-pak/data/mirror/${CASE_NAME}/${CASE_VERSION}/catalog-sources-linux-${ARCH}.yaml"
     else
         echo "Could not locate catalog source yaml"
         exit 1
     fi
+
+    # Read the list of cases, including dependencies
+    #CASE_LIST=$()
 
     # Create the catalog source entries
     i=0;
@@ -112,8 +117,8 @@ do
         # Create the catalog source entry
         cat << EOF | jq '.catalogSources += [input]' $OUTPUT_FILE - > $TEMP_FILE
     {
-        "name": "$CASE_NAME-catalog",
-        "displayName": "${CASE_NAME} from CASE ${CASE_VERSION}",
+        "name": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metadata.name")",
+        "displayName": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .spec.displayName")",
         "image": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .spec.image")",
         "publisher": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .spec.publisher")",
         "sourceType": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .spec.sourceType")",
@@ -127,16 +132,24 @@ EOF
         if [[ -z $CHANNEL ]]; then
             CHANNEL="$(echo "v$(echo ${CASE_VERSION} | awk -F"." '{print $1}').$(echo ${CASE_VERSION} | awk -F"." '{print $2}')")"
         fi
+        
+        # Set the operator name and if a dependency, use the catalog displayName
+        if (( $i > 0 )); then 
+            OPERATOR_NAME="$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .spec.displayName")"
+        else 
+            OPERATOR_NAME="$package" 
+        fi
+
         cat << EOF | jq '.subscriptions += [input]' $OUTPUT_FILE - > $TEMP_FILE
     {
-        "name": "$package",
+        "name": "$OPERATOR_NAME",
         "metadata": {
-            "name": "${CASE_NAME}-openshift-marketplace"
+            "name": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metadata.name")"
         },
         "spec": {
             "name": "${CASE_NAME}",
-            "channel": "$(echo "v$(echo ${CASE_VERSION} | awk -F"." '{print $1}').$(echo ${CASE_VERSION} | awk -F"." '{print $2}')")",
-            "source": "$CASE_NAME-catalog",
+            "channel": "${CHANNEL}",
+            "source": "$(cat $CATALOG_SOURCE | yq -r "select(documentIndex == $i) | .metatdata.name")",
             "installPlanApproval": "Automatic"
         }
     }
