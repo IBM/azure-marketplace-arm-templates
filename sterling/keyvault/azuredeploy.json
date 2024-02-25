@@ -116,7 +116,7 @@
                 "family": "A"
         },
         "privateEndpointName": "[concat(parameters('vaultName'),'-endpoint')]",
-        "privateEndpointGroupName": "keyvault",
+        "privateEndpointGroupName": "vault",
         "privateDnsZoneGroupName": "[concat(variables('privateEndpointGroupName'),'PrivateDnsZoneGroup')]",
         "publicDnsZoneForwarder": "[if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')]",
         "privateDnsZoneName": "[format('privatelink.{0}', variables('publicDnsZoneForwarder'))]"
