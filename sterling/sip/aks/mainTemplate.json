@@ -1206,7 +1206,8 @@
             "condition": "[if(equals(parameters('publicSshKey'), ''),true(),parameters('deployKeyVault'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1311,7 +1312,8 @@
             "condition": "[parameters('deployAcr')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1639,7 +1641,9 @@
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAcr')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
             ],
             "properties": {
                 "mode": "Incremental",
