@@ -112,38 +112,6 @@
                     "name": "[parameters('logAnalyticsSku')]"
                 }
             }
-        },
-        {
-            "type": "Microsoft.Insights/diagnosticSettings",
-            "apiVersion": "2017-05-01-preview",
-            "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('workspaceName'))]",
-            "name": "diagnosticSettings",
-            "properties": {
-                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
-                "logs": [
-                {
-                    "category": "Audit",
-                    "enabled": true,
-                    "retentionPolicy": {
-                    "days": 7,
-                    "enabled": true
-                    }
-                }
-                ],
-                "metrics": [
-                {
-                    "category": "AllMetrics",
-                    "enabled": true,
-                    "retentionPolicy": {
-                    "days": 7,
-                    "enabled": true
-                    }
-                }
-                ]
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-            ]
         }
     ]
 }
