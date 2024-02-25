@@ -1466,7 +1466,7 @@
                         "value": "[parameters('aksAdminUserName')]"
                     },
                     "aksSshPublicKey": {
-                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2022-09-0').outputs['publicKey'].value,parameters('publicSshKey'))]"       
+                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2022-09-01').outputs['publicKey'].value,parameters('publicSshKey'))]"       
                     },
                     "aksAutoScalerScanInterval": {
                         "value": "[parameters('aksAutoScalerScanInterval')]"
