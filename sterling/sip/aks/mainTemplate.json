@@ -1019,7 +1019,7 @@
                             "type": "string"
                         },
                         "publicIPPrefixLength": {
-                            "type": "string"
+                            "type": "int"
                         },
                         "location": {
                             "type": "string"
