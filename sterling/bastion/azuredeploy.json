@@ -146,9 +146,6 @@
                     },
                     "subnetCIDR": {
                         "value": "[parameters('bastionSubnetCIDR')]"
-                    },
-                    "ngwResourceGroup": {
-                        "value": "[resourceGroup().name]"
                     }
                 },
                 "template": {
