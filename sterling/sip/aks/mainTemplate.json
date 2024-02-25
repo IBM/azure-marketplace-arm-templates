@@ -98,6 +98,20 @@
                 "description": "Flag to determine whether to deploy a bastion service to access the environment"
             }
         },
+        "deployAcr": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the private Azure Container Registry (debug only)"
+            }
+        },
+        "deployAks": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the Azure Kubernetes Service (debug only)"
+            }
+        },
         "workspaceName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
@@ -1294,6 +1308,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "deployAcr",
+            "condition": "[parameters('deployAcr')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
@@ -1344,6 +1359,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "deployAks",
+            "condition": "[parameters('deployAks')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
