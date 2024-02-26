@@ -43,7 +43,6 @@
             "defaultValue": "Premium",
             "allowedValues": [
                 "Basic",
-                "Classic",
                 "Standard",
                 "Premium"
             ],
@@ -154,7 +153,10 @@
         "privateEndpointGroupName": "registry",
         "privateDnsZoneGroupName": "[concat(variables('privateEndpointGroupName'),'PrivateDnsZoneGroup')]",
         "publicDnsZoneForwarder": "[if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')]",
-        "privateDnsZoneName": "[format('privatelink.{0}', variables('publicDnsZoneForwarder'))]"
+        "privateDnsZoneName": "[format('privatelink.{0}', variables('publicDnsZoneForwarder'))]",
+        "networkRuleSet": {
+                    "defaultAction": "[parameters('networkRuleDefaultAction')]"
+                }
     },
     "resources": [
         {
@@ -167,20 +169,19 @@
                 "name": "[parameters('registrySku')]"
             },
             "properties": {
-                "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+                "publicNetworkAccess": "[if(equals(parameters('registrySku'),'Premium'),parameters('publicNetworkAccess'),json('null'))]",
                 "adminUserEnabled": "[parameters('enableAdminUser')]",
-                "networkRuleSet": {
-                    "defaultAction": "[parameters('networkRuleDefaultAction')]"
-                },
-                "dataEndpointEnabled": true,
+                "networkRuleSet": "[if(equals(parameters('registrySku'),'Premium'),variables('networkRuleSet'),json('null'))]",
+                "dataEndpointEnabled": "[if(equals(parameters('registrySku'),'Premium'),'AzureServices',json('null'))]",
                 "networkRuleBypassOptions": "AzureServices",
-                "policies": "[parameters('registryPolicies')]"
+                "policies": "[if(equals(parameters('registrySku'),'Premium'),parameters('registryPolicies'),json('null'))]"
             }
         },
         {
             "type": "Microsoft.Network/virtualNetworks/subnets",
             "apiVersion": "2020-11-01",
             "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
             "properties": {
                 "addressPrefix": "[parameters('subnetCIDR')]",
                 "serviceEndpoints": [
@@ -196,6 +197,7 @@
             "type": "Microsoft.Network/privateDnsZones",
             "apiVersion": "2020-06-01",
             "name": "[variables('privateDnsZoneName')]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
             ],
@@ -208,7 +210,7 @@
             "apiVersion": "2020-06-01",
             "name": "[format('{0}/{1}', variables('privateDnsZoneName'), format('link_to_{0}', toLower(parameters('vnetName'))))]",
             "location": "global",
-            "condition": "[equals(parameters('registrySku'), 'Premium')]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
             "properties": {
                 "registrationEnabled": false,
                 "virtualNetwork": {
@@ -225,7 +227,7 @@
             "apiVersion": "2021-03-01",
             "name": "[variables('privateEndpointName')]",
             "location": "[parameters('location')]",
-            "condition": "[equals(parameters('registrySku'), 'Premium')]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
             "properties": {
                 "subnet": {
                     "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
@@ -251,6 +253,7 @@
             "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
             "apiVersion": "2022-07-01",
             "name": "[format('{0}/{1}', variables('privateEndpointName'), variables('privateDnsZoneGroupName'))]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
             "properties": {
                 "privateDnsZoneConfigs": [
                     {
