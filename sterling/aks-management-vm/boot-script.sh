@@ -2,9 +2,18 @@
 # Basic script to update the OS and setup to manage an AKS cluster.
 # This script runs as root
 
+# Set default
+PARAM_FILE="/root/script-parameters.txt"
+
+# Wait for cloud init to finish
+while [[ $(ps xua | grep cloud-init | grep -v grep) ]]; do
+    echo "Waiting for cloud-init to finish"
+    sleep 30
+done
+
 # Get the configured admin user (this comes from the bootstrap script)
-if [[ -f /root/script-parameters.txt ]]; then
-    ADMIN_USER=$(cat /root/script-parameters.txt  | grep adminuser | awk -F'=' '{print $2}')
+if [[ -f $PARAM_FILE ]]; then
+    ADMIN_USER=$(cat $PARAM_FILE  | grep adminuser | awk -F'=' '{print $2}')
 else    # Take a guess by taking the first user (should be the only one)
     USER_LIST=( $(ls -h /home) )
     ADMIN_USER=$(echo ${USER_LIST[0]})
@@ -34,8 +43,8 @@ su - $ADMIN_USER -c 'az login --identity'
 # The following assumes a single visible AKS cluster in the resource group
 
 # Get the configured resource group (this comes from the bootstrap script)
-if [[ -f /root/script-parameters.txt ]]; then
-    RESOURCE_GROUP=$(cat script-parameters.txt  | grep resourcegroup | awk -F'=' '{print $2}')
+if [[ -f $PARAM_FILE ]]; then
+    RESOURCE_GROUP=$(cat $PARAM_FILE  | grep resourcegroup | awk -F'=' '{print $2}')
 else    # Take a guess by looking at visible 
     RESOURCE_GROUPS=( $(az group list -o table | grep -v "MC_" | grep Succeeded | awk '{print $1}') )
     RESOURCE_GROUP=$(echo ${RESOURCE_GROUPS[0]})
