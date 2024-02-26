@@ -145,7 +145,6 @@
             "defaultValue": "Premium",
             "allowedValues": [
                 "Basic",
-                "Classic",
                 "Standard",
                 "Premium"
             ],
