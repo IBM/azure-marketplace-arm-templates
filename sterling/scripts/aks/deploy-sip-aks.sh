@@ -342,9 +342,12 @@ done < ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}
 # Deploy SIP instance
 if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE | grep sip ) ]]; then
     if [[ $LICENSE == "accept" ]]; then
-        if [[ -z $(kubectl get pvc -n $SIP_NAMESPACE) | grep $PVC_NAME ]]
-        log-info "Creating the persistent volume $PVC_NAME in namespace $SIP_NAMESPACE"
-        
+        if [[ -z $(kubectl get pvc -n $SIP_NAMESPACE) | grep $PVC_NAME ]]; then
+            log-info "Creating the persistent volume $PVC_NAME in namespace $SIP_NAMESPACE"
+            
+        else
+            log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
+        fi        
 
         log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
         cat << EOF | kubectl apply -f -
