@@ -231,18 +231,6 @@
       }
     },
     {
-      "name": "IBM Cloud Redis Databases",
-      "metadata": {
-        "name": "ibm-cloud-databases-redis-operator-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cloud-databases-redis-operator",
-        "channel": "",
-        "source": "ibm-cloud-databases-redis-operator-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
       "name": "IBM Cloud Pak foundational services",
       "metadata": {
         "name": "opencloud-operators-openshift-marketplace"
@@ -251,42 +239,6 @@
         "name": "ibm-cp-common-services",
         "channel": "v4.4",
         "source": "opencloud-operators",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "IBM Cloud Native PostgreSQL",
-      "metadata": {
-        "name": "cloud-native-postgresql-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cloud-native-postgresql",
-        "channel": "v4.18",
-        "source": "cloud-native-postgresql-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "EDB Postgres for Kubernetes",
-      "metadata": {
-        "name": "cloud-native-postgresql-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cloud-native-postgresql",
-        "channel": "v4.18",
-        "source": "cloud-native-postgresql-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "IBM Cert Manager",
-      "metadata": {
-        "name": "ibm-cert-manager-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cert-manager",
-        "channel": "v4",
-        "source": "ibm-cert-manager-catalog",
         "installPlanApproval": "Automatic"
       }
     }
