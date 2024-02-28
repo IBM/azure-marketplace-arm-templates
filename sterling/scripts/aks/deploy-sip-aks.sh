@@ -648,9 +648,9 @@ spec:
     - name: ibm-entitlement-key
     - name: acr-secret
     repository: $ACR_NAME/cp/ibm-oms-enterprise
-    tag: $SIP_VERSION
+    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-promising" | awk -F':' '{print $2}')
     omsGateway:
-      tag: $SIP_VERSION
+      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "oms-gateway" | awk -F':' '{print $2}')
       imageName: oms-gateway
   storage:
     accessMode: ReadWriteMany
