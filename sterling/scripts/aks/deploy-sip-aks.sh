@@ -352,7 +352,7 @@ fi
 
 # Upload images to the Azure Container Registry
 log-info "Importing required Red Hat images to the Azure Container Registry"
-while read image; do
+cat ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} | while read image; do
     REPO_NAME="ubi8/$(echo $image | awk -F":" '{print $1}')"
     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
         log-info "Importing ubi8/$image to $ACR_NAME"
@@ -369,10 +369,10 @@ while read image; do
     else
         log-info "Image ubi8/$image already exists in $ACR_NAME repository"
     fi
-done < ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME}
+done
 
 log-info "Importing required SIP images to the Azure Container Registry"
-while read image; do
+cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | while read image; do
     REPO_NAME="${CP_REPO_BASE}/$(echo $image | awk -F":" '{print $1}')"
     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
         log-info "Importing ${CP_REPO_BASE}/$image to $ACR_NAME"
@@ -391,7 +391,7 @@ while read image; do
     else
         log-info "Image ${CP_REPO_BASE}/$image already exists in $ACR_NAME repository"
     fi
-done < ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}
+done
 
 # Create the certificate manager CRD
 if [[ -z $(kubectl get crds | grep certificatemanagers) ]]; then
