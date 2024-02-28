@@ -437,7 +437,7 @@ if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep acr-secret) ]]; then
     ACR_USERNAME="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'username' -o tsv)"
     ACR_PASSWORD="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'passwords[0].value' -o tsv)"
 
-    kubectl create secret docker-registry acr-secret --docker-server=$ACR_NAME --docker-username=$ACR_USERNAME --docker-password=$ACR_PASSWORD -n $SIP_NAMESPACE
+    kubectl create secret docker-registry acr-secret --docker-server=$ACR_NAME.azurecr.io --docker-username=$ACR_USERNAME --docker-password=$ACR_PASSWORD -n $SIP_NAMESPACE
     if (( $? != 0 )); then
         log-error "Unable to create image pull secret for acr-secret in namespace $SIP_NAMESPACE"
         exit 1
@@ -647,7 +647,7 @@ spec:
     imagePullSecrets:
     - name: ibm-entitlement-key
     - name: acr-secret
-    repository: $ACR_NAME
+    repository: $ACR_NAME.azurecr.io
     tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-promising" | awk -F':' '{print $2}')
     omsGateway:
       tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "oms-gateway" | awk -F':' '{print $2}')
