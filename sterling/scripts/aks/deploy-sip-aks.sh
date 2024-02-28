@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Note that admin user must be enabled in the Azure Container Registry
 
 source common.sh
 
@@ -416,6 +418,38 @@ else
     log-info "Certificate Manager custom resource definition already exists"
 fi
 
+# Create the image pull secrets
+if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep ibm-entitlement-key) ]]; then
+    log-info "Creating image pull secret ibm-entitlement-key in namespace $SIP_NAMESPACE"
+    kubectl create secret docker-registry ibm-entitlement-key --docker-server=cp.icr.io --docker-username=cp --docker-password=$IBM_ENTITLEMENT_KEY -n $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Created image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Image pull secret for ibm-entitlement-key already exists in namespace $SIP_NAMESPACE"
+fi
+
+if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep acr-secret) ]]; then
+    log-info "Creating image pull secret acr-secret in namespace $SIP_NAMESPACE"
+    ACR_USERNAME="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'username' -o tsv)"
+    ACR_PASSWORD="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'passwords[0].value' -o tsv)"
+
+    kubectl create secret docker-registry acr-secret --docker-server=$ACR_NAME --docker-username=$ACR_USERNAME --docker-password=$ACR_PASSWORD -n $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create image pull secret for acr-secret in namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Created image pull secret for acr-secret in namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Image pull secret for acr-secret already exists in namespace $SIP_NAMESPACE"
+fi
+
+
+
 # Deploy SIP instance
 if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE | grep " sip " ) ]]; then
     if [[ $LICENSE == "accept" ]]; then
@@ -615,6 +649,9 @@ spec:
     - name: acr-secret
     repository: $ACR_NAME/cp/ibm-oms-enterprise
     tag: $SIP_VERSION
+    omsGateway:
+      tag: $SIP_VERSION
+      imageName: oms-gateway
   storage:
     accessMode: ReadWriteMany
     capacity: 10Gi
