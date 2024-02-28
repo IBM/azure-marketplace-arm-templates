@@ -352,7 +352,7 @@ fi
 
 # Upload images to the Azure Container Registry
 log-info "Importing required Red Hat images to the Azure Container Registry"
-cat ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} | while read image; do
+for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
     REPO_NAME="ubi8/$(echo $image | awk -F":" '{print $1}')"
     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
         log-info "Importing ubi8/$image to $ACR_NAME"
@@ -372,14 +372,14 @@ cat ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} | while read image; do
 done
 
 log-info "Importing required SIP images to the Azure Container Registry"
-cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | while read image; do
+for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
     REPO_NAME="${CP_REPO_BASE}/$(echo $image | awk -F":" '{print $1}')"
     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
         log-info "Importing ${CP_REPO_BASE}/$image to $ACR_NAME"
         az acr import \
             --name $ACR_NAME \
             --source cp.icr.io/${CP_REPO_BASE}/$image \
-            --image ${$CP_REPO_BASE}/$image \
+            --image ${CP_REPO_BASE}/$image \
             --username cp \
             --password $IBM_ENTITLEMENT_KEY
         if (( $? != 0 )); then
