@@ -648,10 +648,50 @@ spec:
     - name: ibm-entitlement-key
     - name: acr-secret
     repository: $ACR_NAME.azurecr.io
-    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-promising" | awk -F':' '{print $2}')
+    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-promising:" | awk -F':' '{print $2}')
+    promisingService:
+      imageName: sip-promising
+      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-promising:" | awk -F':' '{print $2}')
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
     omsGateway:
-      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "oms-gateway" | awk -F':' '{print $2}')
+      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "oms-gateway:" | awk -F':' '{print $2}')
       imageName: oms-gateway
+      pullPolicy: IfNotPresent
+    apiDocsService:
+      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-api-docs:" | awk -F':' '{print $2}')
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+      imageName: sip-api-docs
+    ivService:
+      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-iv-appserver:" | awk -F':' '{print $2}')
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+      appImageName: sip-iv-appserver
+      backendImageName: sip-iv-backend
+      onboardImageName: sip-iv-onboard
+    utilityService:
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+      catalog:
+        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-catalog:" | awk -F':' '{print $2}')
+        imageName: sip-catalog
+        onboardImageName: sip-catalog-onboard
+      rules:
+        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-rules:" | awk -F':' '{print $2}')
+        imageName: sip-rules
+        onboardImageName: sip-rules-onboard
+      carrier:
+        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-carrier:" | awk -F':' '{print $2}')
+        onboardImageName: sip-carrier-onboard
+        imageName: sip-carrier
+      audit:
+        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-iv-audit:" | awk -F':' '{print $2}')
+        imageName: sip-iv-audit
+        onboardImageName: sip-iv-audit-onboard
+      search:
+        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-search:" | awk -F':' '{print $2}')
+        imageName: sip-search
+        onboardImageName: sip-search-onboard 
+      logstash:
+        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')
+        imageName: sip-logstash
   storage:
     accessMode: ReadWriteMany
     capacity: 10Gi
@@ -676,7 +716,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: sip-ingress
-  namespace: ${NAMESPACE}
+  namespace: ${SIP_NAMESPACE}
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
 spec:
