@@ -34,6 +34,7 @@ if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
 if [[ -z $CERT_MANAGER_VERSION ]]; then CERT_MANAGER_VERSION="v1.14.3"; fi
 if [[ -z $PVC_SIZE ]]; then PVC_SIZE="10Gi"; fi
 if [[ -z $CP_REPO_BASE ]]; then CP_REPO_BASE="cp/ibm-oms-enterprise"; fi
+if [[ -z $LOG_LEVEL ]]; then LOG_LEVEL="INFO"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -708,8 +709,132 @@ EOF
             log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
         fi
 
+        # Create the IVServiceGroup instance
+        log-info "Creating IVServiceGroup"
+        cat << EOF | kubectl apply -f -
+apiVersion: apps.sip.ibm.com/v1beta1
+kind: IVServiceGroup
+metadata:
+  name: dev
+  namespace: ${SIP_NAMESPACE}
+spec:
+  active: true
+  # Allowed values are: OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL
+  logLevel: ${LOG_LEVEL} 
+  image:
+    imagePullSecrets:    
+        - name: ibm-entitlement-key
+        - name: acr-secret 
+    repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')  
+  appServers:
+    - active: true
+      groupName: appserver
+      names:
+        - ApiSupplies
+        - ApiDemands
+        - ApiAvailability
+        - ApiReservation
+        - ApiBuc
+        - ApiConfig
+      replicaCount: 1
+  backendServers:
+    - active: true
+      groupName: backend
+      names:
+        - 'ComputeProdAvl:1'
+        - 'DemandAuditPublisher:1'
+        - 'InvActivityPrcs:1'
+        - 'InvDemandSync:1'
+        - 'InvSupplySync:1'
+        - 'PromisingDistributionGroupSync:1'
+        - 'SupplyTransactionUpdater:1'
+        - 'ManageDgAvlBreakup:1'
+        - 'ManageInvDemand:1'
+        - 'ManageBundleItemDgAvlBreakup:1'
+        - 'ManageBundleItemNodeAvlBreakup:1'
+        - 'ManageInvSupply:1'
+        - 'ManageNodeAvlBreakup:1'
+        - 'ManageParentItemNodeAvlBreakup:1'
+        - 'SortDgAvlBreakupNodes:1'
+        - 'SupplyAuditPublisher:1'
+        - 'PromisingShipNodeSync:1'
+        - 'SyncAll:1'
+        - 'DirectKafkaSupplyPublisher:1'
+        - 'DirectKafkaDemandChangePublisher:1'
+        - 'DirectKafkaProductAvailabilityV2Publisher:1'
+        - 'DirectKafkaDgAvailabilityBreakupPublisher:1'
+        - 'DirectKafkaProductAvailabilityBreakupPublisher:1'
+        - 'SafetyStockTriggerConsumer:1'
+      replicaCount: 1
+  defaultresources:
+    limits:
+      cpu: '1'
+      memory: 1536Mi
+    requests:
+      cpu: 100m
+      memory: 1Gi
+EOF
+        if (( $? != 0 )); then
+            log-error "Unable to apply IVServiceGroup dev in namespace $SIP_NAMESPACE"
+            exit 1
+        else
+            log-info "Applied IVServiceGroup dev in namespace $SIP_NAMESPACE"
+        fi
+
+        # Create promising group 
+        cat << EOF | kubectl apply -f - 
+apiVersion: apps.sip.ibm.com/v1beta1
+kind: PromisingServiceGroup
+metadata:
+  name: dev
+  namespace: ${SIP_NAMESPACE}
+spec:
+  active: true
+  logLevel: ${LOG_LEVEL} 
+  image:
+    imagePullSecrets:    
+        - name: ibm-entitlement-key
+        - name: acr-secret 
+    repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')
+  appServers:
+    - active: true
+      groupName: appserver
+      names:
+        - promising-server
+      replicaCount: 1
+  backendServers:
+    - active: true
+      groupName: backend
+      names:
+        - 'odx-source-stream-flatten:1'
+        - 'iv-breakup-source-stream-flatten:1'
+        - 'cas-carrier-service-sync-flatten:1'
+        - 'prm-source-stream-demux:1'
+        - 'prm-shipnode-sync:1'
+        - 'prm-iv-breakup-sink-stream-consumer:1'
+        - 'prm-carrier-service-sync:1'
+        - 'prm-carrier-service-deleted:1'
+      replicaCount: 1
+  defaultresources:
+    limits:
+      cpu: '1'
+      memory: 1536Mi
+    requests:
+      cpu: 100m
+      memory: 1Gi
+EOF
+
+        if (( $? != 0 )); then
+            log-error "Unable to apply PromisingServiceGroup dev in namespace $SIP_NAMESPACE"
+            exit 1
+        else
+            log-info "Applied PromisingServiceGroup dev in namespace $SIP_NAMESPACE"
+        fi
+
         # Create ingress
-        if [[ -z $() ]]; then
+        if [[ -z $(kubectl get ingress -n $SIP_NAMESPACE | grep "sip-ingress ") ]]; then
             log-info "Creating ingress instance for SIP instance"
             cat << EOF | kubectl apply -f -
 apiVersion: networking.k8s.io/v1
