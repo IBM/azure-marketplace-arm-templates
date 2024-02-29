@@ -352,7 +352,7 @@ fi
 
 # Upload images to the Azure Container Registry
 log-info "Importing required Red Hat images to the Azure Container Registry"
-for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
+for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME}); do
     REPO_NAME="ubi8/$(echo $image | awk -F":" '{print $1}')"
     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
         log-info "Importing ubi8/$image to $ACR_NAME"
