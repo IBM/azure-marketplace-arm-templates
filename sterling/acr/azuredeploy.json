@@ -61,6 +61,17 @@
                 "description": "Enable zone redundancy"
             }
         },
+        "networkRuleBypassOptions": {
+            "type": "string",
+            "defaultValue": "None",
+            "allowedValues": [
+                "AzureServices",
+                "None"
+            ],
+            "metadata": {
+                "description": "Allow trusted Azure services to access a network restricted registry"
+            }
+        },
         "registryPolicies": {
             "type": "object",
             "defaultValue": {
@@ -219,7 +230,7 @@
                 "publicNetworkAccess": "[if(equals(parameters('registrySku'),'Premium'),parameters('publicNetworkAccess'),json('null'))]",
                 "adminUserEnabled": "[parameters('enableAdminUser')]",
                 "networkRuleSet": "[if(equals(parameters('registrySku'),'Premium'),variables('networkRuleSet'),json('null'))]",
-                "networkRuleBypassOptions": "AzureServices",
+                "networkRuleBypassOptions": "[parameters('networkRuleBypassOptions')]",
                 "zoneRedundancy": "[parameters('zoneRedundancy')]",
                 "policies": "[if(equals(parameters('registrySku'),'Premium'),parameters('registryPolicies'),json('null'))]"
             }
