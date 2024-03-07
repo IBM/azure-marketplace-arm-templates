@@ -50,6 +50,17 @@
                 "description": "Container Registry SKU"
             }
         },
+        "zoneRedundancy": {
+            "type": "string",
+            "defaultValue": "Disabled",
+            "allowedValues": [
+                "Disabled",
+                "Enabled"
+            ],
+            "metadata": {
+                "description": "Enable zone redundancy"
+            }
+        },
         "registryPolicies": {
             "type": "object",
             "defaultValue": {
@@ -208,8 +219,8 @@
                 "publicNetworkAccess": "[if(equals(parameters('registrySku'),'Premium'),parameters('publicNetworkAccess'),json('null'))]",
                 "adminUserEnabled": "[parameters('enableAdminUser')]",
                 "networkRuleSet": "[if(equals(parameters('registrySku'),'Premium'),variables('networkRuleSet'),json('null'))]",
-                "dataEndpointEnabled": "[if(equals(parameters('registrySku'),'Premium'),'AzureServices',json('null'))]",
                 "networkRuleBypassOptions": "AzureServices",
+                "zoneRedundancy": "[parameters('zoneRedundancy')]",
                 "policies": "[if(equals(parameters('registrySku'),'Premium'),parameters('registryPolicies'),json('null'))]"
             }
         },
