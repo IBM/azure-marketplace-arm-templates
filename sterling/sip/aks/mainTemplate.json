@@ -152,6 +152,17 @@
                 "description": "Container Registry SKU"
             }
         },
+        "acrZoneRedundancy": {
+            "type": "string",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "defaultValue": "Enabled",
+            "metadata": {
+                "description": "Enable or disable registry zone redundancy and associated duplication"
+            }
+        },
         "hostEncryption": {
             "type": "bool",
             "defaultValue": true,
@@ -1307,11 +1318,13 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "name": "deployAcr",
+            "name": "deployRegistry",
             "condition": "[parameters('deployAcr')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployBastion')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
             ],
             "properties": {
@@ -1328,6 +1341,9 @@
                     },
                     "registrySku": {
                         "value": "[parameters('registrySku')]"
+                    },
+                    "zoneRedundancy": {
+                        "value": "[parameters('acrZoneRedundancy')]"
                     },
                     "deployLogAnalytics": {
                         "value": "[parameters('deployLogAnalytics')]"
@@ -1366,7 +1382,7 @@
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployAcr')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployRegistry')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1641,7 +1657,7 @@
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployAcr')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployRegistry')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
             ],
             "properties": {
