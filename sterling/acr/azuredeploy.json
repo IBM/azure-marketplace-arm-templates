@@ -242,23 +242,6 @@
             "properties": {}
         },
         {
-            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-            "apiVersion": "2020-06-01",
-            "name": "[format('{0}/{1}', variables('privateDnsZoneName'), format('link_to_{0}', toLower(parameters('vnetName'))))]",
-            "location": "global",
-            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
-            "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-                }
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
-            ]
-        },
-        {
             "type": "Microsoft.Network/privateEndpoints",
             "apiVersion": "2021-03-01",
             "name": "[variables('privateEndpointName')]",
