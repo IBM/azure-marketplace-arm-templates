@@ -140,6 +140,66 @@
                 "description": "SKU for the log analytics service."
             }
         },
+        "bastionSku": {
+            "type": "string",
+            "allowedValues": [
+                "Basic",
+                "Standard"
+            ],
+            "defaultValue": "Standard",
+            "metadata": {
+                "description": "SKU for the bastion service"
+            }
+        },
+        "bastionDisableCopyPaste": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Disable ability to copy and paste to bastion session"
+            }
+        },
+        "bastionDnsName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "DNS name for the Bastion front end if required"
+            }
+        },
+        "bastionEnableFileCopy": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the file copy feature of the bastion service"
+            }
+        },
+        "bastionEnableIpConnect": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the IP Connect feature of the bastion service"
+            }
+        },
+        "bastionEnableKerberos": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the kerberos feature of the bastion service"
+            }
+        },
+        "bastionEnableShareableLink": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the Shareable link feature of the bastion service"
+            }
+        },
+        "bastionEnableTunneling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the tunneling feature of the bastion service"
+            }
+        },
         "registrySku": {
             "type": "string",
             "defaultValue": "Premium",
@@ -1102,6 +1162,30 @@
                     },
                     "location": {
                         "value": "[parameters('location')]"
+                    },
+                    "sku": {
+                        "value": "[parameters('bastionSku')]"
+                    },
+                    "disableCopyPaste": {
+                        "value": "[parameters('bastionDisableCopyPaste')]"
+                    },
+                    "dnsName": {
+                        "value": "[parameters('bastionDnsName')]"
+                    },
+                    "enableFileCopy": {
+                        "value": "[parameters('bastionEnableFileCopy')]"
+                    },
+                    "enableIpConnect": {
+                        "value": "[parameters('bastionEnableIpConnect')]"
+                    },
+                    "enableKerberos": {
+                        "value": "[parameters('bastionEnableKerberos')]"
+                    },
+                    "enableShareableLink": {
+                        "value": "[parameters('bastionEnableShareableLink')]"
+                    },
+                    "enableTunneling": {
+                        "value": "[parameters('bastionEnableTunneling')]"
                     },
                     "bastionSubnetCIDR": {
                         "value": "[parameters('bastionSubnetCidr')]"

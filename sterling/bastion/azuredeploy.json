@@ -55,6 +55,66 @@
                 "description": "CIDR for the bastion subnet"
             }
         },
+        "sku": {
+            "type": "string",
+            "allowedValues": [
+                "Basic",
+                "Standard"
+            ],
+            "defaultValue": "Standard",
+            "metadata": {
+                "description": "SKU for the bastion service"
+            }
+        },
+        "disableCopyPaste": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Disable ability to copy and paste to bastion session"
+            }
+        },
+        "dnsName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "DNS name for the Bastion front end if required"
+            }
+        },
+        "enableFileCopy": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the file copy feature of the bastion service"
+            }
+        },
+        "enableIpConnect": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the IP Connect feature of the bastion service"
+            }
+        },
+        "enableKerberos": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the kerberos feature of the bastion service"
+            }
+        },
+        "enableShareableLink": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the Shareable link feature of the bastion service"
+            }
+        },
+        "enableTunneling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the tunneling feature of the bastion service"
+            }
+        },
         "workspaceName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'workspace')]",
@@ -193,8 +253,18 @@
             "apiVersion": "2022-07-01",
             "name": "[variables('bastionHostName')]",
             "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('sku')]"
+            },
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/bastionHosts'), parameters('tagsByResource')['Microsoft.Network/bastionHosts'], json('{}')) ]",
             "properties": {
+                "disableCopyPaste": "[if(equals(parameters('sku'),'Standard'),parameters('disableCopyPaste'),json('null'))]",
+                "dnsName": "[if(equals(parameters('dnsName'),''),json('null'),parameters('dnsName'))]",
+                "enableFileCopy": "[if(equals(parameters('sku'),'Standard'),parameters('enableFileCopy'),json('null'))]",
+                "enableIpConnect": "[if(equals(parameters('sku'),'Standard'),parameters('enableIpConnect'),json('null'))]",
+                "enableKerberos": "[if(equals(parameters('sku'),'Standard'),parameters('enableKerberos'),json('null'))]",
+                "enableShareableLink": "[if(equals(parameters('sku'),'Standard'),parameters('enableShareableLink'),json('null'))]",
+                "enableTunneling": "[if(equals(parameters('sku'),'Standard'),parameters('enableTunneling'),json('null'))]",
                 "ipConfigurations": [
                     {
                         "name": "IpConf",
