@@ -203,18 +203,6 @@
       }
     },
     {
-      "name": "IBM DataPower Gateway",
-      "metadata": {
-        "name": "ibm-datapower-operator-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-datapower-operator",
-        "channel": "v1.9",
-        "source": "ibm-datapower-operator-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
       "name": "IBM Aspera HSTS",
       "metadata": {
         "name": "aspera-operators-openshift-marketplace"
