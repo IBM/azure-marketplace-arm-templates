@@ -103,14 +103,6 @@
       "publisher": "IBM",
       "sourceType": "grpc",
       "registryUpdate": "30m0s"
-    },
-    {
-      "name": "ibm-cert-manager-catalog",
-      "displayName": "ibm-cert-manager-4.2.1",
-      "image": "icr.io/cpopen/ibm-cert-manager-operator-catalog@sha256:757e400aca807104020940dc8e0bf2e4aea5c93e99ceb4b3cb43bf501d110a28",
-      "publisher": "IBM",
-      "sourceType": "grpc",
-      "registryUpdate": "30m0s"
     }
   ],
   "subscriptions": [
