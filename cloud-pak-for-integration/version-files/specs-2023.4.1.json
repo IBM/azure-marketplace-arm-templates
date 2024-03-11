@@ -105,14 +105,6 @@
       "registryUpdate": "30m0s"
     },
     {
-      "name": "cloud-native-postgresql-catalog",
-      "displayName": "ibm-cloud-native-postgresql-4.18.0",
-      "image": "icr.io/cpopen/ibm-cpd-cloud-native-postgresql-operator-catalog@sha256:c96aa2e6bce92f2e5e4874116cf1cc1cdd60676499cd04ab1631462b8b883357",
-      "publisher": "IBM",
-      "sourceType": "grpc",
-      "registryUpdate": "30m0s"
-    },
-    {
       "name": "ibm-cert-manager-catalog",
       "displayName": "ibm-cert-manager-4.2.1",
       "image": "icr.io/cpopen/ibm-cert-manager-operator-catalog@sha256:757e400aca807104020940dc8e0bf2e4aea5c93e99ceb4b3cb43bf501d110a28",
