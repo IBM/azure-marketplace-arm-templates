@@ -115,6 +115,18 @@
   ],
   "subscriptions": [
     {
+      "name": "Red Hat Certificate Manager",
+      "metadata": {
+        "name": "openshift-cert-manager-operator"
+      },
+      "spec": {
+        "name": "openshift-cert-manager-operator",
+        "channel": "stable-v1",
+        "source": "redhat-operators",
+        "installPlanApproval": "Automatic"
+      }
+    },
+    {
       "name": "IBM Cloud Pak for Integration Platform Navigator",
       "metadata": {
         "name": "ibm-integration-platform-navigator-catalog-openshift-marketplace"
