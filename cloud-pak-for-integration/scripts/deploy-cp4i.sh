@@ -70,18 +70,22 @@ fi
 
 # Check that the version spec file exists and download
 VERSION_URL="${VERSION_URI}/${BRANCH}/${VERSION_PATH}/specs-${VERSION}.json"
-wget --spider $VERSION_URL 2>&1 /dev/null
-if (( $? != 0 )); then
-  log-error "Version specification file not found at $VERSION_URL"
-  exit 1
+if [[ -f ${WORKSPACE_DIR}/specs-${VERSION}.json ]]; then
+  log-info "Version file specs-${VERSION}.json exists"
 else
-  log-info "Importing version specification file"
-  wget -q -P $WORKSPACE_DIR $VERSION_URL 2>&1 /dev/null
+  wget -q --spider $VERSION_URL
   if (( $? != 0 )); then
-    log-error "Unable to download version file $VERSION_URL"
+    log-error "Version specification file not found at $VERSION_URL"
     exit 1
   else
-    log-info "Successfully downloaded version file $VERSION_URL"
+    log-info "Importing version specification file"
+    wget -q -P $WORKSPACE_DIR $VERSION_URL
+    if (( $? != 0 )); then
+      log-error "Unable to download version file $VERSION_URL"
+      exit 1
+    else
+      log-info "Successfully downloaded version file $VERSION_URL"
+    fi
   fi
 fi
 SOURCE_FILE="${WORKSPACE_DIR}/specs-${VERSION}.json"
@@ -197,6 +201,10 @@ EOF
     log-info "Catalog source $catalog is ready"
 done
 
+if (( $? != 0 )); then
+  exit 1
+fi
+
 #######
 # Create operator group if not using cluster scope
 if [[ $CLUSTER_SCOPED != "true" ]]; then
@@ -282,6 +290,10 @@ EOF
   wait_for_subscription ${NAMESPACE} $METADATA_NAME 15
   log-info "$subscription subscription is ready"
 done
+
+if (( $? != 0 )); then
+  exit 1
+fi
 
 
 ######
