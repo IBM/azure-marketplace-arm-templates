@@ -155,13 +155,25 @@
       }
     },
     {
+      "name": "IBM Event Endpoint Management",
+      "metadata": {
+        "name": "ibm-eventendpointmanagement-catalog-openshift-marketplace"
+      },
+      "spec": {
+        "name": "ibm-eventendpointmanagement",
+        "channel": "v11.1",
+        "source": "ibm-eventendpointmanagement-catalog",
+        "installPlanApproval": "Automatic"
+      }
+    },
+    {
       "name": "IBM App Connect",
       "metadata": {
         "name": "appconnect-operator-catalogsource-openshift-marketplace"
       },
       "spec": {
         "name": "ibm-appconnect",
-        "channel": "v11.2",
+        "channel": "v11.3",
         "source": "appconnect-operator-catalogsource",
         "installPlanApproval": "Automatic"
       }
@@ -191,18 +203,6 @@
       }
     },
     {
-      "name": "IBM Event Endpoint Management",
-      "metadata": {
-        "name": "ibm-eventendpointmanagement-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-eventendpointmanagement",
-        "channel": "v11.1",
-        "source": "ibm-eventendpointmanagement-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
       "name": "IBM Aspera HSTS",
       "metadata": {
         "name": "aspera-operators-openshift-marketplace"
@@ -211,18 +211,6 @@
         "name": "aspera-hsts-operator",
         "channel": "v1.5",
         "source": "aspera-operators",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "IBM Cloud Pak foundational services",
-      "metadata": {
-        "name": "opencloud-operators-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cp-common-services",
-        "channel": "v4.4",
-        "source": "opencloud-operators",
         "installPlanApproval": "Automatic"
       }
     }
