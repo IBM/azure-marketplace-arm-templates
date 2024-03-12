@@ -238,7 +238,8 @@ fi
 cat $SOURCE_FILE | jq -r '.subscriptions[].name' | while read subscription; 
 do
   METADATA_NAME="$(cat $SOURCE_FILE | jq -r --arg SUBSCRIPTION "$subscription" '.subscriptions[] | select(.name==$SUBSCRIPTION) | .metadata.name')"
-  if [[ -z $(${BIN_DIR}/oc get subscriptions -n ${NAMESPACE} 2> /dev/null | grep $METADATA_NAME) ]]; then 
+  PACKAGE="$(cat $SOURCE_FILE | jq -r --arg SUBSCRIPTION "$subscription" '.subscriptions[] | select(.name==$SUBSCRIPTION) | .spec.name')"
+  if [[ -z $(${BIN_DIR}/oc get subscription -n $NAMESPACE $METADATA_NAME 2> /dev/null | grep " $PACKAGE " ) ]]; then 
     if [[ $CLUSTER_SCOPED != "true" ]]; then
       log-info "Creating subscription for $subscription in namespace ${NAMESPACE}"
       cat << EOF | ${BIN_DIR}/oc apply -f -
