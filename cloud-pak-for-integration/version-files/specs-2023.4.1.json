@@ -173,7 +173,7 @@
       },
       "spec": {
         "name": "ibm-appconnect",
-        "channel": "v11.3",
+        "channel": "v11.2",
         "source": "appconnect-operator-catalogsource",
         "installPlanApproval": "Automatic"
       }
