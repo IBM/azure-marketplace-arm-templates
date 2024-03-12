@@ -300,19 +300,21 @@ fi
 ######
 # Create platform navigator instance
 if [[ $LICENSE == "accept" ]]; then
-    if [[ -z $(${BIN_DIR}/oc get PlatformNavigator -n ${INSTANCE_NAMESPACE} | grep ${INSTANCE_NAMESPACE}-navigator ) ]]; then
+    if [[ -z $(${BIN_DIR}/oc get platformnavigator -n ${INSTANCE_NAMESPACE} 2> /dev/null ) ]]; then
         log-info "Creating Platform Navigator instance"
 
         # Check that the PN instance template file exists and download
         PN_INSTANCE_NAME="$(cat $SOURCE_FILE | jq -r '.defaults.pnInstanceYaml')"
         PN_INSTANCE_YAML_URL="${VERSION_URI}/${BRANCH}/${VERSION_PATH}/${PN_INSTANCE_NAME}"
-        wget --spider ${PN_INSTANCE_YAML_URL} 2>&1
+        wget -q --spider ${PN_INSTANCE_YAML_URL}
         if (( $? != 0 )); then
           log-error "Platform Navigator template not found at ${PN_INSTANCE_YAML_URL}"
           exit 1
         else
           log-info "Importing version specification file"
-          wget -q -P $WORKSPACE_DIR ${PN_INSTANCE_YAML_URL} 2>&1 /dev/null
+          # Remove any existing file before download
+          if [[ -f ${WORKSPACE_DIR}/${PN_INSTANCE_NAME} ]]; then rm ${WORKSPACE_DIR}/${PN_INSTANCE_NAME}; fi
+          wget -q -P $WORKSPACE_DIR ${PN_INSTANCE_YAML_URL} 
           if (( $? != 0 )); then
             log-error "Unable to download Platform Navigator template file ${PN_INSTANCE_YAML_URL}"
             exit 1
@@ -337,13 +339,15 @@ if [[ $LICENSE == "accept" ]]; then
     # Sleep 30 seconds to let navigator get created before checking status
     sleep 30
 
+    INSTANCE_NAME="$(${BIN_DIR}/oc get platformnavigator -n ${INSTANCE_NAMESPACE} -o json | jq -r '.items[0].metadata.name')"
+
     count=0
-    while [[ $(oc get PlatformNavigator -n ${INSTANCE_NAMESPACE} ${INSTANCE_NAMESPACE}-navigator -o json | jq -r '.status.conditions[] | select(.type=="Ready").status') != "True" ]]; do
-        log-info "Waiting for Platform Navigator instance to be ready. Waited $count minutes. Will wait up to 90 minutes."
+    while [[ $(oc get PlatformNavigator -n ${INSTANCE_NAMESPACE} ${INSTANCE_NAME} -o json | jq -r '.status.conditions[] | select(.type=="Ready").status') != "True" ]]; do
+        log-info "Waiting for Platform Navigator instance ${INSTANCE_NAME} to be ready. Waited $count minutes. Will wait up to 90 minutes."
         sleep 60
         count=$(( $count + 1 ))
         if (( $count > 90)); then    # Timeout set to 90 minutes
-            log-error "Timout waiting for ${INSTANCE_NAMESPACE}-navigator to be ready"
+            log-error "Timout waiting for ${INSTANCE_NAME} in namespace ${INSTANCE_NAMESPACE} to be ready"
             exit 1
         fi
     done
@@ -351,7 +355,7 @@ if [[ $LICENSE == "accept" ]]; then
     log-info "Instance started"
 
     # Output Platform Navigator console URL
-    CP4I_CONSOLE=$(${BIN_DIR}/oc get route cp4i-navigator-pn -n cp4i -o jsonpath='https://{.spec.host}{"\n"}')
+    CP4I_CONSOLE=$(${BIN_DIR}/oc get route ${INSTANCE_NAME}-pn -n cp4i -o jsonpath='https://{.spec.host}{"\n"}')
     jq -n -c \
       --arg cp4iConsole $CP4I_CONSOLE \
       '{"cp4iDetails": {"cp4iConsoleURL": $cp4iConsole}}' \
@@ -360,3 +364,5 @@ if [[ $LICENSE == "accept" ]]; then
 else
     log-info "License not accepted. Please manually install desired components"
 fi
+
+log-info "Deployment script completed"
