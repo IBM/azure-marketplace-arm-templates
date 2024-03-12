@@ -251,7 +251,7 @@ function cli-download() {
     if [[ -z ${3} ]] || [[ ${3}  == "4" ]] || [[ ${3} == "stable" ]]; then
         # Install the latest stable version
         local OC_VERSION="stable"
-        local OCP_RELEASE=14
+        local OCP_RELEASE=12
     elif [[ ${VERSION} =~ [0-9][.][0-9]+[.][0-9]+ ]]; then
         # Install a specific version and patch level
         local OC_VERSION="${VERSION}"
@@ -273,7 +273,7 @@ function cli-download() {
     fi
 
     # Install glibc dependency if it does not exist (needed for version 4.14 and up)
-    if [[ ! -f /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 14  ]]; then
+    if [[ ! -f /lib/libresolv.so.2 ]] && [[ $OCP_RELEASE -ge 12  ]]; then
         log-info "Installing glibc compatibility libraries"
         apk add gcompat > /dev/null
         if (( $? != 0 )); then
@@ -328,11 +328,11 @@ function subscription_status() {
     SUB_NAMESPACE=${1}
     SUBSCRIPTION=${2}
 
-    CSV=$(${BIN_DIR}/oc get subscription -n ${SUB_NAMESPACE} ${SUBSCRIPTION} -o json | jq -r '.status.currentCSV')
+    CSV=$(${BIN_DIR}/oc get subscription -n ${SUB_NAMESPACE} ${SUBSCRIPTION} -o json 2> /dev/null | jq -r '.status.currentCSV')
     if [[ "$CSV" == "null" ]]; then
         STATUS="PendingCSV"
     else
-        STATUS=$(${BIN_DIR}/oc get csv -n ${SUB_NAMESPACE} ${CSV} -o json | jq -r '.status.phase')
+        STATUS=$(${BIN_DIR}/oc get csv -n ${SUB_NAMESPACE} ${CSV} -o json 2> /dev/null | jq -r '.status.phase')
     fi
     echo $STATUS
 }
@@ -369,7 +369,7 @@ function catalog_status() {
 
     CATALOG=${1}
 
-    CAT_STATUS="$(${BIN_DIR}/oc get catalogsource -n openshift-marketplace $CATALOG -o json | jq -r '.status.connectionState.lastObservedState')"
+    CAT_STATUS="$(${BIN_DIR}/oc get catalogsource -n openshift-marketplace $CATALOG -o json 2> /dev/null | jq -r '.status.connectionState.lastObservedState')"
     echo $CAT_STATUS
 }
 
