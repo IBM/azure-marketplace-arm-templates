@@ -154,6 +154,13 @@
             "metadata": {
                 "description": "GitHub branch for linked deployments."
             }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-03",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
         }
         
     },
@@ -246,10 +253,10 @@
                         "value": "[parameters('namespace')]"
                     }
                 ],
-                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/scripts/deploy-cp4i.sh'))]",
+                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i/deploy-cp4i.sh'))]",
                 "supportingScriptUris": [
-                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/scripts/common.sh'))]",
-                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/scripts/default-values.sh'))]"
+                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/common.sh'))]",
+                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i/default-values.sh'))]"
                 ],
                 "timeout": "PT120M",
                 "cleanupPreference": "OnSuccess",
