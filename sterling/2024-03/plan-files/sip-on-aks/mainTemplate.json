@@ -1152,7 +1152,7 @@
             "name": "deployBastion",
             "condition": "[parameters('deployBastion')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
             ],
             "properties": {
@@ -1264,7 +1264,7 @@
             "name": "deployPrerequisites",
             "condition": "[parameters('deployPrereqs')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1306,7 +1306,7 @@
             "name": "deployKeyVault",
             "condition": "[if(equals(parameters('publicSshKey'), ''),true(),parameters('deployKeyVault'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
             ],
@@ -1412,7 +1412,7 @@
             "name": "deployRegistry",
             "condition": "[parameters('deployAcr')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployBastion')]",
@@ -1469,7 +1469,7 @@
             "name": "deployAks",
             "condition": "[parameters('deployAks')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
@@ -1744,7 +1744,7 @@
             "name": "deployManagementVm",
             "condition": "[parameters('deployManagementVm')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
