@@ -21,6 +21,13 @@
                 "description": "Name for the managed id that the scripts will run as"
             }
         },
+        "privateVnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether cluster has public access (false)"
+            }
+        },
         "networkResourceGroup": {
             "type": "string",
             "defaultValue": "[resourceGroup().name]",
@@ -99,6 +106,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "scriptSubnet",
+            "condition": "[parameters('privateVnet')]",
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "properties": {
                 "mode": "Incremental",
