@@ -978,6 +978,13 @@
             "metadata": {
                 "description": "Github branch for linked deployments."
             }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-03",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
         }
     },
     "variables": {
@@ -1204,7 +1211,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/bastion/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/bastion/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 }
             }
@@ -1246,7 +1253,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/log-analytics/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/log-analytics/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 }
             }
@@ -1288,7 +1295,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/script-prerequisites/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/script-prerequisites/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 }
             }
@@ -1344,7 +1351,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/keyvault/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/keyvault/azuredeploy.json'))]",
                     "contentVersion":"1.0.0.0"
                 }
             }
@@ -1394,7 +1401,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/ssh-key/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/ssh-key/azuredeploy.json'))]",
                     "contentVersion":"1.0.0.0"
                 }
             }
@@ -1452,7 +1459,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/acr/azuredeploy.json'))]"
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/acr/azuredeploy.json'))]"
                 }
             }
         },
@@ -1727,7 +1734,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/aks/azuredeploy.json'))]"
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/aks/azuredeploy.json'))]"
                 }
             }
         },
@@ -1824,7 +1831,7 @@
                     }
                 },
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/aks-management-vm/azuredeploy.json'))]"
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/aks-management-vm/azuredeploy.json'))]"
                 }
             } 
         }

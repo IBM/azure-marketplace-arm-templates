@@ -133,14 +133,14 @@
         },
         "imageListRHUrl": {
             "type": "string",
-            "defaultValue": "[uri(variables('baseUrl'),'/sterling/scripts/common/image-list-rh')]",
+            "defaultValue": "[uri(variables('baseUrl'),'/sterling/2024-03/sip/image-list-rh')]",
             "metadata": {
                 "description": "URL to the file containing the list of Red Hat images to pull"
             }
         },
         "imageListSIPUrl": {
             "type": "string",
-            "defaultValue": "[uri(variables('baseUrl'),'/sterling/scripts/common/image-list-sip')]",
+            "defaultValue": "[uri(variables('baseUrl'),'/sterling/2024-03/sip/image-list-sip')]",
             "metadata": {
                 "description": "URL to the file containing the list of SIP images to pull"
             }
@@ -231,6 +231,13 @@
             "defaultValue": "main",
             "metadata": {
                 "description": "GitHub branch for linked deployments."
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-03",
+            "metadata": {
+                "description": "Deployment version to use"
             }
         }
         
@@ -425,9 +432,9 @@
                         "value": "[parameters('cloudPakBaseRepo')]"
                     }
                 ],
-                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/scripts/aks/deploy-sip-aks.sh'))]",
+                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/deploy-sip-aks.sh'))]",
                 "supportingScriptUris": [
-                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/scripts/aks//common.sh'))]"
+                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/common.sh'))]"
                 ],
                 "timeout": "PT120M",
                 "cleanupPreference": "OnSuccess",
