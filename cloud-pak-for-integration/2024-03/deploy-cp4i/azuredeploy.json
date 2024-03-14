@@ -194,7 +194,7 @@
                     "storageAccountName": "[parameters('storageAccountName')]",
                     "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
                 },
-                "azCliVersion": "2.45.0",  
+                "azCliVersion": "2.48.0",  
                 "environmentVariables": [
                     {
                         "name": "RESOURCE_GROUP",
