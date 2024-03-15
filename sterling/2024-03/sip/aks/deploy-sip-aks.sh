@@ -22,6 +22,7 @@ if [[ -z $OMS_GW_OPERATOR ]]; then OMS_GW_OPERATOR="cp.icr.io/cpopen/ibm-oms-gat
 if [[ -z $SIP_OPERATOR ]]; then SIP_OPERATOR="cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0"; fi
 if [[ -z $OPERATOR_NAMESPACE ]]; then OPERATOR_NAMESPACE="ibm-operators"; fi
 if [[ -z $SIP_NAMESPACE ]]; then SIP_NAMESPACE="sip"; fi
+if [[ -z $SIP_INSTANCE_NAME ]]; then SIP_INSTANCE_NAME="sip"; fi
 if [[ -z $BASE_URI ]]; then BASE_URI="https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates"; fi
 if [[ -z $BRANCH ]]; then BRANCH="main"; fi
 if [[ -z $IMAGE_LIST_RH_FILENAME ]]; then IMAGE_LIST_RH_FILENAME="image-list-rh"; fi
@@ -36,7 +37,7 @@ if [[ -z $PVC_SIZE ]]; then PVC_SIZE="10Gi"; fi
 if [[ -z $CP_REPO_BASE ]]; then CP_REPO_BASE="cp/ibm-oms-enterprise"; fi
 if [[ -z $LOG_LEVEL ]]; then LOG_LEVEL="INFO"; fi
 if [[ -z $RH_TAG ]]; then RH_TAG="latest"; fi
-if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2309.1-amd64"; fi
+if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2403.0-amd64"; fi
 if [[ -z $CASSANDRA_USERNAME ]]; then CASSANDRA_USERNAME="sipadmin"; fi
 if [[ -z $CASSANDRA_PASSWORD ]]; then CASSANDRA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
 if [[ -z $ELASTICSEARCH_USERNAME ]]; then ELASTICSEARCH_USERNAME="sipadmin"; fi
@@ -44,6 +45,8 @@ if [[ -z $ELASTICSEARCH_PASSWORD ]]; then ELASTICSEARCH_PASSWORD="$TRUSTSTORE_PA
 if [[ -z $KAFKA_SECURITY_PROTOCOL ]]; then KAFKA_SECURITY_PROTOCOL="SSL"; fi
 if [[ -z $KAFKA_USER ]]; then KAFKA_USER="sipadmin"; fi
 if [[ -z $KAFKA_PASSWORD ]]; then KAFKA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
+if [[ -z $JWT_KEY_NAME ]]; then JWT_KEY_NAME="sipkey"; fi
+if [[ -z $JWT_SECRET_NAME ]]; then JWT_SECRET_NAME="jwt-configuration"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -491,6 +494,24 @@ EOF
             log-info "Ingress certificate already exists"
         fi
 
+        ##############################
+        # BELOW IS ONLY DRAFT.
+
+
+        # Create the JWT Issuer secret
+        log-info "Creating JWT issuer secret"
+        if [[ -z $(kubectl get secret -n ${SIP_NAMESPACE} ${JWT_KEY_NAME} 2> /dev/null ) ]]; then
+          log-info "Creating JWT Issuer secret"
+          if [[ -f ${TMP_DIR}/${JWT_KEY_NAME}.pem ]]; then
+            log-info "Creating JWT Key Pair"
+          else
+            log-info "JWT Key pair ${JWT_KEY_NAME} already exists"
+          fi
+          kubectl create secret generic ${JWT_KEY_NAME} --from-file=jwt-issuer-config.json=${TMP_DIR}/jwt-secret.json -n ${SIP_NAMESPACE}
+        else
+          log-info "JWT Issuer secret already exists"
+        fi
+
         # Create the truststore password
         ######### The below needs to be augmented and/or changed for external middleware services if utilised.
         log-info "Creating / updating truststore secret"
@@ -605,10 +626,10 @@ EOF
 apiVersion: apps.sip.ibm.com/v1beta1
 kind: SIPEnvironment
 metadata:
-  name: sip
-  namespace: $SIP_NAMESPACE
+  name: ${SIP_INSTANCE_NAME}
+  namespace: ${SIP_NAMESPACE}
   annotations:
-    internal.sip.ibm.com/skip-ibm-entitlement-key-check: 'yes'
+    apps.sip.ibm.com/skip-ibm-entitlement-key-check: 'yes'
 spec:
   license:
     accept: true
@@ -630,7 +651,7 @@ spec:
     serviceGroup: dev
   apiDocsService: {}    
   omsGateway:
-    issuerSecret: jwt-configuration
+    issuerSecret: ${JWT_SECRET_NAME}
     replicas: 1
     cors:
       allowedOrigins: '*'
@@ -659,22 +680,22 @@ spec:
     imagePullSecrets:
     - name: ibm-entitlement-key
     - name: acr-secret
-    repository: $ACR_NAME.azurecr.io
-    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-promising:" | awk -F':' '{print $2}')
+    repository: ${ACR_NAME}.azurecr.io
+    tag: ${SIP_TAG}
     promisingService:
       imageName: sip-promising
-      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-promising:" | awk -F':' '{print $2}')
+      tag: ${SIP_TAG}
       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
     omsGateway:
-      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "oms-gateway:" | awk -F':' '{print $2}')
+      tag: ${SIP_TAG}
       imageName: oms-gateway
       pullPolicy: IfNotPresent
     apiDocsService:
-      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-api-docs:" | awk -F':' '{print $2}')
+      tag: ${SIP_TAG}
       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
       imageName: sip-api-docs
     ivService:
-      tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-iv-appserver:" | awk -F':' '{print $2}')
+      tag: ${SIP_TAG}
       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
       appImageName: sip-iv-appserver
       backendImageName: sip-iv-backend
@@ -682,27 +703,27 @@ spec:
     utilityService:
       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
       catalog:
-        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-catalog:" | awk -F':' '{print $2}')
+        tag: ${SIP_TAG}
         imageName: sip-catalog
         onboardImageName: sip-catalog-onboard
       rules:
-        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-rules:" | awk -F':' '{print $2}')
+        tag: ${SIP_TAG}
         imageName: sip-rules
         onboardImageName: sip-rules-onboard
       carrier:
-        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-carrier:" | awk -F':' '{print $2}')
+        tag: ${SIP_TAG}
         onboardImageName: sip-carrier-onboard
         imageName: sip-carrier
       audit:
-        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-iv-audit:" | awk -F':' '{print $2}')
+        tag: ${SIP_TAG}
         imageName: sip-iv-audit
         onboardImageName: sip-iv-audit-onboard
       search:
-        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-search:" | awk -F':' '{print $2}')
+        tag: ${SIP_TAG}
         imageName: sip-search
         onboardImageName: sip-search-onboard 
       logstash:
-        tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')
+        tag: ${SIP_TAG}
         imageName: sip-logstash
   storage:
     accessMode: ReadWriteMany
@@ -720,161 +741,161 @@ EOF
             log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
         fi
 
-        # Create the IVServiceGroup instance
-        log-info "Creating IVServiceGroup"
-        cat << EOF | kubectl apply -f -
-apiVersion: apps.sip.ibm.com/v1beta1
-kind: IVServiceGroup
-metadata:
-  name: dev
-  namespace: ${SIP_NAMESPACE}
-spec:
-  active: true
-  # Allowed values are: OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL
-  logLevel: ${LOG_LEVEL} 
-  image:
-    imagePullSecrets:    
-        - name: ibm-entitlement-key
-        - name: acr-secret 
-    repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')  
-  appServers:
-    - active: true
-      groupName: appserver
-      names:
-        - ApiSupplies
-        - ApiDemands
-        - ApiAvailability
-        - ApiReservation
-        - ApiBuc
-        - ApiConfig
-      replicaCount: 1
-  backendServers:
-    - active: true
-      groupName: backend
-      names:
-        - 'ComputeProdAvl:1'
-        - 'DemandAuditPublisher:1'
-        - 'InvActivityPrcs:1'
-        - 'InvDemandSync:1'
-        - 'InvSupplySync:1'
-        - 'PromisingDistributionGroupSync:1'
-        - 'SupplyTransactionUpdater:1'
-        - 'ManageDgAvlBreakup:1'
-        - 'ManageInvDemand:1'
-        - 'ManageBundleItemDgAvlBreakup:1'
-        - 'ManageBundleItemNodeAvlBreakup:1'
-        - 'ManageInvSupply:1'
-        - 'ManageNodeAvlBreakup:1'
-        - 'ManageParentItemNodeAvlBreakup:1'
-        - 'SortDgAvlBreakupNodes:1'
-        - 'SupplyAuditPublisher:1'
-        - 'PromisingShipNodeSync:1'
-        - 'SyncAll:1'
-        - 'DirectKafkaSupplyPublisher:1'
-        - 'DirectKafkaDemandChangePublisher:1'
-        - 'DirectKafkaProductAvailabilityV2Publisher:1'
-        - 'DirectKafkaDgAvailabilityBreakupPublisher:1'
-        - 'DirectKafkaProductAvailabilityBreakupPublisher:1'
-        - 'SafetyStockTriggerConsumer:1'
-      replicaCount: 1
-  defaultresources:
-    limits:
-      cpu: '1'
-      memory: 1536Mi
-    requests:
-      cpu: 100m
-      memory: 1Gi
-EOF
-        if (( $? != 0 )); then
-            log-error "Unable to apply IVServiceGroup dev in namespace $SIP_NAMESPACE"
-            exit 1
-        else
-            log-info "Applied IVServiceGroup dev in namespace $SIP_NAMESPACE"
-        fi
+#         # Create the IVServiceGroup instance
+#         log-info "Creating IVServiceGroup"
+#         cat << EOF | kubectl apply -f -
+# apiVersion: apps.sip.ibm.com/v1beta1
+# kind: IVServiceGroup
+# metadata:
+#   name: dev
+#   namespace: ${SIP_NAMESPACE}
+# spec:
+#   active: true
+#   # Allowed values are: OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL
+#   logLevel: ${LOG_LEVEL} 
+#   image:
+#     imagePullSecrets:    
+#         - name: ibm-entitlement-key
+#         - name: acr-secret 
+#     repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+#     tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')  
+#   appServers:
+#     - active: true
+#       groupName: appserver
+#       names:
+#         - ApiSupplies
+#         - ApiDemands
+#         - ApiAvailability
+#         - ApiReservation
+#         - ApiBuc
+#         - ApiConfig
+#       replicaCount: 1
+#   backendServers:
+#     - active: true
+#       groupName: backend
+#       names:
+#         - 'ComputeProdAvl:1'
+#         - 'DemandAuditPublisher:1'
+#         - 'InvActivityPrcs:1'
+#         - 'InvDemandSync:1'
+#         - 'InvSupplySync:1'
+#         - 'PromisingDistributionGroupSync:1'
+#         - 'SupplyTransactionUpdater:1'
+#         - 'ManageDgAvlBreakup:1'
+#         - 'ManageInvDemand:1'
+#         - 'ManageBundleItemDgAvlBreakup:1'
+#         - 'ManageBundleItemNodeAvlBreakup:1'
+#         - 'ManageInvSupply:1'
+#         - 'ManageNodeAvlBreakup:1'
+#         - 'ManageParentItemNodeAvlBreakup:1'
+#         - 'SortDgAvlBreakupNodes:1'
+#         - 'SupplyAuditPublisher:1'
+#         - 'PromisingShipNodeSync:1'
+#         - 'SyncAll:1'
+#         - 'DirectKafkaSupplyPublisher:1'
+#         - 'DirectKafkaDemandChangePublisher:1'
+#         - 'DirectKafkaProductAvailabilityV2Publisher:1'
+#         - 'DirectKafkaDgAvailabilityBreakupPublisher:1'
+#         - 'DirectKafkaProductAvailabilityBreakupPublisher:1'
+#         - 'SafetyStockTriggerConsumer:1'
+#       replicaCount: 1
+#   defaultresources:
+#     limits:
+#       cpu: '1'
+#       memory: 1536Mi
+#     requests:
+#       cpu: 100m
+#       memory: 1Gi
+# EOF
+#         if (( $? != 0 )); then
+#             log-error "Unable to apply IVServiceGroup dev in namespace $SIP_NAMESPACE"
+#             exit 1
+#         else
+#             log-info "Applied IVServiceGroup dev in namespace $SIP_NAMESPACE"
+#         fi
 
-        # Create promising group 
-        cat << EOF | kubectl apply -f - 
-apiVersion: apps.sip.ibm.com/v1beta1
-kind: PromisingServiceGroup
-metadata:
-  name: dev
-  namespace: ${SIP_NAMESPACE}
-spec:
-  active: true
-  logLevel: ${LOG_LEVEL} 
-  image:
-    imagePullSecrets:    
-        - name: ibm-entitlement-key
-        - name: acr-secret 
-    repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-    tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')
-  appServers:
-    - active: true
-      groupName: appserver
-      names:
-        - promising-server
-      replicaCount: 1
-  backendServers:
-    - active: true
-      groupName: backend
-      names:
-        - 'odx-source-stream-flatten:1'
-        - 'iv-breakup-source-stream-flatten:1'
-        - 'cas-carrier-service-sync-flatten:1'
-        - 'prm-source-stream-demux:1'
-        - 'prm-shipnode-sync:1'
-        - 'prm-iv-breakup-sink-stream-consumer:1'
-        - 'prm-carrier-service-sync:1'
-        - 'prm-carrier-service-deleted:1'
-      replicaCount: 1
-  defaultresources:
-    limits:
-      cpu: '1'
-      memory: 1536Mi
-    requests:
-      cpu: 100m
-      memory: 1Gi
-EOF
+#         # Create promising group 
+#         cat << EOF | kubectl apply -f - 
+# apiVersion: apps.sip.ibm.com/v1beta1
+# kind: PromisingServiceGroup
+# metadata:
+#   name: dev
+#   namespace: ${SIP_NAMESPACE}
+# spec:
+#   active: true
+#   logLevel: ${LOG_LEVEL} 
+#   image:
+#     imagePullSecrets:    
+#         - name: ibm-entitlement-key
+#         - name: acr-secret 
+#     repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+#     tag: $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME} | grep "sip-logstash:" | awk -F':' '{print $2}')
+#   appServers:
+#     - active: true
+#       groupName: appserver
+#       names:
+#         - promising-server
+#       replicaCount: 1
+#   backendServers:
+#     - active: true
+#       groupName: backend
+#       names:
+#         - 'odx-source-stream-flatten:1'
+#         - 'iv-breakup-source-stream-flatten:1'
+#         - 'cas-carrier-service-sync-flatten:1'
+#         - 'prm-source-stream-demux:1'
+#         - 'prm-shipnode-sync:1'
+#         - 'prm-iv-breakup-sink-stream-consumer:1'
+#         - 'prm-carrier-service-sync:1'
+#         - 'prm-carrier-service-deleted:1'
+#       replicaCount: 1
+#   defaultresources:
+#     limits:
+#       cpu: '1'
+#       memory: 1536Mi
+#     requests:
+#       cpu: 100m
+#       memory: 1Gi
+# EOF
 
-        if (( $? != 0 )); then
-            log-error "Unable to apply PromisingServiceGroup dev in namespace $SIP_NAMESPACE"
-            exit 1
-        else
-            log-info "Applied PromisingServiceGroup dev in namespace $SIP_NAMESPACE"
-        fi
+#         if (( $? != 0 )); then
+#             log-error "Unable to apply PromisingServiceGroup dev in namespace $SIP_NAMESPACE"
+#             exit 1
+#         else
+#             log-info "Applied PromisingServiceGroup dev in namespace $SIP_NAMESPACE"
+#         fi
 
-        # Create ingress
-        if [[ -z $(kubectl get ingress -n $SIP_NAMESPACE | grep "sip-ingress ") ]]; then
-            log-info "Creating ingress instance for SIP instance"
-            cat << EOF | kubectl apply -f -
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: sip-ingress
-  namespace: ${SIP_NAMESPACE}
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
-spec:
-  ingressClassName: webapprouting.kubernetes.azure.com
-  tls:
-  - hosts:
-    - ${HOSTNAME}
-  rules:
-  - host: ${HOSTNAME}
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service: 
-            name: sip
-            port: 
-              number: 8300
-EOF
-        else
-            log-info "Ingress instance already exists"
-        fi
+#         # Create ingress
+#         if [[ -z $(kubectl get ingress -n $SIP_NAMESPACE | grep "sip-ingress ") ]]; then
+#             log-info "Creating ingress instance for SIP instance"
+#             cat << EOF | kubectl apply -f -
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: sip-ingress
+#   namespace: ${SIP_NAMESPACE}
+#   annotations:
+#     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+# spec:
+#   ingressClassName: webapprouting.kubernetes.azure.com
+#   tls:
+#   - hosts:
+#     - ${HOSTNAME}
+#   rules:
+#   - host: ${HOSTNAME}
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service: 
+#             name: sip
+#             port: 
+#               number: 8300
+# EOF
+#         else
+#             log-info "Ingress instance already exists"
+#         fi
     else
         log-info "License not accepted. Instance not created"
     fi
