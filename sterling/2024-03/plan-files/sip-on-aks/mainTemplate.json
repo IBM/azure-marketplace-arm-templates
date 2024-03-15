@@ -42,13 +42,6 @@
                 "description": "Name of the key vault to store credentials"
             }
         },
-        "clusterPasswordSecretName": {
-            "type": "string",
-            "defaultValue": "cluster-password",
-            "metadata": {
-                "description": "Name of the secret to create in the key vault for the cluster password"
-            }
-        },
         "keyName": {
             "type": "string",
             "defaultValue": "[ concat(parameters('namePrefix'), '-sshkey') ]",
@@ -110,6 +103,13 @@
             "defaultValue": true,
             "metadata": {
                 "description": "Flag to determine whether to deploy the Azure Kubernetes Service (debug only)"
+            }
+        },
+        "deploySip": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": ""
             }
         },
         "workspaceName": {
@@ -198,6 +198,13 @@
             "defaultValue": true,
             "metadata": {
                 "description": "Enable the tunneling feature of the bastion service"
+            }
+        },
+        "registryName": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),'r',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name of the container registry"
             }
         },
         "registrySku": {
@@ -814,13 +821,6 @@
                 "description": "Subnet name for the AKS pod IP address when azure network plugin is used."
             }
         },
-        "aksNsgName": {
-            "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'),'-',parameters('aksSubnetName'),'-nsg')]",
-            "metadata": {
-                "description": "Name of the NSG for the AKS subnet"
-            }
-        },
         "endpointSubnetName": {
             "type": "string",
             "defaultValue": "endpoint-subnet",
@@ -963,6 +963,77 @@
             "defaultValue": false,
             "metadata": {
                 "description": "Flag to determine whether deployment will have access from the internet or not. Set true to only allow access from VNet."
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "IBM Container Regisry (icr.io) entitlement key"
+            }
+        },
+        "trustStorePassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password to be used for the trust store"
+            }
+        },
+        "omsGatewayOperatorCatalog": {
+            "type": "string",
+            "defaultValue": "cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0",
+            "metadata": {
+                "description": "IBM Order Management System gateway operator catalog image"
+            }
+        },
+        "sipOperatorCatalog": {
+            "type": "string",
+            "defaultValue": "cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0",
+            "metadata": {
+                "description": "IBM Sterling Intelligent Promising operator catalog image"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-operators",
+            "metadata": {
+                "description": "Namespace in AKS for the operators"
+            }
+        },
+        "instanceNamespace": {
+            "type": "string",
+            "defaultValue": "sip",
+            "metadata": {
+                "description": "Namespace in AKS for the created instances"
+            }
+        },
+        "pvcName": {
+            "type": "string",
+            "defaultValue": "sip-pvc",
+            "metadata": {
+                "description": "Persistent Volume Claim (PVC) name for the SIP persistent volume"
+            }
+        },
+        "pvcSize": {
+            "type": "string",
+            "defaultValue": "10Gi",
+            "metadata": {
+                "description": "Size of the PVC for the SIP persistent volume"
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "metadata": {
+                "description": "FQDN of the suffix for the ingress"
+            }
+        },
+        "license": {
+            "type": "string",
+            "allowedValues": [
+                "accept",
+                "decline"
+            ],
+            "defaultValue": "decline",
+            "metadata": {
+                "description": "Accept the license terms. Required to create an instance."
             }
         },
         "tagsByResource": {
@@ -1427,6 +1498,12 @@
                     "location": {
                         "value": "[parameters('location')]"
                     },
+                    "registryName": {
+                        "value": "[parameters('registryName')]"
+                    },
+                    "enableAdminUser": {
+                        "value": true
+                    },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
                     },
@@ -1835,6 +1912,109 @@
                 },
                 "templateLink": {
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/aks-management-vm/azuredeploy.json'))]"
+                }
+            } 
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deploySip",
+            "condition": "[parameters('deploySip')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployRegistry')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "createStorageAccount": {
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
+                    },
+                    "deployOnVnet": {
+                        "value": true
+                    },
+                    "existingVnet": {
+                        "value": true
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('scriptSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('scriptSubnetCidr')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "aksClusterName": {
+                        "value": "[parameters('aksClusterName')]"
+                    },
+                    "acrName": {
+                        "value": "[parameters('registryName')]"
+                    },
+                    "ibmEntitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "trustStorePassword": {
+                        "value": "[parameters('trustStorePassword')]"
+                    },
+                    "domainName": {
+                        "value": "[parameters('domainName')]"      
+                    },
+                    "storageClass": {
+                        "value": "azurefile"
+                    },
+                    "omsGatewayOperatorCatalog": {
+                        "value": "[parameters('omsGatewayOperatorCatalog')]"     
+                    },
+                    "sipOperatorCatalog": {
+                        "value": "[parameters('sipOperatorCatalog')]"     
+                    },
+                    "operatorNamespace": {
+                        "value": "[parameters('operatorNamespace')]"
+                    },
+                    "instanceNamespace": {
+                        "value": "[parameters('instanceNamespace')]"
+                    },
+                    "pvcName": {
+                        "value": "[parameters('pvcName')]"
+                    },
+                    "pvcSize": {
+                        "value": "[parameters('pvcSize')]"
+                    },
+                    "license": {
+                        "value": "[parameters('license')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/azuredeploy.json'))]"
                 }
             } 
         }
