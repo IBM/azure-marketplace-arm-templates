@@ -133,14 +133,14 @@
         },
         "imageListRHUrl": {
             "type": "string",
-            "defaultValue": "[uri(variables('baseUrl'),'/sterling/2024-03/sip/image-list-rh')]",
+            "defaultValue": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/image-list-rh'))]",
             "metadata": {
                 "description": "URL to the file containing the list of Red Hat images to pull"
             }
         },
         "imageListSIPUrl": {
             "type": "string",
-            "defaultValue": "[uri(variables('baseUrl'),'/sterling/2024-03/sip/image-list-sip')]",
+            "defaultValue": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/image-list-sip'))]",
             "metadata": {
                 "description": "URL to the file containing the list of SIP images to pull"
             }
@@ -239,6 +239,9 @@
             "metadata": {
                 "description": "Deployment version to use"
             }
+        },
+        "tagsByResource": {
+            "type": "object"
         }
         
     },
@@ -260,6 +263,7 @@
             "apiVersion": "2022-07-01",
             "name": "[parameters('vnetName')]",
             "condition": "[and(not(parameters('existingVnet')),parameters('deployOnVnet'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
             "location": "[parameters('location')]",
             "properties": {
                 "addressSpace": {
@@ -337,7 +341,8 @@
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "comments": "Deploys a test container",
+            "comments": "Deploys Sterling Intelligent Promising onto Azure Kubernetes Service",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
             "name": "[variables('scriptName')]",
             "location": "[parameters('location')]",
             "identity": {
@@ -449,6 +454,7 @@
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2023-01-01",
             "condition": "[parameters('createStorageAccount')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
             "name": "[parameters('storageAccountName')]",
             "location": "[parameters('location')]",
             "sku": {
@@ -465,6 +471,7 @@
             "apiVersion": "2018-11-30",
             "name": "[parameters('managedIdName')]",
             "condition": "[parameters('createManagedIdentity')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]",
             "location": "[parameters('location')]"
         },
         {
