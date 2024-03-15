@@ -1388,10 +1388,10 @@
                         "value": "[parameters('keyName')]"
                     },
                     "createManagedId": {
-                        "value": false
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
                     },
                     "createStorageAccount": {
-                        "value": false
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
                     },
                     "rgRoleGuid": {
                         "value": "[parameters('sshKeyScriptGuid')]"
@@ -1513,6 +1513,9 @@
                     },
                     "createNatGateway": {
                         "value": false
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
                     },
                     "workspaceName": {
                         "value": "[parameters('workspaceName')]"
