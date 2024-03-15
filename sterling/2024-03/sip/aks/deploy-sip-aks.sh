@@ -35,6 +35,15 @@ if [[ -z $CERT_MANAGER_VERSION ]]; then CERT_MANAGER_VERSION="v1.14.3"; fi
 if [[ -z $PVC_SIZE ]]; then PVC_SIZE="10Gi"; fi
 if [[ -z $CP_REPO_BASE ]]; then CP_REPO_BASE="cp/ibm-oms-enterprise"; fi
 if [[ -z $LOG_LEVEL ]]; then LOG_LEVEL="INFO"; fi
+if [[ -z $RH_TAG ]]; then RH_TAG="latest"; fi
+if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2309.1-amd64"; fi
+if [[ -z $CASSANDRA_USERNAME ]]; then CASSANDRA_USERNAME="sipadmin"; fi
+if [[ -z $CASSANDRA_PASSWORD ]]; then CASSANDRA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
+if [[ -z $ELASTICSEARCH_USERNAME ]]; then ELASTICSEARCH_USERNAME="sipadmin"; fi
+if [[ -z $ELASTICSEARCH_PASSWORD ]]; then ELASTICSEARCH_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
+if [[ -z $KAFKA_SECURITY_PROTOCOL ]]; then KAFKA_SECURITY_PROTOCOL="SSL"; fi
+if [[ -z $KAFKA_USER ]]; then KAFKA_USER="sipadmin"; fi
+if [[ -z $KAFKA_PASSWORD ]]; then KAFKA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -356,16 +365,17 @@ log-info "Importing required Red Hat images to the Azure Container Registry"
 for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME}); do
     REPO_NAME="ubi8/$(echo $image | awk -F":" '{print $1}')"
     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
-        log-info "Importing ubi8/$image to $ACR_NAME"
+    IMAGE_NAME="$image:$RH_TAG"
+        log-info "Importing ubi8/$IMAGE_NAME to $ACR_NAME"
         az acr import \
             --name $ACR_NAME \
-            --source registry.access.redhat.com/ubi8/$image \
-            --image ubi8/$image
+            --source registry.access.redhat.com/ubi8/$IMAGE_NAME \
+            --image ubi8/$IMAGE_NAME
         if (( $? != 0 )); then
-            log-error "Unable to import image ubi8/$image to $ACR_NAME"
+            log-error "Unable to import image ubi8/$IMAGE_NAME to $ACR_NAME"
             exit 1
         else
-            log-info "Successfully imported image ubi8/$image to $ACR_NAME"
+            log-info "Successfully imported image ubi8/$IMAGE_NAME to $ACR_NAME"
         fi
     else
         log-info "Image ubi8/$image already exists in $ACR_NAME repository"
@@ -376,21 +386,22 @@ log-info "Importing required SIP images to the Azure Container Registry"
 for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
     REPO_NAME="${CP_REPO_BASE}/$(echo $image | awk -F":" '{print $1}')"
     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
-        log-info "Importing ${CP_REPO_BASE}/$image to $ACR_NAME"
+        IMAGE_NAME="$image:$SIP_TAG"
+        log-info "Importing ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
         az acr import \
             --name $ACR_NAME \
-            --source cp.icr.io/${CP_REPO_BASE}/$image \
-            --image ${CP_REPO_BASE}/$image \
+            --source cp.icr.io/${CP_REPO_BASE}/$IMAGE_NAME \
+            --image ${CP_REPO_BASE}/$IMAGE_NAME \
             --username cp \
             --password $IBM_ENTITLEMENT_KEY
         if (( $? != 0 )); then
-            log-error "Unable to import image ${CP_REPO_BASE}/$image to $ACR_NAME"
+            log-error "Unable to import image ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
             exit 1
         else
-            log-info "Successfully imported image ${CP_REPO_BASE}/$image to $ACR_NAME"
+            log-info "Successfully imported image ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
         fi
     else
-        log-info "Image ${CP_REPO_BASE}/$image already exists in $ACR_NAME repository"
+        log-info "Image ${CP_REPO_BASE}/$IMAGE_NAME already exists in $ACR_NAME repository"
     fi
 done
 
