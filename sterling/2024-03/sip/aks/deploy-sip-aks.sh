@@ -38,6 +38,7 @@ if [[ -z $CP_REPO_BASE ]]; then CP_REPO_BASE="cp/ibm-oms-enterprise"; fi
 if [[ -z $LOG_LEVEL ]]; then LOG_LEVEL="INFO"; fi
 if [[ -z $RH_TAG ]]; then RH_TAG="latest"; fi
 if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2403.0-amd64"; fi
+if [[ -z $SIP_SECRET_NAME ]]; then SIP_SECRET_NAME="sip-secret"; fi
 if [[ -z $CASSANDRA_USERNAME ]]; then CASSANDRA_USERNAME="sipadmin"; fi
 if [[ -z $CASSANDRA_PASSWORD ]]; then CASSANDRA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
 if [[ -z $ELASTICSEARCH_USERNAME ]]; then ELASTICSEARCH_USERNAME="sipadmin"; fi
@@ -494,20 +495,40 @@ EOF
             log-info "Ingress certificate already exists"
         fi
 
-        ##############################
-        # BELOW IS ONLY DRAFT.
-
-
         # Create the JWT Issuer secret
         log-info "Creating JWT issuer secret"
         if [[ -z $(kubectl get secret -n ${SIP_NAMESPACE} ${JWT_KEY_NAME} 2> /dev/null ) ]]; then
-          log-info "Creating JWT Issuer secret"
-          if [[ -f ${TMP_DIR}/${JWT_KEY_NAME}.pem ]]; then
-            log-info "Creating JWT Key Pair"
-          else
-            log-info "JWT Key pair ${JWT_KEY_NAME} already exists"
-          fi
-          kubectl create secret generic ${JWT_KEY_NAME} --from-file=jwt-issuer-config.json=${TMP_DIR}/jwt-secret.json -n ${SIP_NAMESPACE}
+            log-info "Creating JWT Issuer secret"
+            if [[ -f ${TMP_DIR}/${JWT_KEY_NAME}.pem ]]; then
+                log-info "Creating JWT Key Pair"
+
+                openssl genrsa -out ${TMP_DIR}/${JWT_KEY_NAME}.pem 2048
+            else
+                log-info "JWT Key pair ${JWT_KEY_NAME} already exists"
+            fi
+            openssl rsa -in ${TMP_DIR}/${JWT_KEY_NAME}.pem -outform PEM -pubout -out ${TMP_DIR}/${JWT_KEY_NAME}.pub
+
+            JWT_PUB=$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
+            cat << EOF > ${TMO_DIR}/jwtConfig.json
+{
+    "jwtConfiguration":[
+        {
+            "iss": "oms",
+            "keys": [
+                "jwtAlgo": "RS256",
+                "publicKey": "${JWT_PUB}"
+            ]
+        }
+    ]
+}
+EOF
+            kubectl create secret generic ${JWT_KEY_NAME} --from-file=jwt-issuer-config.json=${TMP_DIR}/jwtConfig.json -n ${SIP_NAMESPACE}
+            if (( $? != 0 )); then
+                log-error "Unable to create JWT issuer secret"
+                exit 1
+            else
+                log-info "Successfully created JWT issuer secret"
+            fi  
         else
           log-info "JWT Issuer secret already exists"
         fi
@@ -519,7 +540,7 @@ EOF
 apiVersion: v1
 kind: Secret
 metadata:
-  name: sip-secret
+  name: ${SIP_SECRET_NAME}
   namespace: $SIP_NAMESPACE
 type: Opaque
 stringData:
@@ -633,7 +654,7 @@ metadata:
 spec:
   license:
     accept: true
-  secret: sip-secret
+  secret: ${SIP_SECRET_NAME}
   serviceAccount: default
   upgradeStrategy: RollingUpdate
   # This networkPolicy is most open and hence least secure. You have been warned!
@@ -735,7 +756,7 @@ EOF
             log-error "Unable to create SIP instance in namespace $SIP_NAMESPACE"
             exit 1
         else
-            # Wait for instance to finish creation
+            # Wait for instance to finish creation            #######TODO
 
             ###########
             log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
@@ -902,3 +923,11 @@ EOF
 else
     log-info "SIP instance already exists in namespace $SIP_NAMESPACE"
 fi
+
+# Output the key details
+jq -n -c \
+    --arg privateKey \"$(cat ./tempkey)\" \
+    --arg publicKey \"$(cat ./tempkey.pub)\" \
+    '{\"jwtKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey}}' > $AZ_SCRIPTS_OUTPUT_PATH
+
+log-info "Script completed"
