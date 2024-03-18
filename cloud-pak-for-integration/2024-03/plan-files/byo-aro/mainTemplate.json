@@ -159,10 +159,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
-            ],
-            "name": "scriptPrequisites",
+            "name": "scriptPrerequisites",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
