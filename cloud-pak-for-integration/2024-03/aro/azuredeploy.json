@@ -393,28 +393,69 @@
             }
         },
         {
-            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
-            "apiVersion": "2018-09-01-preview",
-            "name": "[concat(parameters('networkResourceGroup'),'/',parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
-            "properties": {
-                "roleDefinitionId": "[variables('contribRole')]",
-                "principalId": "[parameters('rpObjectId')]"
-            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "vnetRoleAssignments",
             "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-            ]
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
-            "apiVersion": "2018-09-01-preview",
-            "name": "[concat(parameters('networkResourceGroup'),'/',parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'aroSubnets')]"
+            ],
+            "resourceGroup": "[parameters('networkResourceGroup')]",
             "properties": {
-                "roleDefinitionId": "[variables('contribRole')]",
-                "principalId":"[parameters('spObjectId')]"
-            },
-            "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-            ]
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "rpObjectId": {
+                        "value": "[parameters('rpObjectId')]"
+                    },
+                    "spObjectId": {
+                        "value": "[parameters('spObjectId')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "rpObjectId": {
+                            "type": "string"
+                        },
+                        "spObjectId": {
+                            "type": "string"
+                        }
+                    },
+                    "variables": {
+                        "contribRole": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+                    },
+                    "resources": [
+                       {
+                            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
+                            "apiVersion": "2018-09-01-preview",
+                            "name": "[concat(parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
+                            "properties": {
+                                "roleDefinitionId": "[variables('contribRole')]",
+                                "principalId": "[parameters('rpObjectId')]"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
+                            "apiVersion": "2018-09-01-preview",
+                            "name": "[concat(parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
+                            "properties": {
+                                "roleDefinitionId": "[variables('contribRole')]",
+                                "principalId":"[parameters('spObjectId')]"
+                            }
+                        }
+                    ]
+                }
+            }
         },
         {
             "type": "Microsoft.RedHatOpenShift/OpenShiftClusters",
