@@ -580,6 +580,24 @@
                     },
                     "deploymentVersion": {
                         "value": "[parameters('deploymentVersion')]"
+                    },
+                    "deployOnVnet": {
+                        "value": "[if(equals(parameters('apiVisibility'),'Private'),bool('true'),bool('false'))]"
+                    },
+                    "createSubnet": {
+                        "value": false
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('scriptSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('scriptSubnetCidr')]"
                     }
                 }
             }

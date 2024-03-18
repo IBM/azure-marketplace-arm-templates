@@ -258,6 +258,24 @@
                     },
                     "deploymentVersion": {
                         "value": "[parameters('deploymentVersion')]"
+                    },
+                    "deployOnVnet": {
+                        "value": "[parameters('privateVnet')]"
+                    },
+                    "createSubnet": {
+                        "value": false
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
                     }
                 }
             }

@@ -148,6 +148,48 @@
                 "description": "Namespace for CP4I instance"
             }
         },
+        "deployOnVnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy with a private VNet connection."
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create the script subnet"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "The name of the new or existing VNet"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "script-subnet",
+            "metadata": {
+                "description": "Name of the subnet the script will attach to"
+            }
+        },
+        "subnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/27",
+            "metadata": {
+                "description": "Address prefix for the script subnet"
+            }
+        },
         "branch": {
             "type": "string",
             "defaultValue": "main",
@@ -169,7 +211,12 @@
       "containerGroupName": "[concat(parameters('namePrefix'), '-cp4i-cg')]",
       "scriptName": "[concat(parameters('namePrefix'),'-cp4i-script')]",
       "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-      "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+      "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+      "subnetIds": [
+        {
+            "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+        }
+      ]
     },
     "resources": [
         {
@@ -188,7 +235,8 @@
             "properties": {
                 "forceUpdateTag": "[parameters('rgRoleGuid')]",
                 "containerSettings": {
-                    "containerGroupName": "[variables('containerGroupName')]"
+                    "containerGroupName": "[variables('containerGroupName')]",
+                    "subnetIds": "[if(parameters('deployOnVnet'),variables('subnetIds'),json('null'))]"
                 },
                 "storageAccountSettings": {
                     "storageAccountName": "[parameters('storageAccountName')]",
@@ -267,8 +315,75 @@
                 "retentionInterval": "P1D"
             },
             "dependsOn": [
-                "[variables('roleDefinitionName')]"
+                "[variables('roleDefinitionName')]",
+                "[resourceId('Microsoft.Resources/deployments', 'scriptSubnet')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
             ]
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "scriptSubnet",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[and(parameters('deployOnVnet'),parameters('createSubnet'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCidr')]",
+                                "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
+                                ],
+                                "delegations": [
+                                    {
+                                        "name": "Microsoft.ContainerInstance.containerGroups",
+                                        "properties": {
+                                            "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
         },
         {
             "type": "Microsoft.Storage/storageAccounts",
