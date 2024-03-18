@@ -166,28 +166,28 @@
             "type": "string",
             "defaultValue": "vnet",
             "metadata": {
-                "description": "The name of the new or existing VNet"
+                "description": "The name of the new or existing VNet (if using a private vnet)"
             }
         },
         "networkResourceGroup": {
             "type": "string",
             "defaultValue": "[resourceGroup().name]",
             "metadata": {
-                "description": "The resource group containing the virtual network"
+                "description": "The resource group containing the virtual network (if using a private vnet)"
             }
         },
         "subnetName": {
             "type": "string",
             "defaultValue": "script-subnet",
             "metadata": {
-                "description": "Name of the subnet the script will attach to"
+                "description": "Name of the subnet the script will attach to (if using a private vnet)"
             }
         },
         "subnetCidr": {
             "type": "string",
             "defaultValue": "10.0.1.0/27",
             "metadata": {
-                "description": "Address prefix for the script subnet"
+                "description": "Address prefix for the script subnet (if using a private vnet)"
             }
         },
         "branch": {
@@ -326,9 +326,6 @@
             "name": "scriptSubnet",
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "condition": "[and(parameters('deployOnVnet'),parameters('createSubnet'))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-            ],
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
