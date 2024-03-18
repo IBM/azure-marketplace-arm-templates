@@ -62,7 +62,75 @@
                     "required": true    
                 },
                 "visible": true
-            }
+            },
+			{
+				"name": "privateVnet",
+				"type": "Microsoft.Common.CheckBox",
+				"label": "Private API",
+				"toolTip": "Check this box if the cluster has a private API ingress",
+				"visible": true
+			},
+			{
+				"name": "vnet",
+				"type": "Microsoft.Network.VirtualNetworkCombo",
+				"label": {
+					"virtualNetwork": "Virtual network",
+					"subnets": "Subnets"
+				},
+				"toolTip": {
+					"virtualNetwork": "Selecting an existing VNet or enter the name of a new one",
+					"subnets": "The name and CIDR for the subnet (script subnet only used for private API deployments)"
+				},
+				"defaultValue": {
+					"name": "vnet",
+					"addressPrefixSize": "/20"
+				},
+				"constraints": {
+					"minAddressPrefixSize": "/22"
+				},
+				"options": {
+					"hideExisting": false
+				},
+				"subnets": {
+					"controlSubnet": {
+						"label": "ARO Control Subnet",
+						"defaultValue": {
+							"name": "control-subnet",
+							"addressPrefixSize": "/24"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/26",
+							"minAddressCount": 3,
+							"requireContiguousAddresses": true
+						}
+					},
+					"workerSubnet": {
+						"label": "ARO Worker Subnet",
+						"defaultValue": {
+							"name": "worker-subnet",
+							"addressPrefixSize": "/24"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/24",
+							"minAddressCount": 50,
+							"requireContiguousAddresses": true
+						}
+					},
+					"scriptSubnet": {
+						"label": "Script Endpoint Subnet",
+						"defaultValue": {
+							"name": "script-subnet",
+							"addressPrefixSize": "/28"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/28",
+							"minAddressCount": 5,
+							"requireContiguousAddresses": false
+						}
+					}
+				},
+				"visible": "[basics('privateVnet')]"
+				}
         ],
         "steps": [
             {
@@ -176,7 +244,7 @@
 							}
 						  ]
 						},
-						"visible": true
+						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]"
 					}
                 ]
             }
@@ -190,7 +258,11 @@
 			"cp4iVersion": "[steps('cp4i').cp4iEdition.version ]",
 			"cp4iLicense": "[steps('cp4i').cp4iEdition.license ]",
 			"namespace": "[steps('cp4i').nameSpace]",
-            "storageClass": "[steps('cp4i').storageClass]"
+            "storageClass": "[steps('cp4i').storageClass]",
+			"privateVnet": "[basics('privateVnet')]",
+			"vnetName": "[if()]",
+			"subnetName": "[if()]",
+			"subnetCidr": "[if()]"
          }
     }
 }
