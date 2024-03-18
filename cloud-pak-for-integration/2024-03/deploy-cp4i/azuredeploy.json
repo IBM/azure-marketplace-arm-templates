@@ -251,6 +251,10 @@
                     {
                         "name": "NAMESPACE",
                         "value": "[parameters('namespace')]"
+                    },
+                    {
+                        "name": "BRANCH",
+                        "value": "[parameters('branch')]"
                     }
                 ],
                 "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i/deploy-cp4i.sh'))]",
