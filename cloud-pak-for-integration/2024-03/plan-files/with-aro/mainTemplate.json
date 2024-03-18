@@ -412,9 +412,9 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
-            "name": "scriptPrequisites",
+            "name": "scriptPrerequisites",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
@@ -457,7 +457,7 @@
             "apiVersion": "2022-09-01",
             "condition": "[parameters('deployARO')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
             "name": "aroCluster",
             "properties": {

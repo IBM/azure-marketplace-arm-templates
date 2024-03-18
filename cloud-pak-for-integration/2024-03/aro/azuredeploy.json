@@ -293,7 +293,7 @@
             "name": "aroSubnets",
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -395,25 +395,25 @@
         {
             "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
             "apiVersion": "2018-09-01-preview",
-            "name": "[concat(parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
+            "name": "[concat(parameters('networkResourceGroup'),'/',parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
             "properties": {
                 "roleDefinitionId": "[variables('contribRole')]",
                 "principalId": "[parameters('rpObjectId')]"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ]
         },
         {
             "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
             "apiVersion": "2018-09-01-preview",
-            "name": "[concat(parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
+            "name": "[concat(parameters('networkResourceGroup'),'/',parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
             "properties": {
                 "roleDefinitionId": "[variables('contribRole')]",
                 "principalId":"[parameters('spObjectId')]"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             ]
         },
         {
@@ -464,8 +464,8 @@
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
-                "[resourceId('Microsoft.Resources/deployments', 'aroSubnets')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'aroSubnets')]",
                 "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
                 "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
                 "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'contributor')))]",
