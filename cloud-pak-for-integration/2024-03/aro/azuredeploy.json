@@ -225,6 +225,7 @@
             "apiVersion": "2022-09-01",
             "name": "virtualNetwork",
             "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[parameters('createVnet')]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -239,9 +240,6 @@
                     },
                     "vnetCIDR": {
                         "value": "[parameters('vnetCIDR')]"
-                    },
-                    "createVnet": {
-                        "value": "[parameters('createVnet')]"
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
@@ -260,9 +258,6 @@
                         "location": {
                             "type": "string"
                         },
-                        "createVnet": {
-                            "type": "bool"
-                        },
                         "tagsByResource": {
                             "type": "object"
                         }
@@ -272,7 +267,6 @@
                             "type": "Microsoft.Network/virtualNetworks",
                             "apiVersion": "2022-07-01",
                             "name": "[parameters('vnetName')]",
-                            "condition": "[parameters('createVnet')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
                             "properties": {
@@ -356,9 +350,6 @@
                             "type": "Microsoft.Network/virtualNetworks/subnets",
                             "apiVersion": "2023-04-01",
                             "name": "[format('{0}/{1}', parameters('vnetName'), parameters('workerSubnetName'))]",
-                            "dependsOn": [
-                                "[resourceId('Microsoft.Network/virtualNetworks/subnets', format('{0}/{1}', parameters('vnetName'), parameters('controlSubnetName')))]"
-                            ],
                             "properties": {
                                 "addressPrefix": "[parameters('workerSubnetCidr')]",
                                 "serviceEndpoints": [
