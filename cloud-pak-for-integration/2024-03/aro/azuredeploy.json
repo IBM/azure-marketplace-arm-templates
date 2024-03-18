@@ -75,6 +75,13 @@
                 "description": "Flag to determine whether to create a new Virtual Network or use existing"
             }
         },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network"
+            }
+        },
         "vnetCIDR": {
             "type": "string",
             "defaultValue": "10.0.0.0/20",
@@ -198,6 +205,13 @@
             "metadata": {
                 "description": "Visibility of cluster ingress portal - public or private"
             }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for the resources"
+            }
         }     
     },
     "variables": {
@@ -207,42 +221,155 @@
     },
     "resources": [
         {
-            "type": "Microsoft.Network/virtualNetworks",
+            "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
-            "condition": "[parameters('createVnet')]",
-            "name": "[parameters('vnetName')]",
-            "location": "[parameters('location')]",
+            "name": "virtualNetwork",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
             "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "[parameters('vnetCIDR')]"
-                    ]
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
                 },
-                "subnets": [
-                    {
-                        "name": "[parameters('controlSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[parameters('controlSubnetCIDR')]",
-                            "privateLinkServiceNetworkPolicies": "Disabled",
-                            "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.ContainerRegistry"
-                                }
-                            ]
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    "createVnet": {
+                        "value": "[parameters('createVnet')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "createVnet": {
+                            "type": "bool"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
                         }
                     },
-                    {
-                        "name": "[parameters('workerSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[parameters('workerSubnetCIDR')]",
-                            "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.ContainerRegistry"
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2022-07-01",
+                            "name": "[parameters('vnetName')]",
+                            "condition": "[parameters('createVnet')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
                                 }
-                            ]
+                            }
                         }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "aroSubnets",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "controlSubnetName": {
+                        "value": "[parameters('controlSubnetName')]"
+                    },
+                    "controlSubnetCidr": {
+                        "value": "[parameters('controlSubnetCIDR')]"
+                    },
+                    "workerSubnetName": {
+                        "value": "[parameters('workerSubnetName')]"
+                    },
+                    "workerSubnetCidr": {
+                        "value": "[parameters('workerSubnetCIDR')]"
                     }
-                ]
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "controlSubnetName": {
+                            "type": "string"
+                        },
+                        "controlSubnetCidr": {
+                            "type": "string"
+                        },
+                        "workerSubnetName": {
+                            "type": "string"
+                        },
+                        "workerSubnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('controlSubnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('controlSubnetCidr')]",
+                                "privateLinkServiceNetworkPolicies": "Disabled",
+                                "serviceEndpoints": [
+                                    {
+                                        "service": "Microsoft.ContainerRegistry"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('workerSubnetName'))]",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/virtualNetworks/subnets', format('{0}/{1}', parameters('vnetName'), parameters('controlSubnetName')))]"
+                            ],
+                            "properties": {
+                                "addressPrefix": "[parameters('workerSubnetCidr')]",
+                                "serviceEndpoints": [
+                                    {
+                                        "service": "Microsoft.ContainerRegistry"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
             }
         },
         {
@@ -294,6 +421,7 @@
             "apiVersion": "2022-04-01",
             "name": "[parameters('clusterName')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.RedHatOpenShift/OpenShiftClusters'), parameters('tagsByResource')['Microsoft.RedHatOpenShift/OpenShiftClusters'], json('{}')) ]",
             "properties": {
                 "clusterProfile": {
                     "domain": "[parameters('domain')]",
@@ -336,7 +464,8 @@
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'aroSubnets')]",
                 "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
                 "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
                 "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'contributor')))]",

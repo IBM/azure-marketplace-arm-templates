@@ -117,6 +117,20 @@
                 "description": "Deployment version to use"
             }
         },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the virtual network already exists"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network. Service principal must have permissions for this network."
+            }
+        },
         "vnetName": {
             "type": "string",
             "defaultValue": "vnet",
@@ -330,6 +344,73 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
+            "name": "virtualNetwork",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    "existingVnet": {
+                        "value": "[parameters('existingVnet')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "existingVnet": {
+                            "type": "bool"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2022-07-01",
+                            "name": "[parameters('vnetName')]",
+                            "condition": "[not(parameters('existingVnet'))]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
             ],
@@ -375,6 +456,9 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "condition": "[parameters('deployARO')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
             "name": "aroCluster",
             "properties": {
                 "mode": "Incremental",
@@ -387,7 +471,7 @@
                         "value": "[parameters('namePrefix')]"
                     },
                     "createVnet": {
-                        "value": true
+                        "value": false
                     },
                     "clusterName": {
                         "value": "[parameters('clusterName')]"
@@ -412,6 +496,9 @@
                     },
                     "location": {
                         "value": "[parameters('location')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -463,6 +550,9 @@
                     },
                     "ingressVisibility": {
                         "value": "[parameters('ingressVisibility')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
                     }
                 }
             }
