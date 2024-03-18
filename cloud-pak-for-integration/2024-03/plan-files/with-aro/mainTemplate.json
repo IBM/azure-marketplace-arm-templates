@@ -521,15 +521,15 @@
             "apiVersion": "2022-09-01",
             "condition": "[parameters('deployCP4I')]",
             "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'aroCluster')]",
-                "[resourceId('Microsoft.Resources/deployments', 'odfCluster')]",
-                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
+                "[resourceId('Microsoft.Resources/deployments', 'odfCluster')]"
             ],
             "name": "cp4iDeployment",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/with-aro/cp4i/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -566,6 +566,9 @@
                     "storageClass": {
                         "value": "[parameters('storageClass')]"
                     },
+                    "ocpDist": {
+                        "value": "ARO"
+                    },
                     "aroClusterName": {
                         "value": "[parameters('clusterName')]"
                     },
@@ -574,6 +577,9 @@
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
                     }
                 }
             }
