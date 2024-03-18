@@ -507,10 +507,9 @@
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'aroSubnets')]",
-                "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
-                "[resourceId('Microsoft.Network/virtualNetworks/providers/roleAssignments', parameters('vnetName'), 'Microsoft.Authorization', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
                 "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'contributor')))]",
-                "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'userAccessAdministrator')))]"
+                "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'userAccessAdministrator')))]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'vnetRoleAssignments')]"
             ]
         }
     ],
