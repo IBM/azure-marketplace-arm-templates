@@ -435,7 +435,7 @@
                         "value": true
                     },
                     "networkResourceGroup": {
-                        "value": "[resourceGroup().name]"
+                        "value": "[parameters('networkResourceGroup')]"
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
@@ -457,7 +457,8 @@
             "apiVersion": "2022-09-01",
             "condition": "[parameters('deployARO')]",
             "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
             ],
             "name": "aroCluster",
             "properties": {
