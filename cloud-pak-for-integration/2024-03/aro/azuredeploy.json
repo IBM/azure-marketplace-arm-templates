@@ -472,14 +472,14 @@
                 },
                 "masterProfile": {
                     "vmSize": "[parameters('masterSize')]",
-                    "subnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]",
+                    "subnetId": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]",
                     "encryptionAtHost": "[if(parameters('encryption'), 'Enabled', 'Disabled')]"
                 },
                 "workerProfiles": [
                     {
                         "name": "worker",
                         "vmSize": "[parameters('workerSize')]",
-                        "subnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('workerSubnetName'))]",
+                        "subnetId": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('workerSubnetName'))]",
                         "count": "[parameters('workerCount')]",
                         "diskSizeGB": "[parameters('workerDiskSize')]",
                         "encryptionAtHost": "[if(parameters('encryption'), 'Enabled', 'Disabled')]"
