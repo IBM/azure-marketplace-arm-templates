@@ -316,7 +316,7 @@
             },
             "dependsOn": [
                 "[variables('roleDefinitionName')]",
-                "[resourceId('Microsoft.Resources/deployments', 'scriptSubnet')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'scriptSubnet')]",
                 "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
             ]
         },
