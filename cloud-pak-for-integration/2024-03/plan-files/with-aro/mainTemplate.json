@@ -682,7 +682,7 @@
                         "value": "[parameters('vnetName')]"
                     },
                     "networkResourceGroup": {
-                        "value": "[resourceGroup().name]"
+                        "value": "[parameters('networkResourceGroup')]"
                     },
                     "subnetName": {
                         "value": "[parameters('scriptSubnetName')]"
