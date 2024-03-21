@@ -1,0 +1,604 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+		"config": {
+			"isWizard": false,
+			"basics": {
+				"resourceGroup": {
+					"constraints": {
+						"validations": [
+							{
+								"permission": "Microsoft.ManagedIdentity/userAssignedIdentities/create",
+								"message": "Must be able to create a user assigned identity in the resource group"
+							},
+                            {
+								"permission": "Microsoft.RedHatOpenShift/OpenShiftClusters/create",
+								"message": "Must be able to create an OpenShift cluster in the resource group"
+							},
+                            {
+								"permission": "Microsoft.Network/virtualNetworks/create",
+								"message": "Must be able to create a virtual network in the resource group"
+							},
+                            {
+								"permission": "Microsoft.Network/publicIPAddress/create",
+								"message": "Must be able to create a virtual network in the resource group"
+							}
+						]
+					},
+					"allowExisting": false
+				},
+				"location": {
+					"visible": true,
+					"resourceTypes": [
+						"Microsoft.Resources/deploymentScripts",
+                        "Microsoft.Resources/deployments",
+						"Microsoft.ManagedIdentity/userAssignedIdentities",
+                        "Microsoft.Authorization/roleAssignments",
+						"Microsoft.Storage/storageAccounts",
+                        "Microsoft.Network/virtualNetworks",
+                        "Microsoft.Network/publicIPAddress",
+                        "Microsoft.RedHatOpenShift/OpenShiftClusters"
+					]
+				}
+			}
+		},
+        "basics": [
+            {
+                "name": "namePrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Azure resource prefix",
+                "defaultValue": "ibmint",
+                "toolTip": "Prefix for Azure installation resources.",
+				"constraints":{
+					"required": true,
+					"validations": [
+						{
+							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+						}
+					]
+				}
+            }
+        ],
+        "steps": [
+            {
+                "name": "networking",
+                "label": "Network Settings",
+                "elements": [
+					{
+					"name": "vnet",
+					"type": "Microsoft.Network.VirtualNetworkCombo",
+					"label": {
+						"virtualNetwork": "Virtual network",
+						"subnets": "Subnets"
+					},
+					"toolTip": {
+						"virtualNetwork": "Selecting an existing VNet or enter the name of a new one",
+						"subnets": "The name and CIDR for the subnet (script subnet only used for private API deployments"
+					},
+					"defaultValue": {
+						"name": "vnet",
+						"addressPrefixSize": "/20"
+					},
+					"constraints": {
+						"minAddressPrefixSize": "/22"
+					},
+					"options": {
+						"hideExisting": true
+					},
+					"subnets": {
+						"controlSubnet": {
+							"label": "ARO Control Subnet",
+							"defaultValue": {
+								"name": "control-subnet",
+								"addressPrefixSize": "/24"
+							},
+							"constraints": {
+								"minAddressPrefixSize": "/26",
+								"minAddressCount": 3,
+								"requireContiguousAddresses": true
+							}
+						},
+						"workerSubnet": {
+							"label": "ARO Worker Subnet",
+							"defaultValue": {
+								"name": "worker-subnet",
+								"addressPrefixSize": "/24"
+							},
+							"constraints": {
+								"minAddressPrefixSize": "/24",
+								"minAddressCount": 50,
+								"requireContiguousAddresses": true
+							}
+						},
+						"scriptSubnet": {
+							"label": "Script Endpoint Subnet",
+							"defaultValue": {
+								"name": "script-subnet",
+								"addressPrefixSize": "/28"
+							},
+							"constraints": {
+								"minAddressPrefixSize": "/28",
+								"minAddressCount": 5,
+								"requireContiguousAddresses": false
+							}
+						}
+					},
+					"visible": true
+					} 
+                ]
+            },
+            {
+                "name": "cp4i",
+                "label": "Cloud Pak for Integration",
+                "elements": [
+                    {
+						"name": "ibmEntitlementKey",
+						"type": "Microsoft.Common.PasswordBox",	
+						"toolTip": "Entitlement key for the IBM Entitled Registry, used to pull the software images",					
+						"label": {
+							"password": "Entitlement key",
+                            "confirmPassword": "Confirm Entitlement key"
+						},
+						"constraints": {
+							"required": true,
+							"regex": "^[a-zA-Z0-9._-]{100,}$",
+							"validationMessage": "Key must be at least 100 characters long, contain only numbers, letters, underscores, dots and dashes"
+                		},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": true
+					},
+					{
+						"name": "licenseInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
+						  "uri": "https://ibm.biz/int-licenses"
+						}
+					},
+					{
+						"name": "cp4iEdition",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Cloud Pak for Integration version",
+						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
+						"constraints": {
+						  "allowedValues": [
+							{
+								"label": "IBM Cloud Pak for Integration LTS 2022.2.1 (L-RJON-CD3JKX)",
+								"value": "[parse('{\"version\":\"2022.2.1\",\"license\":\"L-RJON-CD3JKX\"}')]"
+						  },
+						  {
+							  "label": "IBM Cloud Pak for Integration LTS Reserved 2022.2.1 (L-RJON-CJR2WN)",
+							  "value": "[parse('{\"version\":\"2022.2.1\",\"license\":\"L-RJON-CJR2WN\"}')]"
+						  },
+						  {
+							  "label": "IBM Cloud Pak for Integration CD 2023.4.1 (L-VTPK-22YZPK)",
+							  "value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-VTPK-22YZPK\"}')]"
+						  }
+						  ],
+						  "required": true
+						},
+						"visible": true
+					},
+					{
+						"name": "acceptLicense",
+						"type": "Microsoft.Common.OptionsGroup",
+						"label": "License agreement",
+						"toolTip": "Acceptance of license terms is required to continue with installation.  Refer to the information box for details.",
+						"defaultValue": "Decline",
+						"constraints": {
+							"required": true,
+							"allowedValues": [
+								{
+									"label": "Decline",
+									"value": "decline"
+								},
+								{
+									"label": "Accept",
+									"value": "accept"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "nameSpace",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Platform UI namespace",
+						"defaultValue": "cp4i",
+						"toolTip": "Namespace where you want to install the Platform UI.",
+						"multiLine": false,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+							  "regex": "^[a-z0-9A-Z-]{3,63}$",
+							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+							}
+						  ]
+						},
+						"visible": true
+					}
+                ]
+            },
+			{
+				"name": "openshift",
+				"label": "OpenShift",
+				"elements": [
+					{
+						"name": "aroInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "The choices in this section relate to the Azure Red Hat Openshift (ARO) cluster that will be created. Click here for details.",
+						  "uri": "https://learn.microsoft.com/en-us/azure/openshift/"
+						}
+					},
+					{
+						"name": "versionsApi",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.RedHatOpenShift/locations/',location(),'/openshiftversions?api-version=2022-09-04')]"
+						}
+					},
+					{
+						"name": "aroVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "ARO version",
+						"toolTip": "Select the ARO version to use. The list depends upon the location selected.",
+						"constraints": {
+							"allowedValues": "[map(steps('openshift').versionsApi.value, (item) => parse(concat('{\"label\":\"',item.properties.version,'\",\"value\":\"', item.properties.version, '\"}')))]",
+							"required": true    
+						},
+						"visible": true
+					},
+					{
+						"name": "versionWarningLTS",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[if(or(equals(steps('openshift').aroVersion, ''),startsWith(steps('openshift').aroVersion,'4.10'),startsWith(steps('openshift').aroVersion,'4.12')),false,true)]",
+						"options": {
+							"icon": "Warning",
+							"text": "Cloud Pak for Integration is only supported on LTS (even) versions of OpenShift."
+						}
+					},
+					{
+						"name": "versionWarningOld",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[startsWith(steps('openshift').aroVersion,'4.10')]",
+						"options": {
+							"icon": "Warning",
+							"text": "OpenShift 4.10 will soon be unsupported."
+						}
+					},
+					{
+						"name": "masterNodes",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "Master VM Size",
+						"toolTip": "The size of the master nodes",
+						"recommendedSizes": [
+							"Standard_D8s_v3",
+							"Standard_D16s_v3",
+							"Standard_D32s_v3"
+						],
+						"constraints": {
+							"allowedSizes": [
+								"Standard_D8s_v3",
+								"Standard_D16s_v3",
+								"Standard_D32s_v3",
+								"Standard_E64i_v3",
+								"Standard_E64is_v3",
+								"Standard_E80is_v4",
+								"Standard_E80ids_v4",
+								"Standard_E104i_v5",
+								"Standard_E104is_v5",
+								"Standard_E104id_v5",
+								"Standard_E104ids_v5",
+								"Standard_F72s_v2",
+								"Standard_G5",
+								"Standard_GS5",
+								"Standard_M128ms"
+							]
+						},
+						"options": {
+							"hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"imageReference": {
+							"publisher": "MicrosoftWindowsServer",
+							"offer": "WindowsServer",
+							"sku": "2012-R2-Datacenter"
+						},
+						"count": 3,
+						"visible": true
+					},
+					{
+						"name": "workerNodes",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "Worker VM Size",
+						"toolTip": "The size of the worker nodes",
+						"defaultValue": "Standard_D16s_v3",
+						"recommendedSizes": [
+							"Standard_D16s_v3",
+							"Standard_D32s_v3"
+						],
+						"constraints": {
+							"allowedSizes": [
+								"Standard_D16s_v3",
+								"Standard_D32s_v3",
+								"Standard_D16as_v4",
+								"Standard_D32as_v4",
+								"Standard_E16s_v3",
+								"Standard_E32s_v3",
+								"Standard_E64is_v3",
+								"Standard_E80is_v4",
+								"Standard_E80ids_v4",
+								"Standard_E104is_v5",
+								"Standard_E104id_v5",
+								"Standard_E104ids_v5",
+								"Standard_F16s_v2",
+								"Standard_F32s_v2",
+								"Standard_F72s_v2",
+								"Standard_M128ms",
+								"Standard_L16s",
+								"Standard_L32s",
+								"Standard_L16s_v2",
+								"Standard_L32s_v2",
+								"Standard_L48s_v2",
+								"Standard_L48s_v2",
+								"Standard_NC16as_T4_v3",
+								"Standard_NC24s_v3",
+								"Standard_NC24rs_v3",
+								"Standard_NC64as_T4_v3",
+								"Standard_GS5"
+							]
+						},
+						"options": {
+							"hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"count": "[steps('openshift').workerCount]",
+						"visible": true
+					},
+					{
+							"name": "workerCount",
+							"type": "Microsoft.Common.Slider",
+							"min": 3,
+							"max": 64,
+							"label": "Worker Node Quantity",
+							"defaultValue": 3,
+							"showStepMarkers": false,
+							"toolTip": "The number of worker nodes",
+							"constraints": {
+								"required": false
+							},
+							"visible": true
+					},
+					{
+						"name": "encryption",
+						"type": "Microsoft.Common.CheckBox",
+						"label": "Enable encryption at host",
+						"toolTip": "Encryption at host must be enabled for the subscription"
+					},
+					{
+						"name": "servicePrincipal",
+						"type": "Microsoft.Common.ServicePrincipalSelector",
+						"label": {
+						  "password": "Password",
+						  "certificateThumbprint": "Certificate thumbprint",
+						  "authenticationType": "Authentication Type",
+						  "sectionHeader": "Service Principal"
+						},
+						"toolTip": {
+						  "password": "Password",
+						  "certificateThumbprint": "Certificate thumbprint",
+						  "authenticationType": "Authentication Type"
+						},
+						"defaultValue": {
+						  "principalId": "<default guid>",
+						  "name": "(New) default App Id"
+						},
+						"constraints": {
+						  "required": true,
+						  "regex": "^[a-zA-Z0-9~._-]{8,}$",
+						  "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
+						},
+						"options": {
+						  "hideCertificate": false
+						},
+						"visible": true
+					},
+					{
+						"name": "checkDomainName",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('openshift').domainName,'&api-version=2022-11-01')]"
+						}
+					},
+					{
+						"name": "useCustomDomain",
+						"type": "Microsoft.Common.CheckBox",
+						"label": "Use a custom domain name",
+						"visible": true,
+						"toolTip": "Allows using a custom domain name instead of a random generated one",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "domainName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Domain name for cluster",
+						"defaultValue": "[toLower(concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)))]",
+						"toolTip": "Enter a domain name for the OpenShift cluster.",
+						"visible": "[steps('openshift').useCustomDomain]",
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"isValid": "[steps('openshift').checkDomainName.available]",
+									"message": "Domain name is not available"
+								},
+								{
+									"regex": "^[a-z][a-z0-9-_]{3,32}$",
+									"message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
+								}
+							]
+						}
+					},
+					{
+						"name": "domainInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[steps('openshift').useCustomDomain]",
+						"options": {
+							"icon": "Info",
+							"text": "[concat('The OpenShift cluster will be available at https://console-openshift-console.apps.',steps('openshift').domainName,'.',location(),'.aroapp.io/')]"
+						}
+					},
+					{
+					  "name": "rpObjectId",
+					  "type": "Microsoft.Common.TextBox",
+					  "label": "OpenShift Resource Provider Service Principal Id",
+					  "toolTip": "Refer to https://learn.microsoft.com/en-us/azure/openshift/quickstart-openshift-arm-bicep-template?pivots=aro-arm#get-the-service-principal-object-id-for-the-openshift-resource-provider---azure-cli for details",
+					  "multiLine": false,
+					  "constraints": {
+						"required": true,
+						"validations": [
+						  {
+							"regex": "^[a-z0-9A-Z-]{36}$",
+							"message": "Only alphanumeric characters and dashes are allowed, and the value must be 36 characters long."
+						  }
+						]
+					  },
+					  "visible": true
+					},
+					{
+						"name": "apiVisibility",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "OpenShift API Visibilty",
+						"visible": true,
+                        "toolTip": "This will allow public or private access to the OpenShift API",
+                        "defaultValue": "Public",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Public",
+                                    "value": "Public"
+                                },
+                                {
+                                    "label": "Private",
+                                    "value": "Private"
+                                }
+                            ]
+                        }	
+					},
+					{
+						"name": "ingressVisibility",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "OpenShift Ingress Visibilty",
+						"visible": true,
+                        "toolTip": "This will allow public or private access to the OpenShift workload ingress",
+                        "defaultValue": "Public",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Public",
+                                    "value": "Public"
+                                },
+                                {
+                                    "label": "Private",
+                                    "value": "Private"
+                                }
+                            ]
+                        }	
+					},
+					{
+						"name": "pullSecret",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Red Hat Pull Secret",
+						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
+						"toolTip": "Refer to https://console.redhat.com/openshift/install/pull-secret",
+						"multiLine": true,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+								"regex": "{.*:{.*:.*}}",
+								"message": "Pull secret must be valid"
+							},
+							{
+								"isValid": "[startsWith( steps('openshift').pullSecret, '{\"auths\":' )]",
+								"message": "Pull secret must start with \"auths\""
+							}
+						  ]
+						}
+					},
+                    {
+                        "name": "odfNodeSize",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "ODF Size per Node",
+						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
+                        "toolTip": "ODF Cluster Size will be three times this size",
+                        "defaultValue": "2 TiB",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "1 TiB",
+                                    "value": "1Ti"
+                                },
+                                {
+                                    "label": "2 TiB",
+                                    "value": "2Ti"
+                                },
+                                {
+                                    "label": "3 TiB",
+                                    "value": "3Ti"
+                                }
+                            ]
+                        }
+                    }
+				]
+			}
+         ],
+        "outputs": {
+            "namePrefix": "[basics('namePrefix')]",
+			"vnetName": "[steps('networking').vnet.name]",
+			"vnetCIDR": "[first( steps('networking').vnet.addressPrefixes ) ]",
+			"controlSubnetCIDR": "[steps('networking').vnet.subnets.controlSubnet.addressPrefix]",
+			"controlSubnetName": "[steps('networking').vnet.subnets.controlSubnet.name]",
+			"workerSubnetCIDR": "[steps('networking').vnet.subnets.workerSubnet.addressPrefix]",
+			"workerSubnetName": "[steps('networking').vnet.subnets.workerSubnet.name]",
+			"scriptSubnetCidr": "[steps('networking').vnet.subnets.scriptSubnet.addressPrefix]",
+			"scriptSubnetName": "[steps('networking').vnet.subnets.scriptSubnet.name]",
+			"deployODF": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
+            "location": "[location()]",
+            "ibmEntitlementKey": "[steps('cp4i').ibmEntitlementKey]",
+            "acceptLicense": "[steps('cp4i').acceptLicense]",
+			"cp4iVersion": "[steps('cp4i').cp4iEdition.version ]",
+			"cp4iLicense": "[steps('cp4i').cp4iEdition.license ]",
+			"namespace": "[steps('cp4i').nameSpace]",
+            "spClientId": "[steps('openshift').servicePrincipal.appId]",
+			"spObjectId": "[first(steps('openshift').servicePrincipal.objectId)]",
+			"spClientSecret": "[steps('openshift').servicePrincipal.password]",
+			"rpObjectId": "[steps('openshift').rpObjectId]",
+			"pullSecret": "[steps('openshift').pullSecret]",
+			"masterSize": "[steps('openshift').masterNodes]",
+			"workerSize": "[steps('openshift').workerNodes]",
+			"workerCount": "[steps('openshift').workerCount]",
+            "storageSizePerNode": "[steps('openshift').odfNodeSize]",
+			"aroVersion": "[steps('openshift').aroVersion]",
+			"domain": "[steps('openshift').domainName]",
+			"encryption": "[steps('openshift').encryption]",
+			"apiVisibility": "[steps('openshift').apiVisibility]",
+			"ingressVisibility": "[steps('openshift').ingressVisibility]"
+         }
+    }
+}

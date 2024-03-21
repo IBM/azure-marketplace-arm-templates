@@ -1,0 +1,107 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vnetName": {
+            "type": "string"
+        },
+        "vnetCIDR": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        },
+        "existingVnet": {
+            "type": "bool"
+        },
+        "controlSubnetName": {
+            "type": "string"
+        },
+        "controlSubnetCIDR": {
+            "type": "string"
+        },
+        "controlSubnetNsgId": {
+            "type": "string"
+        },
+        "workerSubnetName": {
+            "type": "string"
+        },
+        "workerSubnetCIDR": {
+            "type": "string"
+        },
+        "workerSubnetNsgId": {
+            "type": "string"
+        },
+        "tagsByResource": {
+            "type": "object"
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-07-01",
+            "name": "[parameters('vnetName')]",
+            "condition": "[not(parameters('existingVnet'))]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2023-04-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "name": "[concat(parameters('vnetName'), '/' ,parameters('controlSubnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('controlSubnetCIDR')]",
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "networkSecurityGroup": {
+                    "id": "[parameters('controlSubnetNsgId')]"
+                },
+                "serviceEndpoints": [
+                    {
+                        "service": "Microsoft.ContainerRegistry"
+                    },
+                    {
+                        "service": "Microsoft.Storage"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2023-04-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]"
+            ],
+            "name": "[concat(parameters('vnetName'), '/' ,parameters('workerSubnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('workerSubnetCIDR')]",
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "networkSecurityGroup": {
+                    "id": "[parameters('workerSubnetNsgId')]"
+                },
+                "serviceEndpoints": [
+                    {
+                        "service": "Microsoft.ContainerRegistry"
+                    },
+                    {
+                        "service": "Microsoft.Storage"
+                    }
+                ]
+            }
+        }
+    ]
+}
