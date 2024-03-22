@@ -104,7 +104,7 @@
         },
         "enableAdminUser": {
             "type": "bool",
-            "defaultValue": false,
+            "defaultValue": true,
             "metadata": {
                 "description": "Flag to enable admin user for the registry with push/pull authority"
             }
