@@ -926,8 +926,8 @@ fi
 
 # Output the key details
 jq -n -c \
-    --arg privateKey \"$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pem)\" \
-    --arg publicKey \"$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub)\" \
-    '{\"jwtKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey}}' > $AZ_SCRIPTS_OUTPUT_PATH
+    --arg privateKey "$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pem)" \
+    --arg publicKey "$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub)" \
+    '{"jwtKey": {"privateKey": $privateKey, "publicKey": $publicKey}}' > $AZ_SCRIPTS_OUTPUT_PATH
 
 log-info "Script completed"
