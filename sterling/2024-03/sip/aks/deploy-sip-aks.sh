@@ -515,8 +515,10 @@ EOF
         {
             "iss": "oms",
             "keys": [
-                "jwtAlgo": "RS256",
-                "publicKey": "${JWT_PUB}"
+                {
+                    "jwtAlgo": "RS256",
+                    "publicKey": "${JWT_PUB}"
+                }
             ]
         }
     ]
