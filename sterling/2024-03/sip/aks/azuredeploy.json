@@ -166,6 +166,13 @@
                 "description": "IBM Sterling Intelligent Promising operator catalog image"
             }
         },
+        "sipTag": {
+            "type": "string",
+            "defaultValue": "10.0.2403.0-amd64",
+            "metadata": {
+                "description": "Application image tag"
+            }
+        },
         "operatorNamespace": {
             "type": "string",
             "defaultValue": "ibm-operators",
@@ -407,6 +414,10 @@
                     {
                         "name": "SIP_OPERATOR",
                         "value": "[parameters('sipOperatorCatalog')]"
+                    },
+                    {
+                        "name": "SIP_TAG",
+                        "value": "[parameters('sipTag')]"
                     },
                     {
                         "name": "OPERATOR_NAMESPACE",
