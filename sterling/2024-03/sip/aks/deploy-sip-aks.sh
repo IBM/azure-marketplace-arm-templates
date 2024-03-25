@@ -711,6 +711,7 @@ spec:
       tag: ${SIP_TAG}
       imageName: oms-gateway
       pullPolicy: IfNotPresent
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
     apiDocsService:
       tag: ${SIP_TAG}
       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
