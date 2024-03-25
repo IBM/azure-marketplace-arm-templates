@@ -4,7 +4,7 @@
 
 source common.sh
 
-if [[ -z $OUTPUT_DIR ]] then export OUTPUT_DIR="/mnt/azscripts/azscriptoutput"; fi
+if [[ -z $OUTPUT_DIR ]]; then export OUTPUT_DIR="/mnt/azscripts/azscriptoutput"; fi
 export OUTPUT_FILE="sip-script-output-$(date -u +'%Y-%m-%d-%H%M%S').log"
 log-info "Script started" 
 
@@ -48,7 +48,7 @@ if [[ -z $KAFKA_USER ]]; then KAFKA_USER="sipadmin"; fi
 if [[ -z $KAFKA_PASSWORD ]]; then KAFKA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
 if [[ -z $JWT_KEY_NAME ]]; then JWT_KEY_NAME="sipkey"; fi
 if [[ -z $JWT_SECRET_NAME ]]; then JWT_SECRET_NAME="jwt-configuration"; fi
-if [[ -z $AZ_SCRIPTS_OUTPUT_PATH ]]; then AZ_SCRIPTS_OUTPUT_PATH="$OUTPUT_DIR/executionresult.json"
+if [[ -z $AZ_SCRIPTS_OUTPUT_PATH ]]; then AZ_SCRIPTS_OUTPUT_PATH="$OUTPUT_DIR/executionresult.json"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -468,7 +468,7 @@ fi
 
 
 # Deploy SIP instance
-if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE | grep " sip " ) ]]; then
+if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]]; then
     if [[ $LICENSE == "accept" ]]; then
 
         # Create JWT issuer cert
@@ -497,8 +497,8 @@ EOF
         fi
 
         # Create the JWT Issuer secret
-        if [[ -z $(kubectl get secret -n ${SIP_NAMESPACE} ${JWT_KEY_NAME} 2> /dev/null ) ]]; then
-            log-info "Creating JWT Issuer secret"
+        if [[ -z $(kubectl get secret -n ${SIP_NAMESPACE} ${JWT_SECRET_NAME} 2> /dev/null ) ]]; then
+            log-info "Creating JWT Issuer secret ${SIP_NAMESPACE}/${JWT_SECRET_NAME}"
             if [[ ! -f ${TMP_DIR}/${JWT_KEY_NAME}.pem ]]; then
                 log-info "Creating JWT Key Pair"
 
@@ -530,7 +530,7 @@ EOF
                 log-info "Successfully created JWT issuer secret"
             fi  
         else
-          log-info "JWT Issuer secret already exists"
+          log-info "JWT Issuer secret ${SIP_NAMESPACE}/${JWT_SECRET_NAME} already exists"
         fi
 
         # Create the truststore password
