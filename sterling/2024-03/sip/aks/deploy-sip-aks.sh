@@ -498,7 +498,7 @@ EOF
         # Create the JWT Issuer secret
         if [[ -z $(kubectl get secret -n ${SIP_NAMESPACE} ${JWT_KEY_NAME} 2> /dev/null ) ]]; then
             log-info "Creating JWT Issuer secret"
-            if [[ -f ${TMP_DIR}/${JWT_KEY_NAME}.pem ]]; then
+            if [[ ! -f ${TMP_DIR}/${JWT_KEY_NAME}.pem ]]; then
                 log-info "Creating JWT Key Pair"
 
                 openssl genrsa -out ${TMP_DIR}/${JWT_KEY_NAME}.pem 2048
