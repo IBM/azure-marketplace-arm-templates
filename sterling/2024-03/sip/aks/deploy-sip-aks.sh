@@ -4,7 +4,7 @@
 
 source common.sh
 
-export OUTPUT_DIR="/mnt/azscripts/azscriptoutput"
+if [[ -z $OUTPUT_DIR ]] then export OUTPUT_DIR="/mnt/azscripts/azscriptoutput"; fi
 export OUTPUT_FILE="sip-script-output-$(date -u +'%Y-%m-%d-%H%M%S').log"
 log-info "Script started" 
 
@@ -48,6 +48,7 @@ if [[ -z $KAFKA_USER ]]; then KAFKA_USER="sipadmin"; fi
 if [[ -z $KAFKA_PASSWORD ]]; then KAFKA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
 if [[ -z $JWT_KEY_NAME ]]; then JWT_KEY_NAME="sipkey"; fi
 if [[ -z $JWT_SECRET_NAME ]]; then JWT_SECRET_NAME="jwt-configuration"; fi
+if [[ -z $AZ_SCRIPTS_OUTPUT_PATH ]]; then AZ_SCRIPTS_OUTPUT_PATH="$OUTPUT_DIR/executionresult.json"
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -508,7 +509,7 @@ EOF
             openssl rsa -in ${TMP_DIR}/${JWT_KEY_NAME}.pem -outform PEM -pubout -out ${TMP_DIR}/${JWT_KEY_NAME}.pub
 
             JWT_PUB=$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
-            cat << EOF > ${TMO_DIR}/jwtConfig.json
+            cat << EOF > ${TMP_DIR}/jwtConfig.json
 {
     "jwtConfiguration":[
         {
@@ -521,7 +522,7 @@ EOF
     ]
 }
 EOF
-            kubectl create secret generic ${JWT_KEY_NAME} --from-file=jwt-issuer-config.json=${TMP_DIR}/jwtConfig.json -n ${SIP_NAMESPACE}
+            kubectl create secret generic ${JWT_SECRET_NAME} --from-file=jwt-issuer-config.json=${TMP_DIR}/jwtConfig.json -n ${SIP_NAMESPACE}
             if (( $? != 0 )); then
                 log-error "Unable to create JWT issuer secret"
                 exit 1
@@ -925,8 +926,8 @@ fi
 
 # Output the key details
 jq -n -c \
-    --arg privateKey \"$(cat ./tempkey)\" \
-    --arg publicKey \"$(cat ./tempkey.pub)\" \
+    --arg privateKey \"$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pem)\" \
+    --arg publicKey \"$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub)\" \
     '{\"jwtKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey}}' > $AZ_SCRIPTS_OUTPUT_PATH
 
 log-info "Script completed"
