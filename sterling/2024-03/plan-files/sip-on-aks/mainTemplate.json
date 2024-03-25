@@ -991,6 +991,13 @@
                 "description": "IBM Sterling Intelligent Promising operator catalog image"
             }
         },
+        "sipTag": {
+            "type": "string",
+            "defaultValue": "10.0.2403.0-amd64",
+            "metadata": {
+                "description": "SIP Application image tag"
+            }
+        },
         "operatorNamespace": {
             "type": "string",
             "defaultValue": "ibm-operators",
@@ -1993,6 +2000,9 @@
                     },
                     "instanceNamespace": {
                         "value": "[parameters('instanceNamespace')]"
+                    },
+                    "sipTag": {
+                        "value": "[parameters('sipTag')]"
                     },
                     "pvcName": {
                         "value": "[parameters('pvcName')]"
