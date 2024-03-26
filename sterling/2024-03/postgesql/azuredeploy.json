@@ -93,6 +93,13 @@
                 "description": "Name for the analytics workspace. Specify if not creating new one."
             }
         },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group holding the VNet"
+            }
+        },
         "vnetName": {
             "type": "string",
             "metadata": {
@@ -156,20 +163,59 @@
     },
     "resources": [
         {
-            "type": "Microsoft.Network/virtualNetworks/subnets",
-            "apiVersion": "2020-11-01",
-            "condition": "[parameters('createSubnet')]",
-            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "dbSubnet",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
             "properties": {
-                "addressPrefix": "[parameters('subnetCIDR')]",
-                "delegations": [
-                                {
-                                    "name": "Microsoft.DBPostgresSQL.flexibleServers",
-                                    "properties": {
-                                        "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers"
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCidr')]",
+                                "delegations": [
+                                     {
+                                        "name": "Microsoft.DBPostgresSQL.flexibleServers",
+                                        "properties": {
+                                            "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers"
+                                        }
                                     }
-                                }
-                ]
+                                ]
+                            }
+                        }
+                    ]
+                }
             }
         },
         {
@@ -187,12 +233,12 @@
             "properties": {
                 "registrationEnabled": false,
                 "virtualNetwork": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                    "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
                 }
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Network/privateDnsZones', parameters('dbDNSZoneName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
             ]
         },
         {
@@ -219,7 +265,7 @@
                     "mode": "[parameters('dbHAMode')]"
                 },
                 "network": {
-                    "delegatedSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+                    "delegatedSubnetResourceId": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
                     "privateDnsZoneArmResourceId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('dbDNSZoneName'))]"
                 },
                 "storage": {
