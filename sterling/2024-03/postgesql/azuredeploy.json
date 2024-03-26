@@ -106,6 +106,20 @@
                 "description": "Name of the virtual network to deploy into"
             }
         },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a new virtual network (false) or use existing (true)"
+            }
+        },
+        "vnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "The address prefix for the new VNet if being created."
+            }
+        },
         "createSubnet": {
             "type": "bool",
             "defaultValue": true,
@@ -156,12 +170,30 @@
             "metadata": {
                 "description": "Name of the diagnostic setting resource"
             }
+        },
+        "tagsByResource": {
+            "type": "object"
         }
     },
     "variables": {
 
     },
     "resources": [
+        {  
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-07-01",
+            "name": "[parameters('vnetName')]",
+            "condition": "[not(parameters('existingVnet'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
@@ -223,6 +255,7 @@
             "type": "Microsoft.Network/privateDnsZones",
             "apiVersion": "2020-06-01",
             "name": "[parameters('dbDNSZoneName')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/privateDnsZones'), parameters('tagsByResource')['Microsoft.Network/privateDnsZones'], json('{}')) ]",
             "location": "global",
             "properties": {}
         },
@@ -246,6 +279,7 @@
             "type": "Microsoft.DBforPostgreSQL/flexibleServers",
             "apiVersion": "2021-06-01",
             "name": "[parameters('postgreSQLName')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.DBforPostgreSQL/flexibleServers'), parameters('tagsByResource')['Microsoft.DBforPostgreSQL/flexibleServers'], json('{}')) ]",
             "location": "[parameters('location')]",
             "sku": {
                 "name": "[parameters('dbVMSize')]",
@@ -283,6 +317,7 @@
             "apiVersion": "2022-10-01",
             "condition": "[and(parameters('deployLogAnalytics'),parameters('createAnalyticsWorkspace'))]",
             "name": "[parameters('workspaceName')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.OperationalInsights/workspaces'), parameters('tagsByResource')['Microsoft.OperationalInsights/workspaces'], json('{}')) ]",
             "location": "[parameters('location')]",
             "properties": {
                 "sku": {
