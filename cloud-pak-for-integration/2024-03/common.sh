@@ -489,7 +489,7 @@ function wait-for-cluster-operators-aro() {
 #        wait-for-cluster-operators-aro
 #
     local count=0
-    while [[ $(${BIN_DIR}/oc get clusteroperators -o json | jq -r '.items[].status.conditions[] | select(.type=="Available") | .status' | grep False) ]]; do
+    while [[ $(${BIN_DIR}/oc get clusteroperators -o json | jq -r '.items[].status.conditions[] | select(.type=="Progressing") | .status' | grep True) ]]; do
         log-info "Waiting for cluster operators to finish installation. Waited $count minutes. Will wait up to 30 minutes."
         sleep 60
         count=$(( $count + 1 ))
