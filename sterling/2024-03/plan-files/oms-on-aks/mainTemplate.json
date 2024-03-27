@@ -112,6 +112,13 @@
                 "description": "Flag to determien whether to deploy the PostgreSQL database server (debug only)"
             }
         },
+        "deployOms": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the OMS software (debug only)"
+            }
+        },
         "workspaceName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
@@ -1034,6 +1041,120 @@
             "defaultValue": "[concat(parameters('postgreSQLName'),'-diag-settings')]",
             "metadata": {
                 "description": "Name of the diagnostic setting resource"
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "IBM Container Regisry (icr.io) entitlement key"
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "metadata": {
+                "description": "FQDN of the suffix for the ingress"
+            }
+        },
+        "dbName": {
+            "type": "string",
+            "defaultValue": "omsdb",
+            "metadata": {
+                "description": "Name for the OMS database in PostgreSQL that will be created"
+            }
+        },
+        "dbSchemaName": {
+            "type": "string",
+            "defaultValue": "oms",
+            "metadata": {
+                "description": "Name of the DB schema in PostgreSQL that will be created"
+            }
+        },
+        "aksStorageClass": {
+            "type": "string",
+            "defaultValue": "azurefile",
+            "metadata": {
+                "description": "Name of the storage class in AKS to store the SIP persistent data"
+            }
+        },
+        "omsCatalogImage": {
+            "type": "string",
+            "defaultValue": "cp.icr.io/cpopen/ibm-oms-ent-case-catalog:v1.0.13-10.0.2403.0",
+            "metadata": {
+                "description": "OMS Catalog image to be used for the installation"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-operators",
+            "metadata": {
+                "description": "Namespace in AKS for the operators"
+            }
+        },
+        "omsOperatorChannel": {
+            "type": "string",
+            "defaultValue": "1.0",
+            "metadata": {
+                "description": "OMS Operator Channel version to subscribe to"
+            }
+        },
+        "omsVersion": {
+            "type": "string",
+            "defaultValue": "10.0.2403.0",
+            "metadata": {
+                "description": "Version of OMS to install (image tag)"
+            }
+        },
+        "instanceNamespace": {
+            "type": "string",
+            "defaultValue": "sip",
+            "metadata": {
+                "description": "Namespace in AKS for the created instances"
+            }
+        },
+        "omsInstanceName": {
+            "type": "string",
+            "defaultValue": "oms",
+            "metadata": {
+                "description": "Name for the created OMS environment operand instance"
+            }
+        },
+        "pvcName": {
+            "type": "string",
+            "defaultValue": "sip-pvc",
+            "metadata": {
+                "description": "Persistent Volume Claim (PVC) name for the SIP persistent volume"
+            }
+        },
+        "pvcSize": {
+            "type": "string",
+            "defaultValue": "10Gi",
+            "metadata": {
+                "description": "Size of the PVC for the SIP persistent volume"
+            }
+        },
+        "license": {
+            "type": "string",
+            "allowedValues": [
+                "accept",
+                "decline"
+            ],
+            "defaultValue": "decline",
+            "metadata": {
+                "description": "Accept the license terms. Required to create an instance."
+            }
+        },
+        "certManagerVersion": {
+            "type": "string",
+            "defaultValue": "v1.14.3",
+            "metadata": {
+                "description": "Version for the kubernetes certificate manager"
+            }
+        },
+        "cloudPakBaseRepo": {
+            "type": "string",
+            "defaultValue": "cp/ibm-oms-enterprise",
+            "metadata": {
+                "description": "Base image repository for the IBM Cloud Pak images"
             }
         },
         "privateDeployment": {
@@ -2009,6 +2130,131 @@
                 },
                 "templateLink": {
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/postgresql/azuredeploy.json'))]"
+                }
+            } 
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployOMS",
+            "condition": "[parameters('deployOms')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPostgreSQL')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "createStorageAccount": {
+                        "value": false
+                    },
+                    "deployOnVnet": {
+                        "value": true
+                    },
+                    "existingVnet": {
+                        "value": true
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('scriptSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('scriptSubnetCidr')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "aksClusterName": {
+                        "value": "[parameters('aksClusterName')]"
+                    },
+                    "ibmEntitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "domainName": {
+                        "value": "[parameters('domainName')]"
+                    },
+                    "psqlHost": {
+                        "value": "[concat(parameters('postgreSQLName'),'.postgres.database.azure.com')]"
+                    },
+                    "dbName": {
+                        "value": "[parameters('dbName')]"
+                    },
+                    "dbSchemaName": {
+                        "value": "[parameters('dbSchemaName')]"
+                    },
+                    "dbAdminUsername": {
+                        "value": "[parameters('dbAdminUserName')]"
+                    },
+                    "dbAdminPassword": {
+                        "value": "[parameters('dbAdminPassword')]"
+                    },
+                    "storageClass": {
+                        "value": "[parameters('aksStorageClass')]"
+                    },
+                    "omsCatalogImage": {
+                        "value": "[parameters('omsCatalogImage')]"
+                    },
+                    "operatorNamespace": {
+                        "value": "[parameters('operatorNamespace')]"
+                    },
+                    "omsOperatorChannel": {
+                        "value": "[parameters('omsOperatorChannel')]"
+                    },
+                    "omsVersion": {
+                        "value": "[parameters('omsVersion')]"
+                    },
+                    "instanceNamespace": {
+                        "value": "[parameters('instanceNamespace')]"
+                    },
+                    "omsInstanceName": {
+                        "value": "[parameters('omsInstanceName')]"
+                    },
+                    "pvcName": {
+                        "value": "[parameters('pvcName')]"
+                    },
+                    "pvcSize": {
+                        "value": "[parameters('pvcSize')]"
+                    },
+                    "license": {
+                        "value": "[parameters('license')]"
+                    },
+                    "certManagerVersion":  {
+                        "value": "[parameters('certManagerVersion')]"
+                    },
+                    "cloudPakBaseRepo": {
+                        "value": "[parameters('cloudPakBaseRepo')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/oms/aks/azuredeploy.json'))]"
                 }
             } 
         }

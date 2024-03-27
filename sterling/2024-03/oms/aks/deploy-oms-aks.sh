@@ -335,30 +335,6 @@ else
     log-info "Namespace $OMS_NAMESPACE already exists"
 fi
 
-# Upload images to the Azure Container Registry
-# log-info "Importing required SIP images to the Azure Container Registry"
-# for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
-#     REPO_NAME="${CP_REPO_BASE}/$(echo $image | awk -F":" '{print $1}')"
-#     if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
-#         IMAGE_NAME="$image:$SIP_TAG"
-#         log-info "Importing ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
-#         az acr import \
-#             --name $ACR_NAME \
-#             --source cp.icr.io/${CP_REPO_BASE}/$IMAGE_NAME \
-#             --image ${CP_REPO_BASE}/$IMAGE_NAME \
-#             --username cp \
-#             --password $IBM_ENTITLEMENT_KEY
-#         if (( $? != 0 )); then
-#             log-error "Unable to import image ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
-#             exit 1
-#         else
-#             log-info "Successfully imported image ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
-#         fi
-#     else
-#         log-info "Image ${CP_REPO_BASE}/$IMAGE_NAME already exists in $ACR_NAME repository"
-#     fi
-# done
-
 # Create the certificate manager CRD
 if [[ -z $(kubectl get crd certificates.cert-manager.io 2> /dev/null) ]]; then
     log-info "Installing the certificate manager operator"
