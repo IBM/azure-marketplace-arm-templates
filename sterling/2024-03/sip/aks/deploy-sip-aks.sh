@@ -551,7 +551,6 @@ stringData:
   cassandra_password: ${CASSANDRA_PASSWORD}
   elasticsearch_username: ${ELASTICSEARCH_USERNAME}
   elasticsearch_password: ${ELASTICSEARCH_PASSWORD}
-  kafka_security_protocol: ${KAFKA_SECURITY_PROTOCOL}
   kafka_sasl_jaas_config: ${KAFKA_SASL_JAAS_CONFIG}
   kafka_user: ${KAFKA_USER}
   kafka_password: ${KAFKA_PASSWORD}
