@@ -459,6 +459,21 @@ else
     log-info "Certificate Manager custom resource definition already exists"
 fi
 
+# Create the nginx ingress controller
+if [[ -z $(helm list --namespace ingress-nginx | grep ingress-nginx ) ]]; then
+    helm upgrade --install ingress-nginx ingress-nginx \
+    --repo https://kubernetes.github.io/ingress-nginx \
+    --namespace ingress-nginx --create-namespace
+    if (( $? != 0 )); then
+        log-error "Unable to install ingress controller"
+        exit 1
+    else
+        log-info "Successfully installed ingress controller"
+    fi
+else
+    log-info "NGINX ingress controller already deployed"
+fi
+
 # Create the image pull secrets
 if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep ibm-entitlement-key) ]]; then
     log-info "Creating image pull secret ibm-entitlement-key in namespace $SIP_NAMESPACE"
