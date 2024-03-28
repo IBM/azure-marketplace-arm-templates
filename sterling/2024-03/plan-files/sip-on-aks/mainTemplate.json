@@ -451,6 +451,8 @@
         "aksSystemNodeCount": {
             "type": "int",
             "defaultValue": 3,
+            "minValue": 1,
+            "maxValue": 100,
             "metadata": {
                 "description": "Number of AKS control nodes to deploy by default"
             }
@@ -480,6 +482,8 @@
         "aksSystemNodeMax": {
             "type": "int",
             "defaultValue": 6,
+            "minValue": 1,
+            "maxValue": 100,
             "metadata": {
                 "description": "Maximum number of AKS control plane nodes to scale up to"
             }
@@ -559,6 +563,8 @@
         "aksUserNodeCount": {
             "type": "int",
             "defaultValue": 3,
+            "minValue": 3,
+            "maxValue": 100,
             "metadata": {
                 "description": "Number of AKS control nodes to deploy by default"
             }
@@ -588,6 +594,8 @@
         "aksUserNodeMax": {
             "type": "int",
             "defaultValue": 10,
+            "minValue": 3,
+            "maxValue": 100,
             "metadata": {
                 "description": "Maximum number of AKS worker plane nodes to scale up to"
             }
@@ -635,6 +643,7 @@
         "aksUserNodeMaxPods": {
             "type": "int",
             "defaultValue": 30,
+            "maxValue": 250,
             "metadata": {
                 "description": "Maximum number of pods that can run on an AKS worker plane node"
             }
