@@ -172,6 +172,34 @@ else
     log-info "The Operator-SDK CLI tool is already installed"
 fi
 
+# Install the helm cli
+if [[ -z $(which helm) ]]; then
+    wget -q --spider $HELM_URL
+    if (( $? != 0 )); then
+        log-error "Unable to locate Helm CLI at $HELM_URL"
+        exit 1
+    else
+        log-info "Downloading the Helm CLI"
+        wget -q -O ${TMP_DIR}/helm.tgz $HELM_URL
+
+        tar xaf ${TMP_DIR}/helm.tgz 
+        if (( $? != 0 )); then
+            log-error "Unable to untar file ${TMP_DIR}/helm.tgz"
+            exit 1
+        fi
+        mv linux-amd64/helm ${BIN_DIR}/helm
+        if (( $? != 0 )); then
+            log-error "Unable to copy helm to bin directory"
+            exit 1
+        else
+            log-info "Successfully installed helm"
+        fi
+    fi
+
+else
+    log-info "Helm CLI already installed"
+fi
+
 # Get the Azure Container Registry details
 if [[ -z $ACR_NAME ]]; then 
     log-info "Getting list of Azure Container Registries"
