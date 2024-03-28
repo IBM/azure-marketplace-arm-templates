@@ -49,6 +49,8 @@ if [[ -z $KAFKA_PASSWORD ]]; then KAFKA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
 if [[ -z $JWT_KEY_NAME ]]; then JWT_KEY_NAME="sipkey"; fi
 if [[ -z $JWT_SECRET_NAME ]]; then JWT_SECRET_NAME="jwt-configuration"; fi
 if [[ -z $AZ_SCRIPTS_OUTPUT_PATH ]]; then AZ_SCRIPTS_OUTPUT_PATH="$OUTPUT_DIR/executionresult.json"; fi
+if [[ -z $MAX_IMAGE_RETRY ]]; then MAX_IMAGE_RETRY=5; fi
+if [[ -z $MAX_READY_MINUTES ]]; then MAX_READY_MINUTES=30; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -369,41 +371,63 @@ fi
 log-info "Importing required Red Hat images to the Azure Container Registry"
 for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME}); do
     REPO_NAME="ubi8/$(echo $image | awk -F":" '{print $1}')"
-    if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
     IMAGE_NAME="$image:$RH_TAG"
+    az acr repository show --name $ACR_NAME --image ubi8/$IMAGE_NAME > /dev/null 2>&1
+    if (( $? != 0 )); then
         log-info "Importing ubi8/$IMAGE_NAME to $ACR_NAME"
-        az acr import \
-            --name $ACR_NAME \
-            --source registry.access.redhat.com/ubi8/$IMAGE_NAME \
-            --image ubi8/$IMAGE_NAME
-        if (( $? != 0 )); then
-            log-error "Unable to import image ubi8/$IMAGE_NAME to $ACR_NAME"
-            exit 1
+        RETRY_COUNT=0
+        while (( $RETRY_COUNT < $MAX_IMAGE_RETRY )); do
+            az acr import \
+                --name $ACR_NAME \
+                --source registry.access.redhat.com/ubi8/$IMAGE_NAME \
+                --image ubi8/$IMAGE_NAME > /dev/null 2>&1
+            if (( $? != 0 )); then
+                RETRY_COUNT=$(( $RETRY_COUNT + 1 ))
+                log-info "Failed to import ubi8/$IMAGE_NAME. Try $RETRY_COUNT of $MAX_IMAGE_RETRY."
+                sleep 30
+            else
+                break
+            fi
+        done
+        if (( $RETRY_COUNT < $MAX_IMAGE_RETRY )); then
+            log-info "Successfully imported ubi8/$IMAGE_NAME to $ACR_NAME"
         else
-            log-info "Successfully imported image ubi8/$IMAGE_NAME to $ACR_NAME"
+            log-error "Unable to import ubi8/$IMAGE_NAME to $ACR_NAME"
+            exit 1
         fi
     else
-        log-info "Image ubi8/$image already exists in $ACR_NAME repository"
+        log-info "Image ubi8/$IMAGE_NAME already exists in $ACR_NAME repository"
     fi
 done
 
 log-info "Importing required SIP images to the Azure Container Registry"
 for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
     REPO_NAME="${CP_REPO_BASE}/$(echo $image | awk -F":" '{print $1}')"
-    if [[ -z $(az acr repository list --name $ACR_NAME -o tsv | grep $REPO_NAME) ]]; then
-        IMAGE_NAME="$image:$SIP_TAG"
+    IMAGE_NAME="$image:$SIP_TAG"
+    az acr repository show --name $ACR_NAME --image ${CP_REPO_BASE}/$IMAGE_NAME > /dev/null 2>&1
+    if (( $? != 0 )); then
         log-info "Importing ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
-        az acr import \
-            --name $ACR_NAME \
-            --source cp.icr.io/${CP_REPO_BASE}/$IMAGE_NAME \
-            --image ${CP_REPO_BASE}/$IMAGE_NAME \
-            --username cp \
-            --password $IBM_ENTITLEMENT_KEY
-        if (( $? != 0 )); then
-            log-error "Unable to import image ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
-            exit 1
+        RETRY_COUNT=0
+        while (( $RETRY_COUNT < $MAX_IMAGE_RETRY )); do
+            az acr import \
+                --name $ACR_NAME \
+                --source cp.icr.io/${CP_REPO_BASE}/$IMAGE_NAME \
+                --image ${CP_REPO_BASE}/$IMAGE_NAME \
+                --username cp \
+                --password $IBM_ENTITLEMENT_KEY > /dev/null 2>&1
+            if (( $? != 0 )); then
+                RETRY_COUNT=$(( $RETRY_COUNT + 1 ))
+                log-info "Failed to import ${CP_REPO_BASE}/$IMAGE_NAME. Try $RETRY_COUNT of $MAX_IMAGE_RETRY."
+                sleep 30
+            else
+                break
+            fi
+        done
+        if (( $RETRY_COUNT < $MAX_IMAGE_RETRY )); then
+            log-info "Successfully imported ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
         else
-            log-info "Successfully imported image ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
+            log-error "Unable to import ${CP_REPO_BASE}/$IMAGE_NAME to $ACR_NAME"
+            exit 1
         fi
     else
         log-info "Image ${CP_REPO_BASE}/$IMAGE_NAME already exists in $ACR_NAME repository"
@@ -758,9 +782,6 @@ EOF
             log-error "Unable to create SIP instance in namespace $SIP_NAMESPACE"
             exit 1
         else
-            # Wait for instance to finish creation            #######TODO
-
-            ###########
             log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
         fi
 
@@ -919,6 +940,20 @@ EOF
 #         else
 #             log-info "Ingress instance already exists"
 #         fi
+
+    # Wait for services to start
+    count=0;
+    while [[ -z $(kubectl get sipenvironment -n sip sip -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
+        && [[ -z $(kubectl get sipenvironment -n sip sip -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
+        && [[ -z $(kubectl get sipenvironment -n sip sip -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
+        log-info "Waiting for services to be available. Waited $count minutes. Will wait up to $MAX_READY_MINUTES"
+        count=$(( $count + 1 ))
+        if (( $count > $MAX_READY_MINUTES )); then
+            log-error "Timeout exceeded waiting for services to be available."
+            exit 1
+        fi
+    done
+
     else
         log-info "License not accepted. Instance not created"
     fi

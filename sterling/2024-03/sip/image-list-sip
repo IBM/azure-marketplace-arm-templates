@@ -13,6 +13,5 @@ sip-iv-backend
 sip-iv-appserver
 sip-iv-onboard
 sip-logstash
-sip-carrier
 oms-gateway
 sip-api-docs
