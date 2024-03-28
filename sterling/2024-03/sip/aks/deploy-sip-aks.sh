@@ -992,6 +992,7 @@ EOF
         && [[ -z $(kubectl get sipenvironment -n sip sip -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
         log-info "Waiting for services to be available. Waited $count minutes. Will wait up to $MAX_READY_MINUTES"
         count=$(( $count + 1 ))
+        sleep 60
         if (( $count > $MAX_READY_MINUTES )); then
             log-error "Timeout exceeded waiting for services to be available."
             exit 1
