@@ -1,0 +1,338 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),'s',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name for the storage account"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-vnet')]",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "privateStorageEndpointName": {
+            "type": "string",
+            "defaultValue": "oms-pe-premiumstorage",
+            "metadata": {
+                "description": "Name of the private endpoint for the storage"
+            }
+        },
+        "mqsharename": {
+            "type": "string",
+            "defaultValue": "mqha",
+            "metadata": {
+                "description": "name of the Azure Premium File Share to create MQ instance"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Log Analytics"
+            }
+        },
+        "createAnalyticsWorkspace": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an analytics workspace"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace. Specify if not creating new one."
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new subnet for the private endpoint"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-endpoint-subnet')]",
+            "metadata": {
+                "description": "Name of the subnet to connect private endpoint onto"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "description": "CIDR for the subnet if creating"
+            }
+        },
+        "storageSuffix": {
+            "type": "string",
+            "defaultValue": "core.windows.net",
+            "metadata": {
+                "description": "URI for storage"
+            }
+        }
+    },
+    "variables": {
+        "storageDNSZoneName": "[concat('privatelink.file.',parameters('storageSuffix'))]",
+        "fileStorageAccountPrivateEndpointGroupName": "file"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2021-06-01",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "kind": "FileStorage",
+            "sku": {
+                "name": "Premium_LRS"
+            },
+            "properties": {
+                "allowSharedKeyAccess": true,
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "supportsHttpsTrafficOnly": false,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Deny"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-11-01",
+            "condition": "[parameters('createSubnet')]",
+            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('subnetCIDR')]",
+                "serviceEndpoints": [
+                    {
+                        "service": "Microsoft.ContainerRegistry"
+                    }
+                ],
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "privateEndpointNetworkPolicies": "Disabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('storageDNSZoneName')]",
+            "location": "global",
+            "properties": {},
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name": "[concat(variables('storageDNSZoneName'),'/',parameters('vnetName'),'-link')]",
+            "location": "global",
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('storageDNSZoneName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2021-03-01",
+            "name": "[parameters('privateStorageEndpointName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[parameters('privateStorageEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts',parameters('storageAccountName'))]",
+                            "groupIds": [
+                                "[variables('fileStorageAccountPrivateEndpointGroupName')]"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+               "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2022-07-01",
+            "name": "[concat(parameters('privateStorageEndpointName'),'/','dnsgroupname')]",
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "premium",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('storageDNSZoneName'))]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints',parameters('privateStorageEndpointName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices",
+            "apiVersion": "2021-08-01",
+            "name": "[concat(parameters('storageAccountName'),'/default')]",
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                },
+                "protocolSettings": {
+                    "smb": {
+                        "multichannel": {
+                            "enabled": false
+                        }
+                    }
+                },
+                "shareDeleteRetentionPolicy": {
+                    "days": 7,
+                    "enabled": true
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2021-08-01",
+            "name": "[concat(parameters('storageAccountName'),'/default/',parameters('mqsharename'))]",
+            "properties": {
+                "accessTier": "Premium",
+                "enabledProtocols": "NFS",
+                "metadata": {},
+                "rootSquash": "NoRootSquash",
+                "shareQuota": 100
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "condition": "[and(parameters('createAnalyticsWorkspace'), parameters('deployLogAnalytics'))]",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+            "name": "[parameters('storageAccountName')]",
+            "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]",
+                "metrics": [
+                {
+                    "category": "Transaction",
+                    "enabled": true
+                }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts',parameters('storageAccountName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "name": "[parameters('storageAccountName')]",
+            "scope": "[format('Microsoft.Storage/storageAccounts/{0}/fileServices/{1}', parameters('storageAccountName'), parameters('storageAccountName'))]",
+            "properties": {
+                "logAnalyticsDestinationType": "AzureDiagnostics",
+                "logs": [
+                    {
+                        "category": "StorageDelete",
+                        "enabled": true
+                    },
+                    {
+                        "category": "StorageRead",
+                        "enabled": true
+                    },
+                    {
+                        "category": "StorageWrite",
+                        "enabled": true
+                    }
+                ],
+                "metrics": [
+                    {
+                        "category": "Transaction",
+                        "enabled": true
+                    }
+                ],
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts',parameters('storageAccountName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "storageAccountName": {
+            "type": "string",
+            "value": "[parameters('storageAccountName')]"
+        },
+        "privateStorageEndpointName": {
+            "type": "string",
+            "value": "[parameters('privateStorageEndpointName')]"
+        },
+        "subnetName": {
+            "condition": "[parameters('createSubnet')]",
+            "type": "string",
+            "value": "[parameters('subnetName')]"
+        },
+        "workspaceName": {
+            "condition": "[parameters('createAnalyticsWorkspace')]",
+            "type": "string",
+            "value": "[parameters('workspaceName')]"
+        }
+    }
+}

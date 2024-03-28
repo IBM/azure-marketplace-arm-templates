@@ -1,0 +1,159 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        },
+        "storageAccountName": {
+            "type": "string"
+        },
+        "managedIdName": {
+            "type": "string"
+        },
+        "vaultName": {
+            "type": "string"
+        },
+        "keyName": {
+            "type": "string"
+        },
+        "createManagedId": {
+            "type": "bool"
+        },
+        "createStorageAccount": {
+            "type": "bool"
+        },
+        "rgRoleGuid": {
+            "type": "string"
+        },
+        "tagsByResource": {
+            "type": "object"
+        }
+    },
+    "variables": {
+        "containerGroupName": "[concat(parameters('namePrefix'), '-create-ssh-cg')]",
+        "azureCliVersion": "2.45.0",
+        "scriptName": "[concat(parameters('namePrefix'),'-create-ssh-script')]",
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-01-01",
+            "name": "[parameters('storageAccountName')]",
+            "condition": "[parameters('createStorageAccount')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "condition": "[parameters('createManagedId')]",
+            "name": "[parameters('managedIdName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "dependsOn": [
+                "[parameters('managedIdName')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "comments": "Creates a new SSH key",
+            "name": "[variables('scriptName')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ],
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
+                }
+            },
+            "kind": "AzureCLI",
+            "properties": {
+                "forceUpdateTag": "[parameters('rgRoleGuid')]",
+                "containerSettings": {
+                    "containerGroupName": "[variables('containerGroupName')]"
+                },
+                "storageAccountSettings": {
+                    "storageAccountName": "[parameters('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                },
+                "azCliVersion": "[variables('azureCliVersion')]",
+                "scriptContent": "/usr/bin/ssh-keygen -t rsa -b 4096 -f ./tempkey -q -N \"\" ; jq -n -c --arg privateKey \"$(cat ./tempkey)\" --arg publicKey \"$(cat ./tempkey.pub)\" '{\"sshKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey}}' > $AZ_SCRIPTS_OUTPUT_PATH",
+                "timeout": "PT15M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "name": "[ concat(parameters('vaultName'), '/', parameters('keyName') ) ]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName'))]"
+            ],
+            "apiVersion": "2022-07-01",
+            "properties": {
+                "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.sshKey.privateKey ]"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/sshPublicKeys",
+            "apiVersion": "2022-11-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName'))]"
+            ],
+            "name": "[ concat(parameters('keyName'), '-public') ]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/sshPublicKeys'), parameters('tagsByResource')['Microsoft.Compute/sshPublicKeys'], json('{}')) ]",
+            "properties": {
+                "publicKey": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.sshKey.publicKey ]"
+            }
+        }
+    ],
+    "outputs": {
+        "vaultName": {
+            "type": "string",
+            "value": "[ parameters('vaultName') ]"
+        },
+        "keyName": {
+            "type": "string",
+            "value": "[ parameters('keyName') ]"
+        },
+        "privateKey": {
+            "type": "securestring",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.sshKey.privateKey ]"
+        },
+        "publicKey": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.sshKey.publicKey ]"
+        }
+    }
+}

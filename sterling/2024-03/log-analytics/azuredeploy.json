@@ -1,0 +1,117 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name for the analytics workspace"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure region into which to deploy resources"
+            }
+        },
+        "publicAccess": {
+            "type": "string",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether queries are allowed from public IP addresses"
+            }
+        },
+        "logRetentionPeriod": {
+            "type": "int",
+            "defaultValue": 60,
+            "maxValue": 730,
+            "metadata": {
+                "description": "Days to retain logs. Use -1 for unlimited SKU. 730 is the maximum for all other SKU's "
+            }
+        },
+        "logAnalyticsSku": {
+            "type": "string",
+            "defaultValue": "PerGB2018",
+            "allowedValues": [
+                "Free",
+                "Standalone",
+                "PerNode",
+                "PerGB2018"
+            ],
+            "metadata": {
+                "description": "SKU for the log analytics service."
+            }
+        },
+        "managedIdName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the managed identity for the resource group"
+            }
+        },
+        "createManagedId": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create the managed identity"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Object with tags to assign to created resources"
+            }
+        }
+    },
+    "variables": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "condition": "[parameters('createManagedId')]",
+            "name": "[parameters('managedIdName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "dependsOn": [
+                "[parameters('managedIdName')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "comments": "Shared workspace for multiple resources",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.OperationalInsights/workspaces'), parameters('tagsByResource')['Microsoft.OperationalInsights/workspaces'], json('{}')) ]",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
+                }
+            },
+            "properties": {
+                "publicNetworkAccessForIngestion": "Disabled",
+                "publicNetworkAccessForQuery": "[parameters('publicAccess')]",
+                "retentionInDays": "[parameters('logRetentionPeriod')]",
+                "sku": {
+                    "name": "[parameters('logAnalyticsSku')]"
+                }
+            }
+        }
+    ]
+}
