@@ -51,6 +51,7 @@ if [[ -z $JWT_SECRET_NAME ]]; then JWT_SECRET_NAME="jwt-configuration"; fi
 if [[ -z $AZ_SCRIPTS_OUTPUT_PATH ]]; then AZ_SCRIPTS_OUTPUT_PATH="$OUTPUT_DIR/executionresult.json"; fi
 if [[ -z $MAX_IMAGE_RETRY ]]; then MAX_IMAGE_RETRY=5; fi
 if [[ -z $MAX_READY_MINUTES ]]; then MAX_READY_MINUTES=30; fi
+if [[ -z $HELM_URL ]]; then HELM_URL="https://get.helm.sh/helm-v3.14.3-linux-amd64.tar.gz"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
