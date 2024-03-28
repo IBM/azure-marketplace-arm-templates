@@ -987,9 +987,9 @@ EOF
 
     # Wait for services to start
     count=0;
-    while [[ -z $(kubectl get sipenvironment -n sip sip -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
-        && [[ -z $(kubectl get sipenvironment -n sip sip -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
-        && [[ -z $(kubectl get sipenvironment -n sip sip -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
+    while [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
+        && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
+        && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
         log-info "Waiting for services to be available. Waited $count minutes. Will wait up to $MAX_READY_MINUTES"
         count=$(( $count + 1 ))
         sleep 60
