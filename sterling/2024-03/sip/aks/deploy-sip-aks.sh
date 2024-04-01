@@ -762,7 +762,7 @@ spec:
       createDevInstance: {}
   common:
     ingress:
-      host: $HOSTNAME
+      host: $DOMAIN_NAME
       ssl:
        enabled: true
        identitySecretName: ingress-cert
