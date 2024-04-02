@@ -570,7 +570,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/with-aro/',parameters('deploymentVersion'),'/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/',parameters('deploymentVersion'),'/odf/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
