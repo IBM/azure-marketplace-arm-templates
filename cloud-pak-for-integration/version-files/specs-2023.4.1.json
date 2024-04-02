@@ -10,8 +10,8 @@
   "catalogSources": [
     {
       "name": "ibm-integration-platform-navigator-catalog",
-      "displayName": "ibm-integration-platform-navigator-7.2.1",
-      "image": "icr.io/cpopen/ibm-integration-platform-navigator-catalog@sha256:d423d6313f822dda92fe23e3b5c9ba509b757de04ab2d3d1f9bf9616dfd8efc6",
+      "displayName": "ibm-integration-platform-navigator-7.2.3",
+      "image": "icr.io/cpopen/ibm-integration-platform-navigator-catalog@sha256:3973d5498c5ce8495d98c350518f536e36b3b2b2cda5d61024d79f9d76e8f742",
       "publisher": "IBM",
       "sourceType": "grpc",
       "registryUpdate": "30m0s"

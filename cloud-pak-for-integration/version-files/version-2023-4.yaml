@@ -1,6 +1,6 @@
 - name: IBM Cloud Pak for Integration Platform Navigator
   operatorPackageName: ibm-integration-platform-navigator
-  operatorVersion: 7.2.1
+  operatorVersion: 7.2.3
   operatorChannel: v7.2
 - name: IBM Automation foundation assets
   operatorPackageName: ibm-integration-asset-repository
