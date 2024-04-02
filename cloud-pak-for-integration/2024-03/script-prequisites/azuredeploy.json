@@ -93,7 +93,8 @@
             "apiVersion": "2022-04-01",
             "name": "[variables('roleDefinitionName')]",
             "dependsOn": [
-                "[parameters('managedIdName')]"
+                "[parameters('managedIdName')]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', guid(tenantResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))))]"
             ],
             "properties": {
                 "roleDefinitionId": "[variables('roleDefinitionId')]",
