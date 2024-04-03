@@ -244,13 +244,6 @@
                 "description": "Public SSH Key for the AKS nodes"
             }
         },
-        "namespace": {
-            "type": "string",
-            "defaultValue": "sip",
-            "metadata": {
-                "description": "Namespace for SIP instance"
-            }
-        },
         "aksClusterName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-aks')]",
