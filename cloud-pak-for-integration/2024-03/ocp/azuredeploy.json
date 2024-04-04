@@ -1,0 +1,278 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string"
+        },
+        "rgRoleGuid": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        },
+        "storageAccountName": {
+            "type": "string"
+        },
+        "managedIdName": {
+            "type": "string"
+        },
+        "networkResourceGroup": {
+            "type": "string"
+        },
+        "clientId": {
+            "type": "string"
+        },
+        "clientSecret": {
+            "type": "securestring"
+        },
+        "clientObjectId": {
+            "type": "string"
+        },
+        "baseDomain": {
+            "type": "string"
+        },
+        "ocpVersion": {
+            "type": "string"
+        },
+        "masterNodeSize": {
+            "type": "string"
+        },
+        "workerNodeSize": {
+            "type": "string"
+        },
+        "workerNodeQty": {
+            "type": "int"
+        },
+        "baseDomainRG": {
+            "type": "string"
+        },
+        "pullSecret": {
+            "type": "secureString"
+        },
+        "publicSshKey": {
+            "type": "securestring"
+        },
+        "vnetName": {
+            "type": "string"
+        },
+        "vnetCIDR": {
+            "type": "string"
+        },
+        "controlSubnetName": {
+            "type": "string"
+        },
+        "workerSubnetName": {
+            "type": "string"
+        },
+        "endpointSubnetName": {
+            "type": "string"
+        },
+        "hostEncryption": {
+            "type": "bool"
+        },
+        "clusterResourceGroup": {
+            "type": "string"
+        },
+        "existingClusterResourceGroup": {
+            "type": "bool"
+        },
+        "vaultName": {
+            "type": "string"
+        },
+        "clusterPasswordSecretName": {
+            "type": "string"
+        },
+        "useVault": {
+            "type": "bool"
+        },
+        "logLevel": {
+            "type": "string"
+        },
+        "baseUrl": {
+            "type": "string"
+        },
+        "tagsByResource": {
+            "type": "object"
+        }
+    },
+    "variables": {
+        "azureCliVersion": "2.45.0",
+        "scriptName": "[ concat(parameters('namePrefix'), '-ocp-deploy-script') ]",
+        "containergroupName": "[ concat( parameters('namePrefix'), '-ocp-deploy-cg') ]",
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clientObjectId')), variables('roleDefinitionId'), resourceGroup().id)]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[parameters('clientObjectId')]"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "comments": "Deploys OpenShift IPI cluster on an existing Azure VNet",
+            "name": "[ variables('scriptName') ]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]"
+            ],
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
+                }
+            },
+            "kind": "AzureCLI",
+            "properties": {
+                "forceUpdateTag": "[parameters('rgRoleGuid')]",
+                "containerSettings": {
+                    "containerGroupName": "[variables('containerGroupName')]",
+                    "subnetIds": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('endpointSubnetName'))]"
+                        }
+                    ]
+                },
+                "storageAccountSettings": {
+                    "storageAccountName": "[parameters('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                },
+                "azCliVersion": "[variables('azureCliVersion')]",  
+                "environmentVariables": [
+                    {
+                        "name": "LOCATION",
+                        "value": "[parameters('location')]"
+                    },
+                    {
+                        "name": "CLIENT_ID",
+                        "value": "[parameters('clientId')]"
+                    },
+                    {
+                        "name": "CLIENT_SECRET",
+                        "secureValue": "[parameters('clientSecret')]"
+                    },
+                    {
+                        "name": "BASE_DOMAIN",
+                        "value": "[parameters('baseDomain')]"
+                    },
+                    {
+                        "name": "BASE_DOMAIN_RESOURCE_GROUP",
+                        "value": "[parameters('baseDomainRG')]"
+                    },
+                    {
+                        "name": "PULL_SECRET",
+                        "secureValue": "[parameters('pullSecret')]"
+                    },
+                    {
+                        "name": "PUBLIC_SSH_KEY",
+                        "secureValue": "[parameters('publicSshKey')]"
+                    },
+                    {
+                        "name": "MASTER_NODE_TYPE",
+                        "value": "[parameters('masterNodeSize')]"
+                    },
+                    {
+                        "name": "WORKER_NODE_TYPE",
+                        "value": "[parameters('workerNodeSize')]"
+                    },
+                    {
+                        "name": "WORKER_NODE_QTY",
+                        "value": "[parameters('workerNodeQty')]"
+                    },
+                    {
+                        "name": "VNET_NAME",
+                        "value": "[parameters('vnetName')]"
+                    },
+                    {
+                        "name": "MACHINE_CIDR",
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    {
+                        "name": "WORKER_SUBNET_NAME",
+                        "value": "[parameters('workerSubnetName')]"
+                    },
+                    {
+                        "name": "CONTROL_SUBNET_NAME",
+                        "value": "[parameters('controlSubnetName')]"
+                    },
+                    {
+                        "name": "HOST_ENCRYPTION",
+                        "value": "[if(parameters('hostEncryption'),'true','false')]"
+                    },
+                    {
+                        "name": "CLUSTER_RESOURCE_GROUP",
+                        "value": "[parameters('clusterResourceGroup')]"
+                    },
+                    {
+                        "name": "NEW_CLUSTER_RESOURCE_GROUP",
+                        "value": "[if(parameters('existingClusterResourceGroup'),'false','true')]"
+                    },
+                    {
+                        "name": "VAULT_NAME",
+                        "value": "[if(parameters('useVault'),parameters('vaultName'),null())]"
+                    },
+                    {
+                        "name": "SECRET_NAME",
+                        "value": "[parameters('clusterPasswordSecretName')]"
+                    },
+                    {
+                        "name": "NETWORK_RESOURCE_GROUP",
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    {
+                        "name": "BIN_DIR",
+                        "value": "/usr/bin"
+                    },
+                    {
+                        "name": "VERSION",
+                        "value": "[parameters('ocpVersion')]"
+                    },
+                    {
+                        "name": "DEBUG",
+                        "value": "[if(equals(parameters('logLevel'),'Debug'),'true','false')]"
+                    }
+                ],
+                    "primaryScriptUri": "[uri(parameters('baseUrl'),'scripts/deploy-ocp.sh')]",
+                    "supportingScriptUris": [
+                        "[uri(parameters('baseUrl'),'scripts/common.sh')]"
+                ],
+                "timeout": "PT120M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            }
+        }            
+    ],
+    "outputs": {
+        "consoleURL": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.consoleURL ]"
+        },
+        "apiServer": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.apiServer ]"
+        },
+        "adminUser": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.adminUser ]"
+        },
+        "clusterName": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.clusterName ]"
+        },
+        "clusterId": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.clusterId ]"
+        },
+        "infraId": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.infraId ]"
+        }
+    }
+}
