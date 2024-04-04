@@ -1,0 +1,112 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "controlNsgName": {
+            "type": "string"
+        },
+        "workerNsgName": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        },
+        "tagsByResource": {
+            "type": "object"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('controlNsgName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowAnyPort6443Inbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('controlNsgName'), 'AllowAnyPort6443Inbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "6443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 120,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "AllowAnyPort22623Inbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('controlNsgName'), 'AllowAnyPort22623Inbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22623",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 130,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('workerNsgName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowAnyHTTPInbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('workerNsgName'), 'AllowAnyHTTPInbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "AllowAnyHTTPSInbound",
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups/securityRules', parameters('workerNsgName'), 'AllowAnyHTTPSInbound')]",
+                        "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 110,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "controlSubnetNsgid": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('controlNsgName'))]"
+        },
+        "workerSubnetNsgId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('workerNsgName'))]"
+        }
+    }
+}
