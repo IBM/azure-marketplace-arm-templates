@@ -3,37 +3,79 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "vnetName": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
         },
         "vnetCIDR": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network"
+            }
         },
         "location": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure region for the deployment"
+            }
         },
         "existingVnet": {
-            "type": "bool"
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the VNet already exists or not"
+            }
         },
         "controlSubnetName": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "control-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift control subnet"
+            }
         },
         "controlSubnetCIDR": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the control subnet"
+            }
         },
         "controlSubnetNsgId": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "The Azure Id of the NSG to be assigned to the control subnet"
+            }
         },
         "workerSubnetName": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "worker-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift worker subnet"
+            }
         },
         "workerSubnetCIDR": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "10.0.1.0/24",
+            "metadata": {
+                "description": "CIDR for the worker subnet"
+            }
         },
         "workerSubnetNsgId": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "The Azure Id of the NSG to be assigned to the compute subnet"
+            }
         },
         "tagsByResource": {
-            "type": "object"
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
         }
     },
     "variables": {
