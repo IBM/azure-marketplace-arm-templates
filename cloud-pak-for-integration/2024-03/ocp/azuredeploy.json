@@ -90,6 +90,84 @@
                 "description": "VM size for the master nodes"
             }
         },
+        "masterNodeQty": {
+            "type": "int",
+            "defaultValue": 3,
+            "metadata": {
+                "description": "Number of master nodes to provision"
+            }
+        },
+        "masterNodeDiskType": {
+            "type": "string",
+            "defaultValue": "PremiumLRS",
+            "allowedValues": [
+                "premium_LRS",
+                "standardSSD_LRS"
+            ],
+            "metadata": {
+                "description": "Type of master node OS disk"
+            }
+        },
+        "masterNodeDiskSize": {
+            "type": "int",
+            "defaultValue": 1024,
+            "minValue": 100,
+            "maxValue": 32767,
+            "metadata": {
+                "description": "Size of the master node OS disk"
+            }
+        },
+        "masterNodeHyperthreading": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Use hyperthreading with master nodes"
+            }
+        },
+        "masterNodeArchitecture": {
+            "type": "string",
+            "allowedValues": [
+                "amd64",
+                "arm64"
+            ],
+            "metadata": {
+                "description": "Master node architecture. Dependent upon master node size selected."
+            }
+        },
+        "masterNodeZones": {
+            "type": "object",
+            "defaultValue": [ "1", "2", "3 "],
+            "allowedValues": [
+                [ "1" ],
+                [ "1", "2" ],
+                [ "1", "2", "3" ],
+                [ "2" ],
+                [ "2" , "3" ],
+                [ "3" ],
+                [ "1", "3" ]
+            ],
+            "metadata": {
+                "description": "Availability zones to install master nodes into"
+            }
+        },
+        "masterNodeUltraSSD": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Set to allow the use of UltraSSD disks for the control plane persistent volumes"
+            }
+        },
+        "masterNodeNetworkingType": {
+            "type": "string",
+            "defaultValue": "Accelerated",
+            "allowedValues": [
+                "Accelerated",
+                "Basic"
+            ],
+            "metadata": {
+                "description": "Enables accelerated networking with single root I/O virtualization (SR_IOV) to node VM."
+            }
+        },
         "workerNodeSize": {
             "type": "string",
             "defaultValue": "Standard_D16s_v3",
@@ -102,6 +180,76 @@
             "defaultValue": 3,
             "metadata": {
                 "description": "Number of worker nodes to deploy"
+            }
+        },
+        "workerNodeDiskType": {
+            "type": "string",
+            "defaultValue": "premium_LRS",
+            "allowedValues": [
+                "premium_LRS",
+                "standard_LRS",
+                "standardSSD_LRS"
+            ]
+        },
+        "workerNodeDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "minValue": 120,
+            "maxValue": 32767,
+            "metadata": {
+                "description": "Size of the OS disk for each worker node"
+            }
+        },
+        "workerNodeHyperthreading": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Use hyperthreading with worker nodes"
+            }
+        },
+        "workerNodeArchitecture": {
+            "type": "string",
+            "defaultValue": "amd64",
+            "allowedValues": [
+                "amd64",
+                "arm64"
+            ],
+            "metadata": {
+
+            }
+        },
+        "workerNodeZones": {
+            "type": "object",
+            "defaultValue": [ "1", "2", "3 "],
+            "allowedValues": [
+                [ "1" ],
+                [ "1", "2" ],
+                [ "1", "2", "3" ],
+                [ "2" ],
+                [ "2" , "3" ],
+                [ "3" ],
+                [ "1", "3" ]
+            ],
+            "metadata": {
+                "description": "Availability zones to install worker nodes into"
+            }
+        },
+        "workerNodeUltraSSD": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Set to allow the use of UltraSSD disks for the compute plane persistent volumes"
+            }
+        },
+        "workerNodeNetworkingType": {
+            "type": "string",
+            "defaultValue": "Accelerated",
+            "allowedValues": [
+                "Accelerated",
+                "Basic"
+            ],
+            "metadata": {
+                "description": "Enables accelerated networking with single root I/O virtualization (SR_IOV) to node VM."
             }
         },
         "baseDomainRG": {
@@ -131,13 +279,67 @@
             }
         },
         "vnetCIDR": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network to be used to create nodes"
+            }
+        },
+        "clusterCIDR": {
+            "type": "string",
+            "defaultValue": "10.128.0.0/14",
+            "metadata": {
+                "description": "CIDR for the PODs within the cluster. Must not overlap with any external CIDR"
+            }
+        },
+        "clusterHostPrefix": {
+            "type": "int",
+            "defaultValue": 23,
+            "maxValue": 32,
+            "minValue": 1,
+            "metadata": {
+                "description": "Splits the clusterCIDR subnet into this size subnets on each node."
+            }
+        },
+        "serviceNetworkCIDR": {
+            "type": "string",
+            "defaultValue": "172.30.0.0/16",
+            "metadata": {
+                "description": "Subnet for the internal services"
+            }
+        },
+        "outboundNetworkType": {
+            "type": "string",
+            "defaultValue": "LoadBalancer",
+            "allowedValues": [
+                "LoadBalancer",
+                "UserDefinedRouting"
+            ]
+        },
+        "ocpNetworkType": {
+            "type": "string",
+            "defaultValue": "OVNKubernetes",
+            "allowedValues": [
+                "OpenShiftSDN",
+                "OVNKubernetes"
+            ],
+            "metadata": {
+                "description": "The OpenShift internal network plugin to be used"
+            }
         },
         "controlSubnetName": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "control-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift control subnet"
+            }
         },
         "workerSubnetName": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "worker-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift worker subnet"
+            }
         },
         "deployOnVnet": {
             "type": "bool",
@@ -162,7 +364,7 @@
         },
         "subnetCidr": {
             "type": "string",
-            "defaultValue": "10.0.1.0/27",
+            "defaultValue": "10.0.2.0/27",
             "metadata": {
                 "description": "Address prefix for the script subnet (if using a private vnet)"
             }
@@ -389,12 +591,76 @@
                         "value": "[parameters('masterNodeSize')]"
                     },
                     {
+                        "name": "MASTER_NODE_DISK_SIZE",
+                        "value": "[parameters('masterNodeDiskSize')]"
+                    },
+                    {
+                        "name": "MASTER_NODE_DISK_TYPE",
+                        "value": "[parameters('masterNodeDiskType')]"
+                    },
+                    {
+                        "name": "MASTER_NODE_QTY",
+                        "value": "[parameters('masterNodeQty')]"
+                    },
+                    {
+                        "name": "MASTER_HYPERTHREADING",
+                        "value": "[if(parameters('masterNodeHyperthreading'),'Enabled', 'Disabled')]"
+                    },
+                    {
+                        "name": "MASTER_ARCHITECTURE",
+                        "value": "[parameters('masterNodeArchitecture')]"
+                    },
+                    {
+                        "name": "MASTER_ZONES",
+                        "value": "[parameters('masterNodeZones')]"
+                    },
+                    {
+                        "name": "ENABLE_MASTER_ULTRADISK",
+                        "value": "[if(parameters('masterNodeUltraSSD'),'Enabled','Disabled')]"
+                    },
+                    {
+                        "name": "MASTER_VM_NETWORKING_TYPE",
+                        "value": "[parameters('masterNodeNetworkingType')]"
+                    },
+                    {
                         "name": "WORKER_NODE_TYPE",
                         "value": "[parameters('workerNodeSize')]"
                     },
                     {
+                        "name": "WORKER_NODE_DISK_SIZE",
+                        "value": "[parameters('workerNodeDiskSize')]"
+                    },
+                    {
+                        "name": "WORKER_NODE_DISK_TYPE",
+                        "value": "[parameters('workerNodeDiskType')]"
+                    },
+                    {
                         "name": "WORKER_NODE_QTY",
                         "value": "[parameters('workerNodeQty')]"
+                    },
+                    {
+                        "name": "WORKER_HYPERTHREADING",
+                        "value": "[if(parameters('workerNodeHyperthreading'),'Enabled', 'Disabled')]"
+                    },
+                    {
+                        "name": "WORKER_ARCHITECTURE",
+                        "value": "[parameters('workerNodeArchitecture')]"
+                    },
+                    {
+                        "name": "WORKER_ZONES",
+                        "value": "[parameters('workerNodeZones')]"
+                    },
+                    {
+                        "name": "ENABLE_WORKER_ULTRADISK",
+                        "value": "[if(parameters('workerNodeUltraSSD'),'Enabled','Disabled')]"
+                    },
+                    {
+                        "name": "WORKER_VM_NETWORKING_TYPE",
+                        "value": "[parameters('workerNodeNetworkingType')]"
+                    },
+                    {
+                        "name": "OCP_NETWORK_TYPE",
+                        "value": "[parameters('ocpNetworkType')]"
                     },
                     {
                         "name": "VNET_NAME",
@@ -403,6 +669,22 @@
                     {
                         "name": "MACHINE_CIDR",
                         "value": "[parameters('vnetCIDR')]"
+                    },
+                    {
+                        "name": "CLUSTER_CIDR",
+                        "value": "[parameters('clusterCIDR')]"
+                    },
+                    {
+                        "name": "CLUSTER_HOST_PREFIX",
+                        "value": "[parameters('clusterHostPrefix')]"
+                    },
+                    {
+                        "name": "SERVICE_NETWORK_CIDR",
+                        "value": "[parameters('serviceNetworkCIDR')]"
+                    },
+                    {
+                        "name": "OCP_OUTBOUND_TYPE",
+                        "value": "[parameters('outboundNetworkType')]"
                     },
                     {
                         "name": "WORKER_SUBNET_NAME",

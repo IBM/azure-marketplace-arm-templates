@@ -46,18 +46,22 @@ fi
 if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="$(pwd)"; fi
 if [[ -z $BIN_DIR ]]; then BIN_DIR="/usr/bin"; fi
 if [[ -z $VERSION ]]; then VERSION="4"; fi
+if [[ -z $MASTER_NAME ]]; then MASTER_NAME="master"; fi
 if [[ -z $MASTER_HYPERTHREADING ]]; then MASTER_HYPERTHREADING="Enabled"; fi
 if [[ -z $MASTER_ARCHITECTURE ]]; then MASTER_ARCHITECTURE="amd64"; fi
 if [[ -z $MASTER_NODE_DISK_SIZE ]]; then MASTER_NODE_DISK_SIZE=120; fi
 if [[ -z $MASTER_NODE_DISK_TYPE ]]; then MASTER_NODE_DISK_TYPE="Premium_LRS"; fi
 if [[ -z $MASTER_NODE_TYPE ]]; then MASTER_NODE_TYPE="Standard_D8s_v3"; fi
 if [[ -z $MASTER_NODE_QTY ]]; then MASTER_NODE_QTY=3; fi
+if [[ -z $MASTER_ZONES ]]; then MASTER_ZONES="[ \"1\", \"2\", \"3\" ]"; fi
+if [[ -z $WORKER_NAME ]]; then WORKER_NAME="worker"; fi
 if [[ -z $WORKER_HYPERTHREADING ]]; then WORKER_HYPERTHREADING="Enabled"; fi
 if [[ -z $WORKER_ARCHITECTURE ]]; then WORKER_ARCHITECTURE="amd64"; fi
 if [[ -z $WORKER_NODE_TYPE ]]; then WORKER_NODE_TYPE="Standard_D4s_v3"; fi
 if [[ -z $WORKER_NODE_DISK_SIZE ]]; then WORKER_NODE_DISK_SIZE=120; fi
 if [[ -z $WORKER_NODE_DISK_TYPE ]]; then WORKER_NODE_DISK_TYPE="Premium_LRS"; fi
 if [[ -z $WORKER_NODE_QTY ]]; then WORKER_NODE_QTY=3; fi
+if [[ -z $WORKER_ZONES ]]; then WORKER_ZONES="[ \"1\", \"2\", \"3\" ]"; fi
 if [[ -z $HOST_ENCRYPTION ]]; then HOST_ENCRYPTION="true"; fi
 if [[ -z $CLUSTER_NAME ]]; then CLUSTER_NAME=$(cat /dev/urandom | tr -dc '[:alpha:]' | fold -w ${1:-8} | head -n 1 | tr '[:upper:]' '[:lower:]'); fi
 if [[ -z $CLUSTER_CIDR ]]; then CLUSTER_CIDR="10.128.0.0/14"; fi
@@ -65,7 +69,8 @@ if [[ -z $CLUSTER_HOST_PREFIX ]]; then CLUSTER_HOST_PREFIX="23"; fi
 if [[ -z $SERVICE_NETWORK_CIDR ]]; then SERVICE_NETWORK_CIDR="172.30.0.0/16"; fi
 if [[ -z $OCP_OUTBOUND_TYPE ]]; then OCP_OUTBOUND_TYPE="Loadbalancer"; fi
 if [[ -z $CLUSTER_ACCESS ]]; then CLUSTER_ACCESS="External"; fi
-if [[ -z $VM_NETWORKING_TYPE ]]; then VM_NETWORKING_TYPE="Accelerated"; fi
+if [[ -z $MASTER_VM_NETWORKING_TYPE ]]; then MASTER_VM_NETWORKING_TYPE="Accelerated"; fi
+if [[ -z $WORKER_VM_NETWORKING_TYPE ]]; then WORKER_VM_NETWORKING_TYPE="Accelerated"; fi
 if [[ -z $NEW_CLUSTER_RESOURCE_GROUP ]]; then NEW_CLUSTER_RESOURCE_GROUP="true"; fi
 if [[ -z $SECRET_NAME ]]; then SECRET_NAME="cluster-password"; fi
 
@@ -75,8 +80,9 @@ if [[ -z $OCP_NETWORK_TYPE ]]; then OCP_NETWORK_TYPE="OVNKubernetes"; fi
 # The following value should be "AzureUSGovernmentCloud" for gov cloud deployments.
 if [[ -z $CLOUD_TYPE ]]; then CLOUD_TYPE="AzurePublicCloud"; fi
 
-# The following should be set to Enabled to use UltraSSD disks for persistent storage
-if [[ -z $ENABLE_ULTRADISK ]]; then ENABLE_ULTRADISK="Disabled"; fi
+# The following should be set to Enabled to use UltraSSD disks for persistent storage on compute and/or control planes
+if [[ -z $ENABLE_MASTER_ULTRADISK ]]; then ENABLE_MASTER_ULTRADISK="Disabled"; fi
+if [[ -z $ENABLE_WORKER_ULTRADISK ]]; then ENABLE_WORKER_ULTRADISK="Disabled"; fi
 
 if [[ -z $DEBUG ]]; then DEBUG=false; fi
 
@@ -96,15 +102,21 @@ log-info "Master node disk size is set to $MASTER_NODE_DISK_SIZE"
 log-info "Master node disk type is set to $MASTER_NODE_DISK_TYPE"
 log-info "Master node VM type is set to $MASTER_NODE_TYPE"
 log-info "Master node quantity is set to $MASTER_NODE_QTY"
+log-info "Master node use of UltraSSD is set to $ENABLE_MASTER_ULTRADISK"
+log-info "Master node networking type is set to $MASTER_VM_NETWORKING_TYPE"
+log-info "Master node pool is to be called $MASTER_NAME"
 log-info "Worker hyperthreading is set to $WORKER_HYPERTHREADING"
 log-info "Worker architecture is set to $WORKER_ARCHITECTURE"
 log-info "Worker disk size is set to $WORKER_NODE_DISK_SIZE"
 log-info "Worker disk type is set to $WORKER_NODE_DISK_TYPE"
 log-info "Worker node VM type is set to $WORKER_NODE_TYPE"
 log-info "Worker node quantity is set to $WORKER_NODE_QTY"
+log-info "Worker node use of UltraSSD is set to $ENABLE_WORKER_ULTRADISK"
+log-info "Worker node networking type is set to $WORKER_VM_NETWORKING_TYPE"
+log-info "Worker node pool is to be called $WORKER_NAME"
 log-info "Cluster name is set to $CLUSTER_NAME"
 if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-info "Cluster resource group is set to $CLUSTER_RESOURCE_GROUP"; fi
-if [[ $CLUSTER_RESOURCE_GROUP ]]; then log-info "New cluster resource group is set to $NEW_CLUSTER_RESOURCE_GROUP"; fi
+if [[ $NEW_CLUSTER_RESOURCE_GROUP ]]; then log-info "New cluster resource group is set to $NEW_CLUSTER_RESOURCE_GROUP"; fi
 log-info "Cluster base domain is set to $BASE_DOMAIN"
 log-info "Base domain resource group is set to $BASE_DOMAIN_RESOURCE_GROUP"
 log-info "Internal OpenShift network CIDR set to $CLUSTER_CIDR"
@@ -113,9 +125,7 @@ log-info "OpenShift virtual machine network CIDR is set to $MACHINE_CIDR"
 log-info "OpenShift internal networking set to $OCP_NETWORK_TYPE"
 log-info "OpenShift internal services network CIDR is set to $SERVICE_NETWORK_CIDR"
 log-info "OpenShift outbound routing is set to $OCP_OUTBOUND_TYPE"
-log-info "Cluster node networking type is set to $VM_NETWORKING_TYPE"
 log-info "OpenShift ingress is set to $CLUSTER_ACCESS"
-log-info "OpenShift UltraSSD is set to $ENABLE_ULTRADISK"
 log-info "OpenShift cloud type is set to $CLOUD_TYPE"
 if [[ $VAULT_NAME ]]; then 
   log-info "Will upload cluster secrets to $VAULT_NAME"
@@ -229,36 +239,32 @@ baseDomain: ${BASE_DOMAIN}
 controlPlane: 
   hyperthreading: ${MASTER_HYPERTHREADING}   
   architecture: ${MASTER_ARCHITECTURE}
-  name: master
+  name: ${MASTER_NAME}
   platform:
     azure:
       osDisk:
         diskSizeGB: ${MASTER_NODE_DISK_SIZE} 
         diskType: ${MASTER_NODE_DISK_TYPE}
+      ultraSSDCapability: ${ENABLE_MASTER_ULTRADISK}
       type: ${MASTER_NODE_TYPE}
       encryptionAtHost: ${HOST_ENCRYPTION}
-      vmNetworkingType: ${VM_NETWORKING_TYPE}
-      zones: 
-        - "1"
-        - "2"
-        - "3"
+      vmNetworkingType: ${MASTER_VM_NETWORKING_TYPE}
+      zones: ${MASTER_ZONES}
   replicas: ${MASTER_NODE_QTY}
 compute: 
 - hyperthreading: ${WORKER_HYPERTHREADING} 
   architecture: ${WORKER_ARCHITECTURE}
-  name: worker
+  name: ${WORKER_NAME}
   platform:
     azure:
       type: ${WORKER_NODE_TYPE}
       encryptionAtHost: ${HOST_ENCRYPTION}
-      vmNetworkingType: ${VM_NETWORKING_TYPE}
+      vmNetworkingType: ${WORKER_VM_NETWORKING_TYPE}
+      ultraSSDCapability: ${ENABLE_WORKER_ULTRADISK}
       osDisk:
         diskSizeGB: ${WORKER_NODE_DISK_SIZE} 
         diskType: ${WORKER_NODE_DISK_TYPE}
-      zones:
-        - "1"
-        - "2"
-        - "3"
+      zones: ${COMPUTE_ZONES}
   replicas: ${WORKER_NODE_QTY}
 metadata:
   name: ${CLUSTER_NAME} 
@@ -282,8 +288,6 @@ platform:
     virtualNetwork: ${VNET_NAME} 
     controlPlaneSubnet: ${CONTROL_SUBNET_NAME} 
     computeSubnet: ${WORKER_SUBNET_NAME} 
-    defaultMachinePlatform:
-      ultraSSDCapability: ${ENABLE_ULTRADISK}
 publish: ${CLUSTER_ACCESS}
 pullSecret: '${PULL_SECRET}' 
 sshKey: '${PUBLIC_SSH_KEY}'
