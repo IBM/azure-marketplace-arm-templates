@@ -100,6 +100,13 @@
                 "description": "Flag to determine whether to deploy IBM Cloud Pak for Integration (for debug only)"
             }
         },
+        "clusterName": {
+            "type": "string",
+            "defaultValue": "[tolower(concat(substring(parameters('namePrefix'),1,5), '-', substring(uniqueString(resourceGroup().id),1,5)))]",
+            "metadata": {
+                "description": "Optional name of the cluster. If not provided, will be a random name. Must be in lowercase and less than 8 characters."
+            }
+        },
         "clientId": {
             "type": "string",
             "metadata": {
@@ -178,7 +185,7 @@
                 "description": "Flag to determine whether hosts should have host-level encryption enabled, \"Encryption At Host\" (requires activation for Azure subscription)"
             }
         },
-        "apiVisibility": {
+        "endpointVisibility": {
             "type": "string",
             "allowedValues": [
                 "Public",
@@ -186,7 +193,7 @@
             ],
             "defaultValue": "Public",
             "metadata": {
-                "description": "Public or Private API endpoint"
+                "description": "Public or Private API & ingress endpoints"
             }
         },
         "pullSecret": {
@@ -259,13 +266,6 @@
             "defaultValue": "cp4i",
             "metadata": {
                 "description": "Namespace for CP4I instance"
-            }
-        },
-        "rgRoleGuidOcp": {
-            "type": "string",
-            "defaultValue": "[newGuid()]",
-            "metadata": {
-                "description": "forceUpdateTag property, used to force the execution of the script resource when no other properties have changed."
             }
         },
         "rgRoleGuidOdf": {
@@ -421,11 +421,7 @@
         }
     },
     "variables": {
-        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
-        "storageClass": {
-            "ODF": "ocs-storagecluster-cephfs",
-            "AzureFiles": "azure-files-csi"
-        }
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
     },
     "resources": [
             { 
@@ -668,6 +664,9 @@
                     "namePrefix": {
                         "value": "[parameters('namePrefix')]"
                     },
+                    "clusterName": {
+                        "value": "[parameters('clusterName')]"
+                    },
                     "location": {
                         "value": "[parameters('location')]"
                     },
@@ -676,9 +675,6 @@
                     },
                     "managedIdName": {
                         "value": "[parameters('managedIdName')]"
-                    },
-                    "rgRoleGuid": {
-                        "value": "[parameters('rgRoleGuidOcp')]"
                     },
                     "clientId": {
                         "value": "[parameters('clientId')]"
@@ -754,6 +750,9 @@
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]"
+                    },
+                    "publish": {
+                        "value": "[if(equals(parameters('endpointVisibility'),'Private'),'Internal','External')]"
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
@@ -897,7 +896,7 @@
                         "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminUser'].value]" 
                     },
                     "deployOnVnet": {
-                        "value": "[if(equals(parameters('apiVisibility'),'Private'),bool('true'),bool('false'))]"
+                        "value": "[if(equals(parameters('endpointVisibility'),'Private'),bool('true'),bool('false'))]"
                     },
                     "namespace": {
                         "value": "[parameters('namespace')]"
