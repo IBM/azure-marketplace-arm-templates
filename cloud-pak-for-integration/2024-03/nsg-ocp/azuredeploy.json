@@ -32,7 +32,11 @@
             }
         },
         "tagsByResource": {
-            "type": "object"
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
         }
     },
     "resources": [
