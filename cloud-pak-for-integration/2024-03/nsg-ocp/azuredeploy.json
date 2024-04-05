@@ -2,14 +2,34 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names. Must start with a letter and be 3 to 10 characters."
+            }
+        },
         "controlNsgName": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-control-subnet-nsg')]",
+            "metadata": {
+                "description": "Name of the NSG for the control subnet"
+            }
         },
         "workerNsgName": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-compute-subnet-nsg')]",
+            "metadata": {
+                "description": "Name of the NSG for the compute subnet"
+            }
         },
         "location": {
-            "type": "string"
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for deployment container"
+            }
         },
         "tagsByResource": {
             "type": "object"
