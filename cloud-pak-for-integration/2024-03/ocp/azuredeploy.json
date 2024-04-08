@@ -99,7 +99,7 @@
         },
         "masterNodeDiskType": {
             "type": "string",
-            "defaultValue": "PremiumLRS",
+            "defaultValue": "premium_LRS",
             "allowedValues": [
                 "premium_LRS",
                 "standardSSD_LRS"
@@ -126,6 +126,7 @@
         },
         "masterNodeArchitecture": {
             "type": "string",
+            "defaultValue": "amd64",
             "allowedValues": [
                 "amd64",
                 "arm64"
@@ -134,20 +135,25 @@
                 "description": "Master node architecture. Dependent upon master node size selected."
             }
         },
-        "masterNodeZones": {
-            "type": "object",
-            "defaultValue": [ "1", "2", "3 "],
-            "allowedValues": [
-                [ "1" ],
-                [ "1", "2" ],
-                [ "1", "2", "3" ],
-                [ "2" ],
-                [ "2" , "3" ],
-                [ "3" ],
-                [ "1", "3" ]
-            ],
+        "masterNodeZone1": {
+            "type": "bool",
+            "defaultValue": true,
             "metadata": {
-                "description": "Availability zones to install master nodes into"
+                "description": "Flag to determine whether master nodes should be deployed in Azure Availability Zone 1"
+            }
+        },
+        "masterNodeZone2": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether master nodes should be deployed in Azure Availability Zone 2"
+            }
+        },
+        "masterNodeZone3": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether master nodes should be deployed in Azure Availability Zone 3"
             }
         },
         "masterNodeUltraSSD": {
@@ -218,22 +224,27 @@
 
             }
         },
-        "workerNodeZones": {
-            "type": "object",
-            "defaultValue": [ "1", "2", "3 "],
-            "allowedValues": [
-                [ "1" ],
-                [ "1", "2" ],
-                [ "1", "2", "3" ],
-                [ "2" ],
-                [ "2" , "3" ],
-                [ "3" ],
-                [ "1", "3" ]
-            ],
+        "workerNodeZone1": {
+            "type": "bool",
+            "defaultValue": true,
             "metadata": {
-                "description": "Availability zones to install worker nodes into"
+                "description": "Flag to determine whether the compute nodes will be deployed into Azure Availability Zone 1"
             }
         },
+        "workerNodeZone2": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the compute nodes will be deployed into Azure Availability Zone 2"
+            }
+        },
+        "workerNodeZone3": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the compute nodes will be deployed into Azure Availability Zone 3"
+            }
+        },   
         "workerNodeUltraSSD": {
             "type": "bool",
             "defaultValue": false,
@@ -446,10 +457,13 @@
         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
         "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clientObjectId')), variables('roleDefinitionId'), resourceGroup().id)]",
         "subnetIds": [
-        {
-            "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
-        }
-      ]
+            {
+                "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+            }
+        ],
+        "emptyArray": [],
+        "masterNodeZones": "[concat(if(parameters('masterNodeZone1'),array(1),variables('emptyArray')),if(parameters('masterNodeZone2'),array(2),variables('emptyArray')),if(parameters('masterNodeZone3'),array(3),variables('emptyArray')))]",
+        "workerNodeZones": "[concat(if(parameters('workerNodeZone1'),array(1),variables('emptyArray')),if(parameters('workerNodeZone2'),array(2),variables('emptyArray')),if(parameters('workerNodeZone3'),array(3),variables('emptyArray')))]"
     },
     "resources": [
         {
@@ -612,7 +626,7 @@
                     },
                     {
                         "name": "MASTER_ZONES",
-                        "value": "[parameters('masterNodeZones')]"
+                        "value": "[string(variables('masterNodeZones'))]"
                     },
                     {
                         "name": "ENABLE_MASTER_ULTRADISK",
@@ -648,7 +662,7 @@
                     },
                     {
                         "name": "WORKER_ZONES",
-                        "value": "[parameters('workerNodeZones')]"
+                        "value": "[string(variables('workerNodeZones'))]"
                     },
                     {
                         "name": "ENABLE_WORKER_ULTRADISK",
