@@ -4,10 +4,9 @@
     "parameters": {
         "namePrefix": {
             "type": "string",
-            "minLength": 3,
-            "maxLength": 10,
+            "defaultValue": "",
             "metadata": {
-                "description": "Prefix for resource names. Must start with a letter and be 3 to 10 characters."
+                "description": "Prefix for resource names. Use this or name each individually."
             }
         },
         "controlNsgName": {
