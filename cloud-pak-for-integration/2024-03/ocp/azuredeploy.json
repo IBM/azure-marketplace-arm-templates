@@ -113,10 +113,10 @@
         },
         "masterNodeDiskType": {
             "type": "string",
-            "defaultValue": "premium_LRS",
+            "defaultValue": "Premium_LRS",
             "allowedValues": [
-                "premium_LRS",
-                "standardSSD_LRS"
+                "Premium_LRS",
+                "StandardSSD_LRS"
             ],
             "metadata": {
                 "description": "Type of master node OS disk"
@@ -204,11 +204,11 @@
         },
         "workerNodeDiskType": {
             "type": "string",
-            "defaultValue": "premium_LRS",
+            "defaultValue": "Premium_LRS",
             "allowedValues": [
-                "premium_LRS",
-                "standard_LRS",
-                "standardSSD_LRS"
+                "Premium_LRS",
+                "Standard_LRS",
+                "StandardSSD_LRS"
             ]
         },
         "workerNodeDiskSize": {
@@ -335,9 +335,9 @@
         },
         "outboundNetworkType": {
             "type": "string",
-            "defaultValue": "LoadBalancer",
+            "defaultValue": "Loadbalancer",
             "allowedValues": [
-                "LoadBalancer",
+                "Loadbalancer",
                 "UserDefinedRouting"
             ]
         },
