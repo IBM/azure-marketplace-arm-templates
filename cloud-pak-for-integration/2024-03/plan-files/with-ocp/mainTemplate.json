@@ -671,8 +671,14 @@
                     "location": {
                         "value": "[parameters('location')]"
                     },
+                    "createStorageAccount": {
+                        "value": false
+                    },
                     "storageAccountName": {
                         "value": "[parameters('storageAccountName')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": false
                     },
                     "managedIdName": {
                         "value": "[parameters('managedIdName')]"

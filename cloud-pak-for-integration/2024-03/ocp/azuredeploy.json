@@ -31,12 +31,26 @@
                 "description": "Location for deployment container"
             }
         },
+        "createStorageAccount": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new storage account"
+            }
+        },
         "storageAccountName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'), 'script',substring(uniqueString(resourceGroup().id),1,7))]",
             "metadata": {
                 "description": "Name for the storage account for the script execution"
             }            
+        },
+        "createManagedIdentity": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new managed identity for script execution"
+            }
         },
         "managedIdName": {
             "type": "string",
@@ -467,9 +481,34 @@
     },
     "resources": [
         {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-01-01",
+            "condition": "[parameters('createStorageAccount')]",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "name": "[parameters('managedIdName')]",
+            "condition": "[parameters('createManagedIdentity')]",
+            "location": "[parameters('location')]"
+        },
+        {
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "2022-04-01",
             "name": "[variables('roleDefinitionName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]"
+            ],
             "properties": {
                 "roleDefinitionId": "[variables('roleDefinitionId')]",
                 "principalId": "[parameters('clientObjectId')]"
