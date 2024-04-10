@@ -764,7 +764,7 @@
                     },
                     {
                         "name": "VAULT_NAME",
-                        "value": "[if(parameters('useVault'),parameters('vaultName'),null())]"
+                        "value": "[if(parameters('useVault'),parameters('vaultName'),'')]"
                     },
                     {
                         "name": "SECRET_NAME",
