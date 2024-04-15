@@ -355,7 +355,7 @@ if [[ $LICENSE == "accept" ]]; then
     log-info "Instance started"
 
     # Output Platform Navigator console URL
-    CP4I_CONSOLE=$(${BIN_DIR}/oc get route ${INSTANCE_NAME}-pn -n cp4i -o jsonpath='https://{.spec.host}{"\n"}')
+    CP4I_CONSOLE=$(${BIN_DIR}/oc get route ${INSTANCE_NAME}-pn -n ${INSTANCE_NAMESPACE} -o jsonpath='https://{.spec.host}{"\n"}')
     jq -n -c \
       --arg cp4iConsole $CP4I_CONSOLE \
       '{"cp4iDetails": {"cp4iConsoleURL": $cp4iConsole}}' \

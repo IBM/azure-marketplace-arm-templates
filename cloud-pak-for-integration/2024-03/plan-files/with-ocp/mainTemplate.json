@@ -942,7 +942,7 @@
         "platformNavigatorURL": {
             "type": "string",
             "condition": "[equals(parameters('acceptLicense'),'accept')]",
-            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployCloudPakForIntegration'),'2022-09-01').outputs['cp4iConsoleUrl'].value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployCloudPakForIntegration'),'2022-09-01').outputs['cp4iConsoleURL'].value]"
         }
     }
 }
