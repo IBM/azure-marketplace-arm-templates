@@ -699,7 +699,7 @@
                         "value": "[parameters('ocpVersion')]"
                     },
                     "baseUrl": {
-                        "value": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/',parameters('deploymentVersion'),'/odf-ocp/'))]" 
+                        "value": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/',parameters('deploymentVersion'),'/ocp/'))]" 
                     },
                     "baseDomainRG": {
                         "value": "[parameters('baseDomainRG')]" 
