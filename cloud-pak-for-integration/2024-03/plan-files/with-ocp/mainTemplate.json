@@ -722,7 +722,7 @@
                     "workerSubnetName": {
                         "value": "[parameters('workerSubnetName')]"
                     },
-                    "endpointSubnetName": {
+                    "subnetName": {
                         "value": "[parameters('scriptSubnetName')]"
                     },
                     "masterNodeSize": {
