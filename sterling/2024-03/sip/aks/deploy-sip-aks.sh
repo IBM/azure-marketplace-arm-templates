@@ -717,7 +717,8 @@ EOF
         fi        
 
         log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
-        cat << EOF | kubectl apply -f -
+        # cat << EOF | kubectl apply -f -
+        cat << EOF > ${TMP_DIR}/sip-sipenvironment.yaml
 apiVersion: apps.sip.ibm.com/v1beta1
 kind: SIPEnvironment
 metadata:
@@ -760,7 +761,7 @@ spec:
           requests:
             cpu: '1'
             memory: 5000Mi
-      keyspace: inventory_visibility_ks
+      iv_keyspace: inventory_visibility_ks
     elasticSearch:
       createDevInstance: {}
     kafka:
@@ -827,6 +828,7 @@ spec:
     name: $PVC_NAME
     storageClassName: $SC_NAME
 EOF
+        kubectl apply -f ${TMP_DIR}/sip-sipenvironment.yaml
         if (( $? != 0 )); then
             log-error "Unable to create SIP instance in namespace $SIP_NAMESPACE"
             exit 1
