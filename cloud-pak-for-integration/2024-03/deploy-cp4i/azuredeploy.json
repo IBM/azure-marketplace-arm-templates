@@ -419,5 +419,11 @@
                 "principalType": "ServicePrincipal"
             }
         }
-    ]
+    ],
+    "outputs": {
+        "consoleURL": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.cp4iDetails.cp4iConsoleURL ]"
+        }
+    }
 }
