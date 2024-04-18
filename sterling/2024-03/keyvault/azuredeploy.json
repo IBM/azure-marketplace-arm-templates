@@ -204,7 +204,6 @@
             ],
             "scope": "[concat('Microsoft.KeyVault/vaults/', parameters('vaultName'))]",
             "name": "[guid(resourceId(parameters('managedIdResourceGroup'), 'Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
-            // "name": "7cbd209c-b110-5157-b380-818ad47dad14",
             "properties": {
                 "roleDefinitionId": "[variables('roleDefinitionId')]",
                 "principalId": "[reference(resourceId(parameters('managedIdResourceGroup'), 'Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), '2018-11-30').principalId]",
