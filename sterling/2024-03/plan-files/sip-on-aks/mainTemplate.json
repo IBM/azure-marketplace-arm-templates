@@ -995,7 +995,7 @@
         },
         "sipTag": {
             "type": "string",
-            "defaultValue": "10.0.2403.0-amd64",
+            "defaultValue": "10.0.2403.1-amd64",
             "metadata": {
                 "description": "SIP Application image tag"
             }
