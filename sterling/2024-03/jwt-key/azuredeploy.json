@@ -1,0 +1,270 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for deployment container"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), 'jwtscript', substring( uniqueString(resourceGroup().id), 0, 7 ))]",
+            "metadata": {
+                "description": "Name for the storage account for the script execution"
+            }  
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-script-sp')]",
+            "metadata": {
+                "description": "Name of the managed identity used for deployment scripts"
+            }
+        },
+        "managedIdResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group containing or to contain the managed identity"
+            }
+        },
+        "vaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the key vault to store JWT private key"
+            }
+        },
+        "vaultResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group containing the key vault"
+            }
+        },
+        "keyName": {
+            "type": "string",
+            "defaultValue": "[ concat(parameters('namePrefix'), '-jwtkey') ]",
+            "metadata": {
+                "description": "Name of the secret to create in the key vault for the private JWT key"
+            }
+        },
+        "createManagedId": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new managed identity for script execution"
+            }
+        },
+        "createStorageAccount": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new storage account"
+            }
+        },
+        "rgRoleGuid": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "forceUpdateTag property, used to force the execution of the script resource when no other properties have changed."
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
+        }
+    },
+    "variables": {
+        "containerGroupName": "[concat(parameters('namePrefix'), '-create-jwt-key-cg')]",
+        "azureCliVersion": "2.45.0",
+        "scriptName": "[concat(parameters('namePrefix'),'-create-jwt-key-script')]",
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-01-01",
+            "name": "[parameters('storageAccountName')]",
+            "condition": "[parameters('createStorageAccount')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "createManagedId",
+            "resourceGroup": "[parameters('managedIdResourceGroup')]",
+            "condition": "[parameters('createManagedId')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "managedIdName": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+                            "apiVersion": "2018-11-30",
+                            "name": "[parameters('managedIdName')]",
+                            "location": "[resourceGroup().location]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "dependsOn": [
+               "[resourceId('Microsoft.Resources/deployments', 'createManagedId')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(resourceId(parameters('managedIdResourceGroup'), 'Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "comments": "Creates a new JWT key",
+            "name": "[variables('scriptName')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ],
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId(parameters('managedIdResourceGroup'), 'Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
+                }
+            },
+            "kind": "AzureCLI",
+            "properties": {
+                "forceUpdateTag": "[parameters('rgRoleGuid')]",
+                "containerSettings": {
+                    "containerGroupName": "[variables('containerGroupName')]"
+                },
+                "storageAccountSettings": {
+                    "storageAccountName": "[parameters('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                },
+                "azCliVersion": "[variables('azureCliVersion')]",
+                "scriptContent": "/usr/bin/openssl genrsa -out ./jwtkey.pem 2048 ; jq -n -c --arg privateKey \"$(cat ./jwtkey.pem)\" '{\"jwtKey\": {\"privateKey\": $privateKey}}' > $AZ_SCRIPTS_OUTPUT_PATH",
+                "timeout": "PT15M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "uploadKeyToVault",
+            "resourceGroup": "[parameters('vaultResourceGroup')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "secretName": {
+                        "value": "[parameters('keyName')]" 
+                    },
+                    "secretValue": {
+                        "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.jwtKey.privateKey ]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vaultName": {
+                            "type": "string"
+                        },
+                        "secretName": {
+                            "type": "string"
+                        },
+                        "secretValue": {
+                            "type": "securestring"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.KeyVault/vaults/secrets",
+                            "name": "[ concat(parameters('vaultName'), '/', parameters('secretName') ) ]",
+                            "apiVersion": "2022-07-01",
+                            "properties": {
+                                "value": "[parameters('secretValue')]"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "vaultName": {
+            "type": "string",
+            "value": "[ parameters('vaultName') ]"
+        },
+        "keyName": {
+            "type": "string",
+            "value": "[ parameters('keyName') ]"
+        },
+        "privateKey": {
+            "type": "securestring",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.jwtKey.privateKey ]"
+        }
+    }
+}
