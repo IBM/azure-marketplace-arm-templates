@@ -2,8 +2,16 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "defaultValue": "myVault",
+            "metadata": {
+                "description": "Prefix for created resources"
+            }
+        },
         "vaultName": {
             "type": "string",
+            "defaultValue": "[ concat( parameters('namePrefix'), '-', substring( uniqueString(resourceGroup().id), 1, 5 ), '-keyvault' ) ]",
             "metadata": {
                 "description": "Name for the Key Vault resource"
             }
@@ -24,8 +32,16 @@
         },
         "managedIdName": {
             "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-id')]",
             "metadata": {
                 "description": "Name for the managed identity that will manage the key vault"
+            }
+        },
+        "managedIdResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group containing or to contain the managed identity"
             }
         },
         "vnetName": {
@@ -139,12 +155,46 @@
             }
         },
         {
-            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-            "apiVersion": "2018-11-30",
-            "name": "[parameters('managedIdName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "createManagedId",
+            "resourceGroup": "[parameters('managedIdResourceGroup')]",
             "condition": "[parameters('createManagedIdentity')]",
-            "location": "[parameters('location')]",
-            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "managedIdName": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+                            "apiVersion": "2018-11-30",
+                            "name": "[parameters('managedIdName')]",
+                            "location": "[resourceGroup().location]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+                        }
+                    ]
+                }
+            }
         },
         {
             "type": "Microsoft.Authorization/roleAssignments",
@@ -153,10 +203,11 @@
                 "[resourceId('Microsoft.KeyVault/vaults', parameters('vaultName'))]"
             ],
             "scope": "[concat('Microsoft.KeyVault/vaults/', parameters('vaultName'))]",
-            "name": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+            "name": "[guid(resourceId(parameters('managedIdResourceGroup'), 'Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+            // "name": "7cbd209c-b110-5157-b380-818ad47dad14",
             "properties": {
                 "roleDefinitionId": "[variables('roleDefinitionId')]",
-                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "principalId": "[reference(resourceId(parameters('managedIdResourceGroup'), 'Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), '2018-11-30').principalId]",
                 "principalType": "ServicePrincipal"
                 }       
         },
