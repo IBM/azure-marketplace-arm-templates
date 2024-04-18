@@ -979,6 +979,12 @@
                 "description": "Password to be used for the trust store"
             }
         },
+        "jwtPrivateKey": {
+            "type": "string",
+            "metadata": {
+                "description": "The JWT private key in pem format"
+            }
+        },
         "omsGatewayOperatorCatalog": {
             "type": "string",
             "defaultValue": "cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0",
@@ -1482,6 +1488,58 @@
                 },
                 "templateLink": {
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/ssh-key/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "createJwtKey",
+            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPrivateKey'),''))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "createStorageAccount": {
+                        "value": false
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "createManagedId": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "managedIdResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "uploadToVault": {
+                        "value": "[parameters('deployKeyVault')]"
+                    },
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "vaultResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/jwt-key/azuredeploy.json'))]",
                     "contentVersion":"1.0.0.0"
                 }
             }
@@ -2002,6 +2060,9 @@
                     },
                     "instanceNamespace": {
                         "value": "[parameters('instanceNamespace')]"
+                    },
+                    "jwtPrivateKey": {
+                        "value": "[if(equals(parameters('jwtPrivateKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['privateKey'].value,parameters('jwtPrivateKey'))]"
                     },
                     "sipTag": {
                         "value": "[parameters('sipTag')]"

@@ -1,6 +1,9 @@
 #!/bin/bash
 #
 # Note that admin user must be enabled in the Azure Container Registry
+#
+# Set the environment parameters VAULT_NAME and JWT_SECRET_NAME to upload a created JWT private key to a key vault.
+# The managed identity used by the container must have access to the key vault.
 
 source common.sh
 
@@ -13,6 +16,7 @@ if [[ -z $RESOURCE_GROUP ]]; then log-error "RESOURCE_GROUP not defined"; exit 1
 if [[ -z $IBM_ENTITLEMENT_KEY ]]; then log-error "IBM_ENTITLEMENT_KEY not defined"; exit 1; fi
 if [[ -z $TRUSTSTORE_PASSWORD ]]; then log-error "TRUSTSTORE_PASSWORD not defined"; exit 1; fi
 if [[ -z $DOMAIN_NAME ]]; then log-error "DOMAIN_NAME is not defined"; fi
+if [[ $LICENSE == "accept" ]] && [[ -z $JWT_KEY ]]; then log-error "JWT_KEY is not defined"; fi
 
 # Set default values
 if [[ -z $TMP_DIR ]]; then TMP_DIR="$(pwd)"; fi
@@ -572,13 +576,7 @@ EOF
         # Create the JWT Issuer secret
         if [[ -z $(kubectl get secret -n ${SIP_NAMESPACE} ${JWT_SECRET_NAME} 2> /dev/null ) ]]; then
             log-info "Creating JWT Issuer secret ${SIP_NAMESPACE}/${JWT_SECRET_NAME}"
-            if [[ ! -f ${TMP_DIR}/${JWT_KEY_NAME}.pem ]]; then
-                log-info "Creating JWT Key Pair"
-
-                openssl genrsa -out ${TMP_DIR}/${JWT_KEY_NAME}.pem 2048
-            else
-                log-info "JWT Key pair ${JWT_KEY_NAME} already exists"
-            fi
+            echo "${JWT_KEY}" > ${TMP_DIR}/${JWT_KEY_NAME}.pem
             openssl rsa -in ${TMP_DIR}/${JWT_KEY_NAME}.pem -outform PEM -pubout -out ${TMP_DIR}/${JWT_KEY_NAME}.pub
 
             JWT_PUB=$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
@@ -1012,11 +1010,5 @@ EOF
 else
     log-info "SIP instance already exists in namespace $SIP_NAMESPACE"
 fi
-
-# Output the key details
-jq -n -c \
-    --arg privateKey "$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pem)" \
-    --arg publicKey "$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub)" \
-    '{"jwtKey": {"privateKey": $privateKey, "publicKey": $publicKey}}' > $AZ_SCRIPTS_OUTPUT_PATH
 
 log-info "Script completed"

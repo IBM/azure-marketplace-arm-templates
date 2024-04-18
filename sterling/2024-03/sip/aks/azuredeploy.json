@@ -82,7 +82,7 @@
         },
         "storageAccountName": {
             "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'), 'deployscript')]",
+            "defaultValue": "[concat(parameters('namePrefix'), 'deployscript', substring( uniqueString(resourceGroup().id), 0, 7 ))]",
             "metadata": {
                 "description": "Name for the storage account for the script execution"
             }            
@@ -212,6 +212,12 @@
                 "description": "Accept the license terms. Required to create an instance."
             }
         },
+        "jwtPrivateKey": {
+            "type": "string",
+            "metadata": {
+                "description": "The JWT private key in pem format"
+            }
+        },
         "certManagerVersion": {
             "type": "string",
             "defaultValue": "v1.14.3",
@@ -248,7 +254,11 @@
             }
         },
         "tagsByResource": {
-            "type": "object"
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
         }
         
     },
@@ -442,6 +452,10 @@
                     {
                         "name": "PVC_SIZE",
                         "value": "[parameters('pvcSize')]"
+                    },
+                    {
+                        "name": "JWT_KEY",
+                        "value": "[parameters('jwtPrivateKey')]"
                     },
                     {
                         "name": "CP_REPO_BASE",
