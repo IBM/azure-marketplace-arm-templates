@@ -38,8 +38,16 @@
                 "description": "Resource group containing or to contain the managed identity"
             }
         },
+        "uploadToVault": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to upload the created private key to a keyvault"
+            }
+        },
         "vaultName": {
             "type": "string",
+            "defaultValue": "",
             "metadata": {
                 "description": "Name of the key vault to store JWT private key"
             }
@@ -205,6 +213,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "uploadKeyToVault",
+            "condition": "[parameters('uploadToVault')]",
             "resourceGroup": "[parameters('vaultResourceGroup')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName'))]"
