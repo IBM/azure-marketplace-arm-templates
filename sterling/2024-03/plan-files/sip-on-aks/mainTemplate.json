@@ -981,6 +981,7 @@
         },
         "jwtPrivateKey": {
             "type": "string",
+            "defaultValue": "",
             "metadata": {
                 "description": "The JWT private key in pem format"
             }
@@ -1894,9 +1895,7 @@
                 "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployRegistry')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
             ],
             "properties": {
                 "mode": "Incremental",
