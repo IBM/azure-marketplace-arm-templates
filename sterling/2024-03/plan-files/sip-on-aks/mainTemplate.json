@@ -979,11 +979,11 @@
                 "description": "Password to be used for the trust store"
             }
         },
-        "jwtPrivateKey": {
-            "type": "securestring",
+        "jwtPublicKey": {
+            "type": "string",
             "defaultValue": "",
             "metadata": {
-                "description": "The base64 encoded JWT private key in pem format"
+                "description": "The base64 encoded JWT public key to be used"
             }
         },
         "omsGatewayOperatorCatalog": {
@@ -1083,6 +1083,7 @@
             "apiVersion": "2022-09-01",
             "name": "virtualNetwork",
             "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[if(parameters('existingVnet'),bool('false'),bool('true'))]",
             "properties": {
                 "mode": "Incremental",
                 "expressionEvaluationOptions": {
@@ -1497,7 +1498,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "createJwtKey",
-            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPrivateKey'),''))]",
+            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPublicKey'),''))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
@@ -1995,7 +1996,7 @@
                 "mode": "Incremental",
                 "parameters": {
                     "namePrefix": {
-                        "value": "[parameters('namePrefix')]"
+                        "value": "[concat(parameters('namePrefix'),'-sip')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
@@ -2060,8 +2061,8 @@
                     "instanceNamespace": {
                         "value": "[parameters('instanceNamespace')]"
                     },
-                    "jwtPrivateKey": {
-                        "value": "[if(equals(parameters('jwtPrivateKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['privateKey'].value,parameters('jwtPrivateKey'))]"
+                    "jwtPublicKey": {
+                        "value": "[if(equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['privateKey'].value,parameters('jwtPublicKey'))]"
                     },
                     "sipTag": {
                         "value": "[parameters('sipTag')]"

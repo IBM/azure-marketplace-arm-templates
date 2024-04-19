@@ -212,10 +212,10 @@
                 "description": "Accept the license terms. Required to create an instance."
             }
         },
-        "jwtPrivateKey": {
-            "type": "securestring",
+        "jwtPublicKey": {
+            "type": "string",
             "metadata": {
-                "description": "The JWT private key in pem format"
+                "description": "The base64 encoded JWT public key"
             }
         },
         "certManagerVersion": {
@@ -455,7 +455,7 @@
                     },
                     {
                         "name": "JWT_KEY",
-                        "secureValue": "[parameters('jwtPrivateKey')]"
+                        "value": "[parameters('jwtPublicKey')]"
                     },
                     {
                         "name": "CP_REPO_BASE",
