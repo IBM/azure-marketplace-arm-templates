@@ -213,7 +213,7 @@
             }
         },
         "jwtPrivateKey": {
-            "type": "string",
+            "type": "securestring",
             "metadata": {
                 "description": "The JWT private key in pem format"
             }
@@ -455,7 +455,7 @@
                     },
                     {
                         "name": "JWT_KEY",
-                        "value": "[parameters('jwtPrivateKey')]"
+                        "secureValue": "[parameters('jwtPrivateKey')]"
                     },
                     {
                         "name": "CP_REPO_BASE",

@@ -980,7 +980,7 @@
             }
         },
         "jwtPrivateKey": {
-            "type": "string",
+            "type": "securestring",
             "defaultValue": "",
             "metadata": {
                 "description": "The JWT private key in pem format"
