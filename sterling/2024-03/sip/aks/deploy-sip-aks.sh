@@ -576,7 +576,7 @@ EOF
         # Create the JWT Issuer secret
         if [[ -z $(kubectl get secret -n ${SIP_NAMESPACE} ${JWT_SECRET_NAME} 2> /dev/null ) ]]; then
             log-info "Creating JWT Issuer secret ${SIP_NAMESPACE}/${JWT_SECRET_NAME}"
-            echo "${JWT_KEY}" | base64 --decode > ${TMP_DIR}/${JWT_KEY_NAME}.pub
+            echo "${JWT_KEY}" | base64 -d > ${TMP_DIR}/${JWT_KEY_NAME}.pub
 
             JWT_PUB=$(cat ${TMP_DIR}/${JWT_KEY_NAME}.pub | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
             cat << EOF > ${TMP_DIR}/jwtConfig.json
