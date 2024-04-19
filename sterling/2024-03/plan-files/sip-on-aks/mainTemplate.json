@@ -2062,7 +2062,7 @@
                         "value": "[parameters('instanceNamespace')]"
                     },
                     "jwtPublicKey": {
-                        "value": "[if(equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['privateKey'].value,parameters('jwtPublicKey'))]"
+                        "value": "[if(equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['publicKey'].value,parameters('jwtPublicKey'))]"
                     },
                     "sipTag": {
                         "value": "[parameters('sipTag')]"
