@@ -203,7 +203,7 @@
                     "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
                 },
                 "azCliVersion": "[variables('azureCliVersion')]",
-                "scriptContent": "/usr/bin/openssl genrsa -out ./jwtkey.pem 2048; openssl rsa -in ./jwtkey.pem -outform PEM -pubout -out jwtkey.pub ; jq -n -c --arg privateKey \"$(cat ./jwtkey.pem | base64)\" --arg rawKey \"$(cat ./jwtkey.pem)\" --arg pubKey \"$(cat ./jwtkey.pub | base64)\" '{\"jwtKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey , \"rawKey\": $rawKey}}' > $AZ_SCRIPTS_OUTPUT_PATH",
+                "scriptContent": "/usr/bin/openssl genrsa -out ./jwtkey.pem 2048; openssl rsa -in ./jwtkey.pem -outform PEM -pubout -out jwtkey.pub ; jq -n -c --arg privateKey \"$(cat ./jwtkey.pem | base64)\" --arg rawKey \"$(cat ./jwtkey.pem)\" --arg publicKey \"$(cat ./jwtkey.pub | base64)\" '{\"jwtKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey , \"rawKey\": $rawKey}}' > $AZ_SCRIPTS_OUTPUT_PATH",
                 "timeout": "PT15M",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
