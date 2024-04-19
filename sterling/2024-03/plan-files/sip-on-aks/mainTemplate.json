@@ -948,7 +948,7 @@
         },
         "vmPublicIPName": {
             "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "defaultValue": "[concat(parameters('namePrefix'),'-mgmt-pip')]",
             "metadata": {
                 "description": "Name for the public IP address if creating."
             }
@@ -983,7 +983,7 @@
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "The JWT private key in pem format"
+                "description": "The base64 encoded JWT private key in pem format"
             }
         },
         "omsGatewayOperatorCatalog": {
@@ -1901,7 +1901,7 @@
                 "mode": "Incremental",
                 "parameters": {
                     "namePrefix": {
-                        "value": "[parameters('namePrefix')]"
+                        "value": "[concat(parameters('namePrefix'),'-mgmt')]"
                     },
                     "location": {
                         "value": "[parameters('location')]"
