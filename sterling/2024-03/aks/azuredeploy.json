@@ -1089,7 +1089,7 @@
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'configureSubnets')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnets')]",
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]",
                 "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
             ]
