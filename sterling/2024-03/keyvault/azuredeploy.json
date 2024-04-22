@@ -168,6 +168,9 @@
             "apiVersion": "2022-11-01",
             "name": "[parameters('vaultName')]",
             "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnet')]"
+            ],
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.KeyVault/vaults'), parameters('tagsByResource')['Microsoft.KeyVault/vaults'], json('{}')) ]",
             "properties":{
                 "enableRbacAuthorization": true,
@@ -178,7 +181,7 @@
                     "defaultAction": "[parameters('networkRuleDefaultAction')]",
                     "virtualNetworkRules": [
                         {
-                            "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]"
+                            "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
                         }
                     ]
                 },
