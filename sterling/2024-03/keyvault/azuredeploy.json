@@ -44,11 +44,36 @@
                 "description": "Resource group containing or to contain the managed identity"
             }
         },
+        "virtualNetworkNewOrExisting":{
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to indicate whether a new virtual network should be created (true), or use an existing one (false)."
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group containing the virtual network if existing VNet"
+            }
+        },
         "vnetName": {
             "type": "string",
             "defaultValue": "vnet",
             "metadata": {
                 "description": "Name of the virtual network"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network if being created otherwise ignored"
             }
         },
         "networkRuleDefaultAction": {
@@ -211,19 +236,78 @@
                 }       
         },
         {
-            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2020-11-01",
-            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
-            "condition": "[parameters('privateDeployment')]",
+            "condition": "[equals(parameters('virtualNetworkNewOrExisting'),'new')]",
+            "comments": "Create a new virtual network if requested.",
+            "name": "[parameters('vnetName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
             "properties": {
-                "addressPrefix": "[parameters('subnetCIDR')]",
-                "serviceEndpoints": [
-                    {
-                        "service": "Microsoft.ContainerRegistry"
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "configureSubnet",
+            "condition": "[parameters('privateDeployment')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('subnetCIDR')]"
                     }
-                ],
-                "privateLinkServiceNetworkPolicies": "Enabled",
-                "privateEndpointNetworkPolicies": "Disabled"
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetCIDR": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2020-11-01",
+                            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCIDR')]",
+                                "serviceEndpoints": [
+                                    {
+                                        "service": "Microsoft.ContainerRegistry"
+                                    }
+                                ],
+                                "privateLinkServiceNetworkPolicies": "Enabled",
+                                "privateEndpointNetworkPolicies": "Disabled"
+                            }
+                        }
+                    ]
+                }
             }
         },
         {
@@ -244,7 +328,7 @@
             "properties": {
                 "registrationEnabled": false,
                 "virtualNetwork": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                    "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
                 }
             },
             "dependsOn": [
@@ -259,7 +343,7 @@
             "condition": "[parameters('privateDeployment')]",
             "properties": {
                 "subnet": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                    "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
                 },
                 "privateLinkServiceConnections": [
                     {
@@ -275,7 +359,7 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.KeyVault/vaults', parameters('vaultName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnet')]"
             ]
         },
         {

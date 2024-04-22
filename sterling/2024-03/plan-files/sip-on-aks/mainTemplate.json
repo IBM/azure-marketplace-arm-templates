@@ -1255,6 +1255,9 @@
                     "virtualNetworkNewOrExisting": {
                         "value": "existing"
                     },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
                     "location": {
                         "value": "[parameters('location')]"
                     },
@@ -1415,6 +1418,12 @@
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
                     },
                     "networkRuleDefaultAction": {
                         "value": "[if(parameters('privateDeployment'),'Deny','Allow')]"
@@ -1896,7 +1905,8 @@
                 "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
             ],
             "properties": {
                 "mode": "Incremental",
