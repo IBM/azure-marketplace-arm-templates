@@ -178,12 +178,7 @@
                 "sku": "[variables('vaultSku')]",
                 "networkAcls": {
                     "bypass": "AzureServices",
-                    "defaultAction": "[parameters('networkRuleDefaultAction')]",
-                    "virtualNetworkRules": [
-                        {
-                            "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
-                        }
-                    ]
+                    "defaultAction": "[parameters('networkRuleDefaultAction')]"
                 },
                 "enabledForDeployment": false,
                 "enabledForDiskEncryption": false,
