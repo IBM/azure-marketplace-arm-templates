@@ -281,7 +281,7 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'configureBastionSubnet')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureBastionSubnet')]"
             ]
         },
         {
