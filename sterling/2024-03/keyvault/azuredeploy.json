@@ -171,12 +171,21 @@
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.KeyVault/vaults'), parameters('tagsByResource')['Microsoft.KeyVault/vaults'], json('{}')) ]",
             "properties":{
                 "enableRbacAuthorization": true,
-                "tenantId": "[tenant().tenantId]",
+                "tenantId": "[subscription().tenantId]",
                 "sku": "[variables('vaultSku')]",
                 "networkAcls": {
                     "bypass": "AzureServices",
-                    "defaultAction": "[parameters('networkRuleDefaultAction')]"
-                }
+                    "defaultAction": "[parameters('networkRuleDefaultAction')]",
+                    "virtualNetworkRules": [
+                        {
+                            "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]"
+                        }
+                    ]
+                },
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": false,
+                "enableSoftDelete": false
             }
         },
         {
