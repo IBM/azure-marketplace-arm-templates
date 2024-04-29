@@ -1079,6 +1079,13 @@
     },
     "resources": [
         {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "name": "[parameters('managedIdName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"    
+        },
+        {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "virtualNetwork",
@@ -1102,6 +1109,9 @@
                     "existingVnet": {
                         "value": "[parameters('existingVnet')]"
                     },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
                     }
@@ -1122,9 +1132,16 @@
                         "existingVnet": {
                             "type": "bool"
                         },
+                        "managedIdName": {
+                            "type": "string"
+                        },
                         "tagsByResource": {
                             "type": "object"
                         }
+                    },
+                    "variables": {
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
                     },
                     "resources": [
                         {
@@ -1140,6 +1157,20 @@
                                         "[parameters('vnetCIDR')]"
                                     ]
                                 }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2022-04-01",
+                            "name": "[variables('roleDefinitionName')]",
+                            "dependsOn": [
+                                "[parameters('managedIdName')]"
+                            ],
+                            "properties": {
+                                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                                "scope": "[resourceGroup().id]",
+                                "principalType": "ServicePrincipal"
                             }
                         }
                     ]
@@ -1579,11 +1610,17 @@
                     "registryName": {
                         "value": "[parameters('registryName')]"
                     },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
                     "enableAdminUser": {
                         "value": true
                     },
                     "vnetName": {
                         "value": "[parameters('vnetName')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]"
                     },
                     "registrySku": {
                         "value": "[parameters('registrySku')]"
@@ -1599,6 +1636,12 @@
                     },
                     "workspaceName": {
                         "value": "[parameters('workspaceName')]"
+                    },
+                    "publicNetworkAccess": {
+                        "value": "[if(parameters('privateDeployment'),'Disabled','Enabled')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
                     },
                     "createSubnet": {
                         "value": true
