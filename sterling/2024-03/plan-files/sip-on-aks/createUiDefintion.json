@@ -1,0 +1,1515 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+      "config": {
+        "isWizard": false,
+        "basics": {
+          "resourceGroup": {
+            "constraints": {
+              "validations": [
+                {
+                  "permission": "Microsoft.ManagedIdentity/userAssignedIdentities/create",
+                  "message": "Must be able to create a user assigned identity in the resource group"
+                },
+                {
+                  "permission": "Microsoft.Authorization/roleAssignments/create",
+                  "message": "Must be able to create role assignments"
+                },
+                {
+                  "permission": "Microsoft.ContainerService/managedClusters/create",
+                  "message": "Must be able to create an Azure Kubernetes Service (aks) cluster in the resource group"
+                },
+                {
+                  "permission": "Microsoft.Network/virtualNetworks/create",
+                  "message": "Must be able to create a virtual network in the resource group"
+                },
+                {
+                  "permission": "Microsoft.Storage/storageAccounts/create",
+                  "message": "Must be able to create storage accounts in the resource group"
+                }
+              ]
+            },
+            "allowExisting": false
+          },
+          "location": {
+            "visible": true,
+            "resourceTypes": [
+              "Microsoft.Resources/deploymentScripts",
+              "Microsoft.Resources/deployments",
+              "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "Microsoft.Authorization/roleAssignments",
+              "Microsoft.Storage/storageAccounts",
+              "Microsoft.Network/virtualNetworks",
+              "Microsoft.Network/publicIPAddress",
+              "Microsoft.ContainerService/managedClusters"
+            ]
+          }
+        }
+      },
+      "basics": [
+        {
+          "name": "namePrefix",
+          "type": "Microsoft.Common.TextBox",
+          "label": "Azure resource prefix",
+          "defaultValue": "sip",
+          "toolTip": "Prefix for Azure installation resources.",
+          "constraints": {
+            "required": true,
+            "validations": [
+              {
+                "regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
+                "message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+              }
+            ]
+          }
+        },
+        {
+          "name": "privateDeployment",
+          "type": "Microsoft.Common.CheckBox",
+          "label": "Private endpoint access",
+          "toolTip": "Will create private endpoints in local virtual network where possible"
+        },
+        {
+          "name": "hostEncryption",
+          "type": "Microsoft.Common.CheckBox",
+          "label": "Use host encryption for virtual machines / nodes",
+          "toolTip": "Host encryption feature must be enabled in the subscription to use. Applies to both managed VM and aks cluster nodes."
+        }
+      ],
+      "steps": [
+        {
+          "name": "networking",
+          "label": "Network Settings",
+          "elements": [
+            {
+              "name": "bastion",
+              "type": "Microsoft.Common.Section",
+              "label": "Bastion section",
+              "elements": [
+                {
+                  "name": "deployBastion",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Deploy Bastion",
+                  "visible": true,
+                  "toolTip": "Check this box if you want to determine whether to deploy a bastion service to access the environment"
+                },
+                {
+                  "name": "bastionSku",
+                  "label": "Bastion Sku",
+                  "type": "Microsoft.Common.DropDown",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "defaultValue": "Standard",
+                  "toolTip": "Select sku for bastion service. ",
+                  "constraints": {
+                    "allowedValues": [
+                      {
+                        "label": "Basic",
+                        "value": "Basic"
+                      },
+                      {
+                        "label": "Standard",
+                        "value": "Standard"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "bastionDisableCopyPaste",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Disable Copy Paste",
+                  "defaultValue": false,
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionDnsName",
+                  "type": "Microsoft.Common.TextBox",
+                  "label": "Bastion Dns Name",
+                  "defaultValue": "",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableFileCopy",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable File Copy",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the file copy feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableIpConnect",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Ip Connect",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the IP Connect feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableKerberos",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Kerberos",
+                  "defaultValue": false,
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the kerberos feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableShareableLink",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Shareable Link",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableTunneling",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Tunneling",
+                  "defaultValue": true,
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
+                }
+              ],
+              "visible": true
+            },
+            {
+              "name": "vnet",
+              "type": "Microsoft.Network.VirtualNetworkCombo",
+              "label": {
+                "virtualNetwork": "Virtual network",
+                "subnets": "Subnets"
+              },
+              "toolTip": {
+                "virtualNetwork": "Selecting an existing VNet or enter the name of a new one",
+                "subnets": "The name and CIDR for each subnet"
+              },
+              "defaultValue": {
+                "name": "vnet",
+                "addressPrefixSize": "/20"
+              },
+              "constraints": {
+                "minAddressPrefixSize": "/22"
+              },
+              "options": {
+                "hideExisting": false
+              },
+              "subnets": {
+                "aksSubnet": {
+                  "label": "aks Subnet",
+                  "defaultValue": {
+                    "name": "aks-Subnet",
+                    "addressPrefixSize": "/24"
+                  },
+                  "constraints": {
+                    "minAddressPrefixSize": "/24",
+                    "minAddressCount": 6,
+                    "requireContiguousAddresses": true
+                  }
+                },
+                "endpointSubnet": {
+                  "label": "End point Subnet (Required if private components)",
+                  "defaultValue": {
+                    "name": "endpoint-Subnet",
+                    "addressPrefixSize": "/27"
+                  },
+                  "constraints": {
+                    "minAddressPrefixSize": "/28",
+                    "minAddressCount": 5,
+                    "requireContiguousAddresses": true
+                  }
+                },
+                "scriptSubnet": {
+                  "label": "Script Subnet",
+                  "defaultValue": {
+                    "name": "script-subnet",
+                    "addressPrefixSize": "/28"
+                  },
+                  "constraints": {
+                    "minAddressPrefixSize": "/28",
+                    "minAddressCount": 5,
+                    "requireContiguousAddresses": false
+                  }
+                },
+                "bastionSubnet": {
+                  "label": "Bastion Subnet (Required if deploying bastion service)",
+                  "defaultValue": {
+                    "name": "bastion-Subnet",
+                    "addressPrefixSize": "/28"
+                  },
+                  "constraints": {
+                    "minAddressPrefixSize": "/28",
+                    "minAddressCount": 5,
+                    "requireContiguousAddresses": false
+                  }
+                },
+                "vmSubnet": {
+                  "label": "Management VM Subnet (Required if deploying a management VM",
+                  "defaultValue": {
+                    "name": "vm-subnet",
+                    "addressPrefixSize": "/28"
+                  },
+                  "constraints": {
+                    "minAddressPrefixSize": "/28",
+                    "minAddressCount": 5,
+                    "requireContiguousAddresses": false
+                  }
+                }
+              },
+              "visible": true
+            },
+            {
+              "name": "outboundRouting",
+              "label": "Outbound Routing",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Azure Default",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "NAT Gateway",
+                    "value": "NAT Gateway"
+                  },
+                  {
+                    "label": "Azure Default",
+                    "value": "Azure Default"
+                  },
+                  {
+                    "label": "User Defined",
+                    "value": "User Defined"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "natGatewayName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Nat Gateway Name",
+              "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
+              "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
+            },
+            {
+              "name": "natGwPublicIPPrefixName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Nat Gw Public IP Prefix Name",
+              "defaultValue": "[concat(basics('namePrefix'),'-ngw-pip')]",
+              "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
+              "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
+            },
+            {
+              "name": "natGwPublicIPPrefixLength",
+              "label": "Nat Gw Public IP Prefix Length",
+              "type": "Microsoft.Common.DropDown",
+              "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
+              "defaultValue": "28",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "28",
+                    "value": "28"
+                  },
+                  {
+                    "label": "29",
+                    "value": "29"
+                  },
+                  {
+                    "label": "30",
+                    "value": "30"
+                  },
+                  {
+                    "label": "31",
+                    "value": "31"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "managementVM",
+          "label": "Management VM",
+          "elements": [
+            {
+              "name": "deployManagementVm",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Deploy Management VM",
+              "visible": true,
+              "defaultValue": false,
+              "toolTip": "Check this box if you want to deploy management VM for the cluster",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "vmAdminUserName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "VM Admin User Name",
+              "defaultValue": "azureuser",
+              "visible": "[steps('managementVM').deployManagementVm]",
+              "toolTip": "Administrator username to be created"
+            },
+            {
+              "name": "vmAuthentication",
+              "type": "Microsoft.Compute.CredentialsCombo",
+              "label": {
+                "authenticationType": "Authentication type",
+                "password": "Password",
+                "sshPublicKey": "SSH public key"
+              },
+              "toolTip": {
+                "authenticationType": "",
+                "password": "",
+                "sshPublicKey": ""
+              },
+              "constraints": {
+                "required": true,
+                "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+              },
+              "options": {
+                "hideConfirmation": true,
+                "hidePassword": false
+              },
+              "osPlatform": "Linux",
+              "visible": "[steps('managementVM').deployManagementVm]"
+            },
+            {
+              "name": "vmSize",
+              "type": "Microsoft.Compute.SizeSelector",
+              "label": "VM Size",
+              "toolTip": "The size of the worker nodes",
+              "defaultValue": "Standard_B1s",
+              "recommendedSizes": [
+                "Standard_B1s"
+              ],
+              "constraints": {
+                "allowedSizes": [
+                  "Standard_B1s"
+                ]
+              },
+              "options": {
+                "hideDiskTypeFilter": false
+              },
+              "osPlatform": "Linux",
+              "visible": "[steps('managementVM').deployManagementVm]"
+            },
+            {
+              "name": "vmDiskType",
+              "type": "Microsoft.Common.DropDown",
+              "label": "VM Disk Type",
+              "toolTip": "The size of the worker nodes",
+              "defaultValue": "Standard_LRS",
+              "recommendedSizes": [
+                "Standard_LRS"
+              ],
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Premium_LRS",
+                    "value": "Premium_LRS"
+                  },
+                  {
+                    "label": "Premium_ZRS",
+                    "value": "Premium_ZRS"
+                  },
+                  {
+                    "label": "Standard_LRS",
+                    "value": "Standard_LRS"
+                  },
+                  {
+                    "label": "StandardSSD_LRS",
+                    "value": "StandardSSD_LRS"
+                  },
+                  {
+                    "label": "UltraSSD_LRS",
+                    "value": "UltraSSD_LRS"
+                  }
+                ]
+              },
+              "options": {
+                "hideDiskTypeFilter": false
+              },
+              "osPlatform": "Linux",
+              "visible": "[steps('managementVM').deployManagementVm]"
+            },
+            {
+              "name": "vmZone",
+              "type": "Microsoft.Common.DropDown",
+              "label": "VM Zone",
+              "visible": "[steps('managementVM').deployManagementVm]",
+              "toolTip": "Azure availability zone for management VM",
+              "defaultValue": "1",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "1",
+                    "value": "1"
+                  },
+                  {
+                    "label": "2",
+                    "value": "2"
+                  },
+                  {
+                    "label": "3",
+                    "value": "3"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vmCreatePublicIP",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "VM Create Public IP",
+              "visible": "[steps('managementVM').deployManagementVm]",
+              "toolTip": "Check this box if you want public ip to be created",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "vmPublicIPName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "VM Public IP Name",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
+              "defaultValue": "[concat(basics('namePrefix'),'-pip')]",
+              "toolTip": "Check this box if you want public ip to be created",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "vmDomainName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "VM Domain Name",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
+              "defaultValue": "[toLower( concat(basics('namePrefix'),uniqueString(resourceGroup().name)) )]",
+              "toolTip": "Check this box if you want public ip to be created",
+              "constraints": {
+                  "required": false
+              }
+            }
+          ]
+        },
+        {
+          "name": "SIP",
+          "label": "Sterling Intelligent Promising",
+          "elements": [
+            {
+              "name": "ibmEntitlementKey",
+              "type": "Microsoft.Common.PasswordBox",
+              "label": {
+                "password": "IBM Entitlement Key"
+              },
+              "toolTip": "Enter your provided IBM entitlement API key for software image download from icr.io",
+              "constraints": {
+                "required": true,
+                "regex": "^[a-zA-Z0-9]{8,}$",
+                "validationMessage": "Entitlement Key must be at least  characters long, contain only numbers and letters"
+              },
+              "options": {
+                "hideConfirmation": false
+              },
+              "visible": true
+            },
+            {
+              "name": "trustStorePassword",
+              "type": "Microsoft.Common.PasswordBox",
+              "label": {
+                "password": "Trust Store Password"
+              },
+              "toolTip": "",
+              "constraints": {
+                "required": true,
+                "regex": "^[a-zA-Z0-9]{8,}$",
+                "validationMessage": "Password must be atleast 8 characters long, contain only numbers and letters"
+              },
+              "options": {
+                "hideConfirmation": false
+              },
+              "visible": true
+            },
+            {
+              "name": "sipTag",
+              "type": "Microsoft.Common.DropDown",
+              "label": "SIP Version",
+              "visible": "true",
+              "toolTip": "",
+              "defaultValue": "10.0.2403.1",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "10.0.2403.1",
+                    "value": "10.0.2403.1"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "provideJwtKey",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Provide JWT Public Key",
+              "toolTip": "Select to provide an existing public key for JWT. If not selected, will create a new key."
+            },
+            {
+              "name": "jwtKey",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Enter JWT public key",
+              "visible": "[steps('SIP').provideJwtKey]"
+            },
+            {
+              "name": "operatorNamespace",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Operator Namespace",
+              "visible": "true",
+              "toolTip": "",
+              "defaultValue": "ibm-operators"
+            },
+            {
+              "name": "instanceNamespace",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Instance Namespace",
+              "visible": "true",
+              "toolTip": "",
+              "defaultValue": "sip"
+            },
+            {
+              "name": "pvcName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "PVC Name",
+              "visible": "true",
+              "toolTip": "Persistent Volume Claim (PVC) name for the SIP persistent volume",
+              "defaultValue": "sip-pvc"
+            },
+            {
+              "name": "pvcSize",
+              "type": "Microsoft.Common.Slider",
+              "min": 10,
+              "max": 1000,
+              "label": "PVC Size",
+              "toolTip": "Size of the PVC for the SIP persistent volume",
+              "visible": true
+            },
+            {
+              "name": "domainName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Domain Name",
+              "visible": "true",
+              "toolTip": "FQDN of the suffix for the ingress",
+              "defaultValue": ""
+            },
+            {
+              "name": "license",
+              "type": "Microsoft.Common.DropDown",
+              "label": "License",
+              "toolTip": "License terms must be accepted to create operand / SIP instance",
+              "defaultValue": "decline",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "accept",
+                    "value": "accept"
+                  },
+                  {
+                    "label": "decline",
+                    "value": "decline"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "registry",
+          "label": "Registry",
+          "elements": [
+            {
+              "name": "registrySku",
+              "label": "registry Sku",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Premium",
+              "toolTip": "Select Container registry SKU (must be premium for private deployment)",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Standard",
+                    "value": "Standard"
+                  },
+                  {
+                    "label": "Premium",
+                    "value": "Premium"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "acrZoneRedundancy",
+              "label": "ACR Zone Redundancy",
+              "type": "Microsoft.Common.DropDown",
+              "visible": "[equals(steps('registry').registrySku, 'Premium')]",
+              "defaultValue": "Enabled",
+              "toolTip": "Enable or disable registry zone redundancy and associated duplication",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Enabled",
+                    "value": "Enabled"
+                  },
+                  {
+                    "label": "Disabled",
+                    "value": "Disabled"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "aks",
+          "label": "AKS",
+          "elements": [
+            {
+              "name": "aksSkuTier",
+              "label": "aks Sku Tier",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Premium",
+              "toolTip": "Select SKU tier for the aks cluster. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Standard",
+                    "value": "Standard"
+                  },
+                  {
+                    "label": "Premium",
+                    "value": "Premium"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksClusterDisableLocalAccounts",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks Cluster Disable Local Accounts",
+              "defaultValue": false,
+              "visible": true,
+              "toolTip": "Check this box if you want Flag to determine whether local kubernetes accounts should be disabled",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksClusterNodeOsUpgradeChannel",
+              "label": "aks Cluster Node Os Upgrade Channel",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "NodeImage",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "NodeImage",
+                    "value": "NodeImage"
+                  },
+                  {
+                    "label": "None",
+                    "value": "None"
+                  },
+                  {
+                    "label": "Unmanaged",
+                    "value": "Unmanaged"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksClusterUpgradeChannel",
+              "label": "aks Cluster Upgrade Channel",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "patch",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "none-image",
+                    "value": "none-image"
+                  },
+                  {
+                    "label": "none",
+                    "value": "none"
+                  },
+                  {
+                    "label": "patch",
+                    "value": "patch"
+                  },
+                  {
+                    "label": "rapid",
+                    "value": "rapid"
+                  },
+                  {
+                    "label": "stable",
+                    "value": "stable"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksEnablePodIdentityProfile",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks Enable Pod Identity Profile",
+              "defaultValue": false,
+              "visible": true,
+              "toolTip": "Check this box if you want  to determine whether the aks pod identity profile should be enabled. Requires feature to be enabled in subscription",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksEnableAadIntegration",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks Enable Aad Integration",
+              "defaultValue": false,
+              "visible": true,
+              "toolTip": "Check this box if you want  to enable aks EntraID integration",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksEnableAadRbac",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks Enable Aad Rbac",
+              "defaultValue": false,
+              "visible": true,
+              "toolTip": "Check this box if you want to determine whether to enable EntraID RBAC authentication for kubernetes users",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksAdminGroupObjectId",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Admin Group Object Id",
+              "visible": "[steps('aks').aksEnableAadIntegration]",
+              "toolTip": "Check this box if you want to determine whether to enable EntraID RBAC authentication for kubernetes users"
+            },
+            {
+              "name": "aksAadTenantId",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Aad Tenant Id",
+              "defaultValue": "",
+              "visible": "[steps('aks').aksEnableAadIntegration]",
+              "toolTip": ""
+            },
+            {
+              "name": "aksKubernetesVersion",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Kubernetes Version",
+              "defaultValue": "1.27",
+              "toolTip": "Version of kubneretes to be used for the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksClusterDnsPrefix",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Cluster Dns Prefix",
+              "defaultValue": "[concat(parameters('aksClusterName'),substring( uniqueString(resourceGroup().id), 1, 4 ))]",
+              "toolTip": "Domain name prefix for the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksEnableAzurePolicy",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks Enable Azure Policy",
+              "visible": true,
+              "toolTip": "Check this box if you want to enable Azure policy in the aks cluster",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksAdminUserName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Admin User Name",
+              "defaultValue": "aksadmin",
+              "toolTip": "Default administrator user for aks nodes",
+              "visible": "true"
+            },
+            {
+              "name": "aksAuthentication",
+              "type": "Microsoft.Compute.CredentialsCombo",
+              "label": {
+                "authenticationType": "Authentication type",
+                "password": "Password",
+                "sshPublicKey": "SSH public key"
+              },
+              "toolTip": {
+                "authenticationType": "",
+                "password": "",
+                "sshPublicKey": ""
+              },
+              "constraints": {
+                "required": true,
+                "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+              },
+              "options": {
+                "hideConfirmation": true,
+                "hidePassword": true
+              },
+              "osPlatform": "Linux"
+            },
+            {
+              "name": "aksAutoScalerScanInterval",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scan Interval",
+              "defaultValue": "10s",
+              "toolTip": "Scan interval for the auto-scaler of the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksAutoScalerDownDelayPostAdd",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Down Delay PostAdd",
+              "defaultValue": "10m",
+              "toolTip": "Auto scaler scale down delay after add for the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksAutoScalerDownDelayPostDelete",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Down Delay Post Delete",
+              "defaultValue": "20s",
+              "toolTip": "Auto scaler scale down delay after delete for the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksAutoScalerDownDelayPostFailure",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Down Delay Post Failure",
+              "defaultValue": "3m",
+              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksAutoScalerScaleDownUnneededTime",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scale Down Unneeded Time",
+              "defaultValue": "10m",
+              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksAutoScalerScaleDownUnReadyTime",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scale Down UnReady Time",
+              "defaultValue": "20m",
+              "toolTip": "",
+              "visible": "true"
+            },
+            {
+              "name": "aksAutoScalerScaleDownUtilThreshold",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scale Down Util Threshold",
+              "defaultValue": "0.5",
+              "toolTip": "Auto-scaler utilization threshold for the aks cluster",
+              "visible": "true"
+            },
+            {
+              "name": "aksAutoScalerMaxGraceTerminationTime",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Max Grace Termination Time",
+              "defaultValue": "600",
+              "toolTip": "",
+              "visible": "true"
+            },
+            {
+              "name": "aksSystemNodePoolName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks System Node Pool Name",
+              "defaultValue": "controlpool",
+              "toolTip": "",
+              "visible": "true"
+            },
+            {
+              "name": "aksSystemNodeVmPoolType",
+              "label": "aks System Node Vm Pool Type",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "VirtualMachineScaleSets",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "VirtualMachineScaleSets",
+                    "value": "VirtualMachineScaleSets"
+                  },
+                  {
+                    "label": "AvailabilitySet",
+                    "value": "AvailabilitySet"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksSystemNodeSize",
+              "type": "Microsoft.Compute.SizeSelector",
+              "label": "aks System Node Count",
+              "defaultValue": "Standard_D8s_v3",
+              "osPlatform": "Linux",
+              "toolTip": "",
+              "visible": "true",
+              "recommendedSizes": [
+                "Standard_D8s_v3"
+              ]
+            },
+            {
+              "name": "aksSystemNodeOsSku",
+              "label": "aks System Node Os Sku",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Ubuntu",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Ubuntu",
+                    "value": "Ubuntu"
+                  },
+                  {
+                    "label": "AzureLinux",
+                    "value": "AzureLinux"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksSystemNodeCount",
+              "type": "Microsoft.Common.Slider",
+              "min": 1,
+              "max": 100,
+              "label": "aks System Node Count",
+              "defaultValue": 3,
+              "visible": true
+            },
+            {
+              "name": "aksSystemOsDiskSize",
+              "type": "Microsoft.Common.Slider",
+              "label": "aks System Os Disk Size",
+              "defaultValue": "128",
+              "min": 1,
+              "max": 1000,
+              "toolTip": "TSize in GiB of the OS disk for the aks control plan nodes",
+              "visible": "true",
+              "recommendedSizes": [
+                "128"
+              ]
+            },
+            {
+              "name": "aksSystemNodeMax",
+              "type": "Microsoft.Common.Slider",
+              "min": 1,
+              "max": 100,
+              "label": "aks System Node Max",
+              "defaultValue": 6,
+              "visible": true
+            },
+            {
+              "name": "aksSystemNodeAutoScaling",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks System Node Auto Scaling",
+              "defaultValue": true,
+              "visible": true,
+              "toolTip": "Check this box if you want to determine whether to use auto scaling with the aks control plane nodes",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksSystemNodeScaleSetPriority",
+              "label": "aks System Node Scale Set Priority",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Regular",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Regular",
+                    "value": "Regular"
+                  },
+                  {
+                    "label": "Spot",
+                    "value": "Spot"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksSystemNodeScaleSetEvictionPolicy",
+              "label": "aks System Node Scale Set Eviction Policy",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Delete",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Delete",
+                    "value": "Delete"
+                  },
+                  {
+                    "label": "Deallocate",
+                    "value": "Deallocate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksSystemNodeAvailabilityZone",
+              "label": "aks System Node Availability Zone",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": [
+                1,
+                2,
+                3
+              ],
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "123",
+                    "value": [
+                      1,
+                      2,
+                      3
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksSystemNodeMaxPods",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks System Node Max Pods",
+              "defaultValue": "30",
+              "toolTip": ""
+            },
+            {
+              "name": "aksSystemNodeLabels",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks System Node Labels",
+              "defaultValue": "",
+              "toolTip": ""
+            },
+            {
+              "name": "aksUserNodePoolName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks User Node Pool Name",
+              "defaultValue": "workerpool",
+              "toolTip": ""
+            },
+            {
+              "name": "aksUserNodeVmPoolType",
+              "label": "aks User Node Vm Pool Type",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "VirtualMachineScaleSets",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "VirtualMachineScaleSets",
+                    "value": "VirtualMachineScaleSets"
+                  },
+                  {
+                    "label": "AvailabilitySet",
+                    "value": "AvailabilitySet"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksUserNodeCount",
+              "type": "Microsoft.Common.Slider",
+              "min": 3,
+              "max": 100,
+              "label": "aks User Node Count",
+              "defaultValue": 3,
+              "visible": true
+            },
+            {
+              "name": "aksUserNodeSize",
+              "type": "Microsoft.Compute.SizeSelector",
+              "label": "aks User Node Size",
+              "osPlatform": "Linux",
+              "toolTip": "aks User Node Size",
+              "recommendedSizes": [
+                "Standard_D4s_v3"
+              ],
+              "constraints": {
+                "allowedSizes": [
+                    "Standard_D4s_v3",
+                    "Standard_D8s_v3",
+                    "Standard_D16s_v3"
+                ]
+              },
+              "osPlatform": "Linux",
+              "imageReference": {
+                "publisher": "RedHat",
+                "offer": "RHEL",
+                "sku": "8_6"
+              },
+              "count": 1,
+              "visible": true
+            },
+            {
+              "name": "aksUserNodeOsSku",
+              "label": "aks User Node Os Sku",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Ubuntu",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Ubuntu",
+                    "value": "Ubuntu"
+                  },
+                  {
+                    "label": "AzureLinux",
+                    "value": "AzureLinux"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksUserOsDiskSize",
+              "type": "Microsoft.Common.Slider",
+              "min": 128,
+              "max": 512,
+              "label": "aks User Os Disk Size",
+              "defaultValue": 512,
+              "visible": true
+            },
+            {
+              "name": "aksUserNodeMax",
+              "type": "Microsoft.Common.Slider",
+              "min": 3,
+              "max": 100,
+              "label": "aks User Node Max",
+              "defaultValue": 10,
+              "visible": true
+            },
+            {
+              "name": "aksUserNodeAutoScaling",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks User Node Auto Scaling",
+              "visible": true,
+              "toolTip": "Check this box if you want to  determine whether to use auto scaling with the aks worker plane nodes",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksUserNodeScaleSetPriority",
+              "label": "aks User Node Scale Set Priority",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Regular",
+              "toolTip": "Auto-scaler priority for the aks worker plane nodes",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Regular",
+                    "value": "Regular"
+                  },
+                  {
+                    "label": "Spot",
+                    "value": "Spot"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksUserNodeScaleSetEvictionPolicy",
+              "label": "aks User Node Scale Set Eviction Policy",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": "Delete",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Delete",
+                    "value": "Delete"
+                  },
+                  {
+                    "label": "Deallocate",
+                    "value": "Deallocate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksUserNodeAvailabilityZone",
+              "label": "aks User Node Availability Zone",
+              "type": "Microsoft.Common.DropDown",
+              "visible": true,
+              "defaultValue": [
+                "1",
+                "2",
+                "3"
+              ]
+            },
+            {
+              "name": "aksUserNodeMaxPods",
+              "type": "Microsoft.Common.Slider",
+              "min": 30,
+              "max": 250,
+              "label": "aks User Node Max Pods",
+              "defaultValue": 30,
+              "visible": true
+            },
+            {
+              "name": "aksUserNodeLabels",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks User Node Labels",
+              "defaultValue": "",
+              "toolTip": "",
+              "visible": true
+            },
+            {
+              "name": "aksUserNodeTaints",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks User Node Taints",
+              "defaultValue": [],
+              "toolTip": "",
+              "visible": true
+            },
+            {
+              "name": "aksEnableUltraSsd",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks Enable Ultra Ssd",
+              "defaultValue": false,
+              "visible": true,
+              "toolTip": "Check this box if you want to enable Ultra SSD support for the aks cluster nodes",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksServiceCidr",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Service Cidr",
+              "defaultValue": "172.16.0.0/16",
+              "toolTip": "IP address prefix for the internal aks services"
+            },
+            {
+              "name": "aksDnsServiceIp",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Dns Service Ip",
+              "defaultValue": "172.16.0.10",
+              "toolTip": "IP address for the internal DNS service. Must be within the aks Service CIDR address range"
+            },
+            {
+              "name": "aksDockerBridgeCidr",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Docker Bridge Cidr",
+              "defaultValue": "172.17.0.1/16",
+              "toolTip": "IP address prefix for the docker bridge network. Must not overlap with any other internal or external IP addresses."
+            },
+            {
+              "name": "aksPodCidr",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Pod Cidr",
+              "defaultValue": "192.168.0.0/16",
+              "toolTip": "IP address prefix for the pod network when kubenet is used"
+            }
+          ]
+        },
+        {
+          "name": "monitoring",
+          "label": "Monitoring",
+          "elements": [
+            {
+              "name": "deployLogAnalytics",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Deploy Log Analytics",
+              "defaultValue": true,
+              "visible": true,
+              "toolTip": "Check this box if you want to deploy Azure monitor for resources",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "workspaceName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Workspace Name",
+              "defaultValue": "[concat( basics ('namePrefix'), '-log-analytics-workspace')]",
+              "toolTip": "Please enter workspace name",
+              "visible": "[steps('monitoring').deployLogAnalytics]"
+            },
+            {
+              "name": "logRetentionPeriod",
+              "type": "Microsoft.Common.Slider",
+              "min": 60,
+              "max": 730,
+              "label": "Log Retention Period",
+              "defaultValue": 60,
+              "visible": "[steps('monitoring').deployLogAnalytics]"
+            }
+          ]
+        },
+        {
+          "name": "tags",
+          "label": "Tags",
+          "elements": [
+            {
+              "name": "tagsByResource",
+              "type": "Microsoft.Common.TagsByResource",
+              "resources": [
+                "Microsoft.Storage/storageAccounts",
+                "Microsoft.Compute/virtualMachines"
+              ]
+            }
+          ]
+        }
+      ],
+      "outputs": {
+        "namePrefix": "[basics('namePrefix')]",
+        "location": "[resourceGroup().location]",
+        "deployLogAnalytics": "[steps('monitoring').deployLogAnalytics]",
+        "deployManagementVm": "[steps('managementVM').deployManagementVm]",
+        "deployBastion": "[steps('networking').bastion.deployBastion]",
+        "logRetentionPeriod": "[steps('monitoring').logRetentionPeriod]",
+        "bastionSku": "[steps('networking').bastion.bastionSku]",
+        "bastionDisableCopyPaste": "[steps('networking').bastion.bastionDisableCopyPaste]",
+        "bastionDnsName": "[steps('networking').bastion.bastionDnsName]",
+        "bastionEnableFileCopy": "[steps('networking').bastion.bastionEnableFileCopy]",
+        "bastionEnableIpConnect": "[steps('networking').bastion.bastionEnableIpConnect]",
+        "bastionEnableKerberos": "[steps('networking').bastion.bastionEnableKerberos]",
+        "bastionEnableShareableLink": "[steps('networking').bastion.bastionEnableShareableLink]",
+        "bastionEnableTunneling": "[steps('networking').bastion.bastionEnableTunneling]",
+        "registrySku": "[steps('registry').registrySku]",
+        "acrZoneRedundancy": "[steps('registry').acrZoneRedundancy]",
+        "hostEncryption": "[basics('hostEncryption')]",
+        "publicSshKey": "[if( equals( steps('aks').aksAuthentication.authenticationType, 'password' ), steps('aks').aksAuthentication.password , steps('aks').aksAuthentication.sshPublicKey ) ]",
+        "aksSkuTier": "[steps('aks').aksSkuTier]",
+        "aksClusterPrivate": "[basics('privateDeployment')]",
+        "aksClusterDisableLocalAccounts": "[steps('aks').aksClusterDisableLocalAccounts]",
+        "aksClusterNodeOsUpgradeChannel": "[steps('aks').aksClusterNodeOsUpgradeChannel]",
+        "aksClusterUpgradeChannel": "[steps('aks').aksClusterUpgradeChannel]",
+        "aksEnablePodIdentityProfile": "[steps('aks').aksEnablePodIdentityProfile]",
+        "aksEnableAadIntegration": "[steps('aks').aksEnableAadIntegration]",
+        "aksEnableAadRbac": "[steps('aks').aksEnableAadRbac]",
+        "aksAdminGroupObjectId": "[steps('aks').aksAdminGroupObjectId]",
+        "aksAadTenantId":"[steps('aks').aksAadTenantId]",
+        "aksKubernetesVersion": "[steps('aks').aksKubernetesVersion]",
+        "aksClusterDnsPrefix": "[steps('aks').aksClusterDnsPrefix]",
+        "aksEnableAzurePolicy": "[steps('aks').aksEnableAzurePolicy]",
+        "aksAdminUserName": "[steps('aks').aksAdminUserName]",
+        "aksAutoScalerScanInterval": "[steps('aks').aksAutoScalerScanInterval]",
+        "aksAutoScalerDownDelayPostAdd": "[steps('aks').aksAutoScalerDownDelayPostAdd]",
+        "aksAutoScalerDownDelayPostDelete": "[steps('aks').aksAutoScalerDownDelayPostDelete]",
+        "aksAutoScalerDownDelayPostFailure": "[steps('aks').aksAutoScalerDownDelayPostFailure]",
+        "aksAutoScalerScaleDownUnneededTime": "[steps('aks').aksAutoScalerScaleDownUnneededTime]",
+        "aksAutoScalerScaleDownUnReadyTime": "[steps('aks').aksAutoScalerScaleDownUnReadyTime]",
+        "aksAutoScalerScaleDownUtilThreshold": "[steps('aks').aksAutoScalerScaleDownUtilThreshold]",
+        "aksAutoScalerMaxGraceTerminationTime": "[steps('aks').aksAutoScalerMaxGraceTerminationTime]",
+        "aksSystemNodePoolName": "[steps('aks').aksSystemNodePoolName]",
+        "aksSystemNodeVmPoolType": "[steps('aks').aksSystemNodeVmPoolType]",
+        "aksSystemNodeCount": "[steps('aks').aksSystemNodeCount]",
+        "aksSystemNodeSize": "[steps('aks').aksSystemNodeSize]",
+        "aksSystemNodeOsSku": "[steps('aks').aksSystemNodeOsSku]",
+        "aksSystemOsDiskSize": "[steps('aks').aksSystemOsDiskSize]",
+        "aksSystemNodeMax": "[steps('aks').aksSystemNodeMax]",
+        "aksSystemNodeAutoScaling": "[steps('aks').aksSystemNodeAutoScaling]",
+        "aksSystemNodeScaleSetPriority": "[steps('aks').aksSystemNodeScaleSetPriority]",
+        "aksSystemNodeScaleSetEvictionPolicy": "[steps('aks').aksSystemNodeScaleSetEvictionPolicy]",
+        "aksSystemNodeAvailabilityZone": "[steps('aks').aksSystemNodeAvailabilityZone]",
+        "aksSystemNodeMaxPods": "[steps('aks').aksSystemNodeMaxPods]",
+        "aksSystemNodeLabels": "[steps('aks').aksSystemNodeLabels]",
+        "aksUserNodePoolName": "[steps('aks').aksUserNodePoolName]",
+        "aksUserNodeVmPoolType": "[steps('aks').aksUserNodeVmPoolType]",
+        "aksUserNodeCount": "[steps('aks').aksUserNodeCount]",
+        "aksUserNodeSize": "[steps('aks').aksUserNodeSize]",
+        "aksUserNodeOsSku": "[steps('aks').aksUserNodeOsSku]",
+        "aksUserOsDiskSize": "[steps('aks').aksUserOsDiskSize]",
+        "aksUserNodeMax": "[steps('aks').aksUserNodeMax]",
+        "aksUserNodeAutoScaling": "[steps('aks').aksUserNodeAutoScaling]",
+        "aksUserNodeScaleSetPriority": "[steps('aks').aksUserNodeScaleSetPriority]",
+        "aksUserNodeScaleSetEvictionPolicy": "[steps('aks').aksUserNodeScaleSetEvictionPolicy]",
+        "aksUserNodeAvailabilityZone": "[steps('aks').aksUserNodeAvailabilityZone]",
+        "aksUserNodeMaxPods": "[steps('aks').aksUserNodeMaxPods]",
+        "aksUserNodeLabels": "[steps('aks').aksUserNodeLabels]",
+        "aksUserNodeTaints": "[steps('aks').aksUserNodeTaints]",
+        "aksEnableEncryptionAtHost": "[basics('hostEncryption')]",
+        "aksEnableUltraSsd": "[steps('aks').aksEnableUltraSsd]",
+        "aksServiceCidr": "[steps('aks').aksServiceCidr]",
+        "aksDnsServiceIp": "[steps('aks').aksDnsServiceIp]",
+        "aksDockerBridgeCidr": "[steps('aks').aksDockerBridgeCidr]",
+        "aksPodCidr": "[steps('aks').aksPodCidr]",
+        "networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
+        "vnetName": "[steps('networking').vnet.name]",
+        "existingVnet": "[if(equals(steps('networking').vnet.newOrExisting,'new'),false,true)]",
+        "vnetCIDR": "[steps('networking').vnet.addressPrefixes]",
+        "outboundRouting": "[steps('networking').outboundRouting]",
+        "natGatewayName": "[steps('networking').natGatewayName]",
+        "natGwPublicIPPrefixName": "[steps('networking').natGwPublicIPPrefixName]",
+        "natGwPublicIPPrefixLength": "[steps('networking').natGwPublicIPPrefixLength]",
+        "aksSubnetCIDR": "[steps('networking').vnet.subnets.aksSubnet.addressPrefix]",
+        "aksSubnetName": "[steps('networking').vnet.subnets.aksSubnet.name]",
+        "endpointSubnetName": "[steps('networking').vnet.subnets.endpointSubnet.name]",
+        "endpointSubnetCidr": "[steps('networking').vnet.subnets.endpointSubnet.addressPrefix]",
+        "scriptSubnetName": "[steps('networking').vnet.subnets.scriptSubnet.name]",
+        "scriptSubnetCidr": "[steps('networking').vnet.subnets.scriptSubnet.addressPrefix]",
+        "bastionSubnetCidr": "[steps('networking').vnet.subnets.bastionSubnet.addressPrefix]",
+        "vmSubnetName": "[steps('networking').vnet.subnets.vmSubnet.name]",
+        "vmSubnetCidr": "[steps('networking').vnet.subnets.vmSubnet.addressPrefix]",
+        "vmAdminUserName": "[steps('managementVM').vmAdminUserName]",
+        "vmAdminPassword": "[if( equals( steps('managementVM').vmAuthentication.authenticationType, 'password' ), steps('managementVM').vmAuthentication.password , steps('managementVM').vmAuthentication.sshPublicKey ) ]",
+        "vmAuthType": "[steps('managementVM').vmAuthentication.authenticationType]",
+        "vmSize": "[steps('managementVM').vmSize]",
+        "vmDiskType": "[steps('managementVM').vmDiskType]",
+        "vmZone": "[steps('managementVM').vmZone]",
+        "vmCreatePublicIP": "[steps('managementVM').vmCreatePublicIP]",
+        "vmPublicIPName": "[steps('managementVM').vmPublicIPName]",
+        "vmDomainName": "[steps('managementVM').vmDomainName]",
+        "privateDeployment": "[basics('privateDeployment')]",
+        "ibmEntitlementKey": "[steps('SIP').ibmEntitlementKey]",
+        "trustStorePassword": "[steps('SIP').trustStorePassword]",
+        "sipTag": "[steps('SIP').sipTag]",
+        "jwtPublicKey": "[encodeBase64(steps('SIP').jwtKey)]",
+        "operatorNamespace": "[steps('SIP').operatorNamespace]",
+        "instanceNamespace": "[steps('SIP').instanceNamespace]",
+        "pvcName": "[steps('SIP').pvcName]",
+        "pvcSize": "[concat(string(steps('SIP').pvcSize), 'Gi')]",
+        "domainName": "[steps('SIP').domainName]",
+        "license": "[steps('SIP').license]",
+        "tagsByResource": "[steps('tags').tagsByResource]"
+      }
+    }
+  }
