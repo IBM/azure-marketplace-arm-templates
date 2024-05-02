@@ -44,6 +44,35 @@
               "Microsoft.Network/virtualNetworks",
               "Microsoft.Network/publicIPAddress",
               "Microsoft.ContainerService/managedClusters"
+            ],
+            "allowedValues": [
+                "southafricawest",
+                "eastasia",
+                "southeastasia",
+                "brazil",
+                "canadacentral",
+                "chinanorth3",
+                "northeurope",
+                "westeurope",
+                "francecentral",
+                "germanywestcentral",
+                "centralindia",
+                "japaneast",
+                "koreacentral",
+                "norwayeast",
+                "polandcentral",
+                "Qatar Central",
+                "swedencentral",
+                "switzerlandnorth",
+                "uaenorth",
+                "uksouth",
+                "centralus",
+                "eastus2",
+                "southcentralus",
+                "westus2",
+                "westus3",
+                "australiaeast",
+                "eastus"
             ]
           }
         }
