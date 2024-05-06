@@ -402,30 +402,7 @@
 						  ]
 						},
 						"visible": true
-					},
-                    {
-                        "name": "odfNodeSize",
-                        "type": "Microsoft.Common.DropDown",
-                        "label": "ODF Size per Node",
-                        "toolTip": "ODF Cluster Size will be three times this size",
-                        "defaultValue": "2 TiB",
-                        "constraints": {
-                            "allowedValues": [
-                                {
-                                    "label": "1 TiB",
-                                    "value": "1Ti"
-                                },
-                                {
-                                    "label": "2 TiB",
-                                    "value": "2Ti"
-                                },
-                                {
-                                    "label": "3 TiB",
-                                    "value": "3Ti"
-                                }
-                            ]
-                        }
-                    }
+					}
 				]
 			},
 			{
@@ -567,7 +544,6 @@
 			"workerNodeQty": "[steps('openshift').workerCount]",
 			"hostEncryption": "[steps('openshift').encryption]",
 			"pullSecret": "[steps('openshift').pullSecret]",
-			"storageSizePerNode": "[steps('openshift').odfNodeSize]",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('cp4i').ibmEntitlementKey]",
             "acceptLicense": "[steps('cp4i').acceptLicense]",
