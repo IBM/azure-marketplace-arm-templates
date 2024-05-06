@@ -31,7 +31,7 @@
                 }
               ]
             },
-            "allowExisting": false
+            "allowExisting": true
           },
           "location": {
             "visible": true,
@@ -331,6 +331,7 @@
               "name": "natGatewayName",
               "type": "Microsoft.Common.TextBox",
               "label": "Nat Gateway Name",
+              "defaultValue": "[ concat( basics ('namePrefix'), '-nat-gw') ]",
               "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
               "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
             },
@@ -400,12 +401,14 @@
               "type": "Microsoft.Compute.CredentialsCombo",
               "label": {
                 "authenticationType": "Authentication type",
-                "password": "Password",
+                "password": "Administrator User Password",
+                "confirmPassword": "Confirm administrator password",
                 "sshPublicKey": "SSH public key"
               },
               "toolTip": {
                 "authenticationType": "",
                 "password": "",
+                "confirmPassword": "",
                 "sshPublicKey": ""
               },
               "constraints": {
@@ -414,7 +417,7 @@
                 "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
               },
               "options": {
-                "hideConfirmation": true,
+                "hideConfirmation": false,
                 "hidePassword": false
               },
               "osPlatform": "Linux",
@@ -424,14 +427,18 @@
               "name": "vmSize",
               "type": "Microsoft.Compute.SizeSelector",
               "label": "VM Size",
-              "toolTip": "The size of the worker nodes",
+              "toolTip": "The size of the management VM",
               "defaultValue": "Standard_B1s",
               "recommendedSizes": [
                 "Standard_B1s"
               ],
               "constraints": {
                 "allowedSizes": [
-                  "Standard_B1s"
+                  "Standard_B1s",
+                  "Standard_B2s",
+                  "Standard_D2s_v3",
+                  "Standard_D4s_v3",
+                  "Standard_D8s_v3"
                 ]
               },
               "options": {
@@ -444,7 +451,8 @@
               "name": "vmDiskType",
               "type": "Microsoft.Common.DropDown",
               "label": "VM Disk Type",
-              "toolTip": "The size of the worker nodes",
+              "toolTip": "The type of disk for the management VM",
+              "multiLine": false,
               "defaultValue": "Standard_LRS",
               "recommendedSizes": [
                 "Standard_LRS"
@@ -525,14 +533,41 @@
               }
             },
             {
+              "name": "checkDomainName",
+              "type": "Microsoft.Solutions.ArmApiControl",
+              "request": {
+                "method": "GET",
+                "path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('managementVM').vmDomainName,'&api-version=2022-11-01')]"
+              }
+            },
+            {
               "name": "vmDomainName",
               "type": "Microsoft.Common.TextBox",
               "label": "VM Domain Name",
               "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
               "defaultValue": "[toLower( concat(basics('namePrefix'),uniqueString(resourceGroup().name)) )]",
-              "toolTip": "Check this box if you want public ip to be created",
+              "toolTip": "Enter a domain name to give the public IP address. Must be unique.",
               "constraints": {
-                  "required": false
+                  "required": false,
+                  "validations": [
+                    {
+                      "isValid": "[steps('managementVM').checkDomainName.available]",
+                      "message": "Domain name is not available"
+                    },
+                    {
+                      "regex": "^[a-z][a-z0-9-_]{3,32}$",
+                      "message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
+                    }
+                  ]
+              }
+            },
+            {
+              "name": "domainInfo",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
+              "options": {
+                "icon": "Info",
+                "text": "[concat('The VM public IP will be available at ',steps('managementVM').vmDomainName,'.',location(),'.cloudapp.azure.com')]"
               }
             }
           ]
@@ -554,7 +589,7 @@
                 "validationMessage": "Entitlement Key must be at least  characters long, contain only numbers and letters"
               },
               "options": {
-                "hideConfirmation": false
+                "hideConfirmation": true
               },
               "visible": true
             },
@@ -562,7 +597,8 @@
               "name": "trustStorePassword",
               "type": "Microsoft.Common.PasswordBox",
               "label": {
-                "password": "Trust Store Password"
+                "password": "Trust Store Password",
+                "confirmPassword": "Re-enter trust store password"
               },
               "toolTip": "",
               "constraints": {
@@ -579,7 +615,7 @@
               "name": "sipTag",
               "type": "Microsoft.Common.DropDown",
               "label": "SIP Version",
-              "visible": "true",
+              "visible": false,
               "toolTip": "",
               "defaultValue": "10.0.2403.1",
               "constraints": {
@@ -600,7 +636,21 @@
             {
               "name": "jwtKey",
               "type": "Microsoft.Common.TextBox",
-              "label": "Enter JWT public key",
+              "label": "JWT Public Key",
+              "toolTip": "Use an existing JWT Public Key",
+              "multiLine": true,
+              "visible": "[steps('SIP').provideJwtKey]"
+            },
+            {
+              "name": "jwtKeyInfo",
+              "type": "Microsoft.Common.TextBlock",
+              "options": {
+                "text": "If using an existing JWT public key, it must conform to the format required.",
+                "link": {
+                  "uri": "https://www.ibm.com/docs/en/intelligent-promising?topic=pisipbuc-creating-jwt-issuer-secret-by-using-public-key",
+                  "label": "Learn more"
+                }
+              },
               "visible": "[steps('SIP').provideJwtKey]"
             },
             {
@@ -641,8 +691,18 @@
               "type": "Microsoft.Common.TextBox",
               "label": "Domain Name",
               "visible": "true",
+              "constraints": {
+                "required": true,
+                "validations": [
+                  {
+                    "regex": "^[a-z][a-z0-9-_]{3,32}$",
+                    "message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
+                  }
+                ]
+              },
               "toolTip": "FQDN of the suffix for the ingress",
-              "defaultValue": ""
+              "defaultValue": "",
+              "placeholder": "mydomain.net"
             },
             {
               "name": "license",
