@@ -170,11 +170,11 @@
 						"constraints": {
 						  "allowedValues": [
 							{
-								"label": "IBM Cloud Pak for Integration LTS 2022.2.1 (L-RJON-CD3JKX)",
+								"label": "IBM Cloud Pak for Integration  (L-RJON-CD3JKX)",
 								"value": "[parse('{\"version\":\"2022.2.1\",\"license\":\"L-RJON-CD3JKX\"}')]"
 						  },
 						  {
-							  "label": "IBM Cloud Pak for Integration LTS Reserved 2022.2.1 (L-RJON-CJR2WN)",
+							  "label": "IBM Cloud Pak for Integration (L-RJON-CJR2WN)",
 							  "value": "[parse('{\"version\":\"2022.2.1\",\"license\":\"L-RJON-CJR2WN\"}')]"
 						  },
 						  {
@@ -540,31 +540,7 @@
 							}
 						  ]
 						}
-					},
-                    {
-                        "name": "odfNodeSize",
-                        "type": "Microsoft.Common.DropDown",
-                        "label": "ODF Size per Node",
-						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
-                        "toolTip": "ODF Cluster Size will be three times this size",
-                        "defaultValue": "2 TiB",
-                        "constraints": {
-                            "allowedValues": [
-                                {
-                                    "label": "1 TiB",
-                                    "value": "1Ti"
-                                },
-                                {
-                                    "label": "2 TiB",
-                                    "value": "2Ti"
-                                },
-                                {
-                                    "label": "3 TiB",
-                                    "value": "3Ti"
-                                }
-                            ]
-                        }
-                    }
+					}
 				]
 			}
          ],
@@ -578,7 +554,6 @@
 			"workerSubnetName": "[steps('networking').vnet.subnets.workerSubnet.name]",
 			"scriptSubnetCidr": "[steps('networking').vnet.subnets.scriptSubnet.addressPrefix]",
 			"scriptSubnetName": "[steps('networking').vnet.subnets.scriptSubnet.name]",
-			"deployODF": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('cp4i').ibmEntitlementKey]",
             "acceptLicense": "[steps('cp4i').acceptLicense]",
@@ -593,7 +568,6 @@
 			"masterSize": "[steps('openshift').masterNodes]",
 			"workerSize": "[steps('openshift').workerNodes]",
 			"workerCount": "[steps('openshift').workerCount]",
-            "storageSizePerNode": "[steps('openshift').odfNodeSize]",
 			"aroVersion": "[steps('openshift').aroVersion]",
 			"domain": "[steps('openshift').domainName]",
 			"encryption": "[steps('openshift').encryption]",
