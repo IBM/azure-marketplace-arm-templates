@@ -173,7 +173,7 @@
 						"constraints": {
 						  "allowedValues": [
 							{
-							  	"label": "IBM Cloud Pak for Integration LTS 2022.2.1 (L-RJON-CD3JKX)",
+							  	"label": "IBM Cloud Pak for Integration (L-RJON-CD3JKX)",
 							  	"value": "[parse('{\"version\":\"2022.2.1\",\"license\":\"L-RJON-CD3JKX\"}')]"
 							},
 							{
