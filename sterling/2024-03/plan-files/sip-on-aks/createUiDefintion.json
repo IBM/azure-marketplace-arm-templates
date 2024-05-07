@@ -113,112 +113,6 @@
           "label": "Network Settings",
           "elements": [
             {
-              "name": "bastion",
-              "type": "Microsoft.Common.Section",
-              "label": "Bastion section",
-              "elements": [
-                {
-                  "name": "deployBastion",
-                  "type": "Microsoft.Common.CheckBox",
-                  "label": "Deploy Bastion",
-                  "visible": true,
-                  "toolTip": "Check this box if you want to determine whether to deploy a bastion service to access the environment"
-                },
-                {
-                  "name": "bastionSku",
-                  "label": "Bastion Sku",
-                  "type": "Microsoft.Common.DropDown",
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "defaultValue": "Standard",
-                  "toolTip": "Select sku for bastion service. ",
-                  "constraints": {
-                    "allowedValues": [
-                      {
-                        "label": "Basic",
-                        "value": "Basic"
-                      },
-                      {
-                        "label": "Standard",
-                        "value": "Standard"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "name": "bastionDisableCopyPaste",
-                  "type": "Microsoft.Common.CheckBox",
-                  "label": "Bastion Disable Copy Paste",
-                  "defaultValue": false,
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
-                  "constraints": {
-                    "required": false
-                  }
-                },
-                {
-                  "name": "bastionDnsName",
-                  "type": "Microsoft.Common.TextBox",
-                  "label": "Bastion Dns Name",
-                  "defaultValue": "",
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
-                  "constraints": {
-                    "required": false
-                  }
-                },
-                {
-                  "name": "bastionEnableFileCopy",
-                  "type": "Microsoft.Common.CheckBox",
-                  "label": "Bastion Enable File Copy",
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to enable the file copy feature of the bastion service",
-                  "constraints": {
-                    "required": false
-                  }
-                },
-                {
-                  "name": "bastionEnableIpConnect",
-                  "type": "Microsoft.Common.CheckBox",
-                  "label": "Bastion Enable Ip Connect",
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to enable the IP Connect feature of the bastion service",
-                  "constraints": {
-                    "required": false
-                  }
-                },
-                {
-                  "name": "bastionEnableKerberos",
-                  "type": "Microsoft.Common.CheckBox",
-                  "label": "Bastion Enable Kerberos",
-                  "defaultValue": false,
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to enable the kerberos feature of the bastion service",
-                  "constraints": {
-                    "required": false
-                  }
-                },
-                {
-                  "name": "bastionEnableShareableLink",
-                  "type": "Microsoft.Common.CheckBox",
-                  "label": "Bastion Enable Shareable Link",
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service",
-                  "constraints": {
-                    "required": false
-                  }
-                },
-                {
-                  "name": "bastionEnableTunneling",
-                  "type": "Microsoft.Common.CheckBox",
-                  "label": "Bastion Enable Tunneling",
-                  "defaultValue": true,
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
-                }
-              ],
-              "visible": true
-            },
-            {
               "name": "vnet",
               "type": "Microsoft.Network.VirtualNetworkCombo",
               "label": {
@@ -370,6 +264,112 @@
                   }
                 ]
               }
+            },
+            {
+              "name": "bastion",
+              "type": "Microsoft.Common.Section",
+              "label": "Bastion section",
+              "elements": [
+                {
+                  "name": "deployBastion",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Deploy Bastion",
+                  "visible": true,
+                  "toolTip": "Check this box if you want to determine whether to deploy a bastion service to access the environment"
+                },
+                {
+                  "name": "bastionSku",
+                  "label": "Bastion Sku",
+                  "type": "Microsoft.Common.DropDown",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "defaultValue": "Standard",
+                  "toolTip": "Select sku for bastion service. ",
+                  "constraints": {
+                    "allowedValues": [
+                      {
+                        "label": "Basic",
+                        "value": "Basic"
+                      },
+                      {
+                        "label": "Standard",
+                        "value": "Standard"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "bastionDisableCopyPaste",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Disable Copy Paste",
+                  "defaultValue": false,
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionDnsName",
+                  "type": "Microsoft.Common.TextBox",
+                  "label": "Bastion Dns Name",
+                  "defaultValue": "",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableFileCopy",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable File Copy",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the file copy feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableIpConnect",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Ip Connect",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the IP Connect feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableKerberos",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Kerberos",
+                  "defaultValue": false,
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the kerberos feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableShareableLink",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Shareable Link",
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service",
+                  "constraints": {
+                    "required": false
+                  }
+                },
+                {
+                  "name": "bastionEnableTunneling",
+                  "type": "Microsoft.Common.CheckBox",
+                  "label": "Bastion Enable Tunneling",
+                  "defaultValue": true,
+                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
+                }
+              ],
+              "visible": true
             }
           ]
         },
