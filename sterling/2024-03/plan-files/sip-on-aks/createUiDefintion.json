@@ -1520,7 +1520,17 @@
               "type": "Microsoft.Common.TagsByResource",
               "resources": [
                 "Microsoft.Storage/storageAccounts",
-                "Microsoft.Compute/virtualMachines"
+                "Microsoft.Compute/virtualMachines",
+                "Microsoft.ManagedIdentity/userAssignedIdentities",
+                "Microsoft.Network/publicIPAddress",
+                "Microsoft.ContainerService/managedClusters",
+                "Microsoft.ContainerRegistry/registries",
+                "Microsoft.Network/natGateways",
+                "Microsoft.Network/bastionHosts",
+                "Microsoft.OperationalInsights/workspaces",
+                "Microsoft.KeyVault/vaults",
+                "Microsoft.Network/privateDnsZones",
+                "Microsoft.Insights/diagnosticSettings"
               ]
             }
           ]
