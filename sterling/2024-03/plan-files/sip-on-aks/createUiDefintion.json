@@ -309,17 +309,6 @@
                   }
                 },
                 {
-                  "name": "bastionDnsName",
-                  "type": "Microsoft.Common.TextBox",
-                  "label": "Bastion Dns Name",
-                  "defaultValue": "",
-                  "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
-                  "constraints": {
-                    "required": false
-                  }
-                },
-                {
                   "name": "bastionEnableFileCopy",
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable File Copy",
@@ -1573,7 +1562,6 @@
         "logRetentionPeriod": "[steps('monitoring').logRetentionPeriod]",
         "bastionSku": "[steps('networking').bastion.bastionSku]",
         "bastionDisableCopyPaste": "[steps('networking').bastion.bastionDisableCopyPaste]",
-        "bastionDnsName": "[steps('networking').bastion.bastionDnsName]",
         "bastionEnableFileCopy": "[steps('networking').bastion.bastionEnableFileCopy]",
         "bastionEnableIpConnect": "[steps('networking').bastion.bastionEnableIpConnect]",
         "bastionEnableKerberos": "[steps('networking').bastion.bastionEnableKerberos]",
