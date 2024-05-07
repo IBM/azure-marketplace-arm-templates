@@ -223,24 +223,6 @@
 						  ]
 						},
 						"visible": true
-					},
-					{
-						"name": "storageClass",
-						"type": "Microsoft.Common.TextBox",
-						"label": "Storage class",
-						"defaultValue": "ocs-storagecluster-cephfs",
-						"toolTip": "Platform UI requires a persistent volume with ReadWriteMany access mode.",
-						"multiLine": false,
-						"constraints": {
-						  "required": true,
-						  "validations": [
-							{
-							  "regex": "^[a-z0-9A-Z-]{3,}$",
-							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 characters long."
-							}
-						  ]
-						},
-						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]"
 					}
                 ]
             }
@@ -254,7 +236,6 @@
 			"cp4iVersion": "[steps('cp4i').cp4iEdition.version ]",
 			"cp4iLicense": "[steps('cp4i').cp4iEdition.license ]",
 			"namespace": "[steps('cp4i').nameSpace]",
-            "storageClass": "[steps('cp4i').storageClass]",
 			"privateVnet": "[basics('privateVnet')]",
 			"vnetName": "[if()]",
 			"subnetName": "[if()]",
