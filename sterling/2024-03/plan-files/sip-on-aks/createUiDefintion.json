@@ -782,7 +782,7 @@
           "elements": [
             {
               "name": "aksSkuTier",
-              "label": "aks Sku Tier",
+              "label": "AKS Sku Tier",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Premium",
@@ -801,19 +801,8 @@
               }
             },
             {
-              "name": "aksClusterDisableLocalAccounts",
-              "type": "Microsoft.Common.CheckBox",
-              "label": "aks Cluster Disable Local Accounts",
-              "defaultValue": false,
-              "visible": true,
-              "toolTip": "Check this box if you want Flag to determine whether local kubernetes accounts should be disabled",
-              "constraints": {
-                "required": false
-              }
-            },
-            {
               "name": "aksClusterNodeOsUpgradeChannel",
-              "label": "aks Cluster Node Os Upgrade Channel",
+              "label": "Cluster Node OS Upgrade Channel",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "NodeImage",
@@ -837,7 +826,7 @@
             },
             {
               "name": "aksClusterUpgradeChannel",
-              "label": "aks Cluster Upgrade Channel",
+              "label": "Cluster Upgrade Channel",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "patch",
@@ -870,10 +859,21 @@
             {
               "name": "aksEnablePodIdentityProfile",
               "type": "Microsoft.Common.CheckBox",
-              "label": "aks Enable Pod Identity Profile",
+              "label": "Enable Pod Identity Profile",
               "defaultValue": false,
               "visible": true,
-              "toolTip": "Check this box if you want  to determine whether the aks pod identity profile should be enabled. Requires feature to be enabled in subscription",
+              "toolTip": "Check this box to enable the aks pod identity profile. Requires feature to be enabled in subscription",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "aksClusterDisableLocalAccounts",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Disable Local Accounts",
+              "defaultValue": false,
+              "visible": true,
+              "toolTip": "Check this box if local kubernetes accounts should be disabled",
               "constraints": {
                 "required": false
               }
@@ -881,10 +881,10 @@
             {
               "name": "aksEnableAadIntegration",
               "type": "Microsoft.Common.CheckBox",
-              "label": "aks Enable Aad Integration",
+              "label": "Enable Azure EntraID Integration",
               "defaultValue": false,
               "visible": true,
-              "toolTip": "Check this box if you want  to enable aks EntraID integration",
+              "toolTip": "Check this box if you want  to enable EntraID integration",
               "constraints": {
                 "required": false
               }
@@ -892,10 +892,10 @@
             {
               "name": "aksEnableAadRbac",
               "type": "Microsoft.Common.CheckBox",
-              "label": "aks Enable Aad Rbac",
+              "label": "Enable Aad Rbac",
               "defaultValue": false,
-              "visible": true,
-              "toolTip": "Check this box if you want to determine whether to enable EntraID RBAC authentication for kubernetes users",
+              "visible": "[steps('aks').aksEnableAadIntegration]",
+              "toolTip": "Check this box to enable EntraID RBAC authentication for kubernetes users",
               "constraints": {
                 "required": false
               }
@@ -905,38 +905,64 @@
               "type": "Microsoft.Common.TextBox",
               "label": "aks Admin Group Object Id",
               "visible": "[steps('aks').aksEnableAadIntegration]",
-              "toolTip": "Check this box if you want to determine whether to enable EntraID RBAC authentication for kubernetes users"
+              "toolTip": "The EntraID group ID to be used for cluster access"
             },
             {
               "name": "aksAadTenantId",
               "type": "Microsoft.Common.TextBox",
               "label": "aks Aad Tenant Id",
-              "defaultValue": "",
+              "defaultValue": "[tenant().id]",
               "visible": "[steps('aks').aksEnableAadIntegration]",
-              "toolTip": ""
+              "toolTip": "Enter the tenant ID for the Entra ID directory"
             },
             {
               "name": "aksKubernetesVersion",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Kubernetes Version",
-              "defaultValue": "1.27",
+              "type": "Microsoft.Common.DropDown",
+              "label": "Kubernetes Version",
+              "defaultValue": "1.27.x",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "1.25.x",
+                    "value": "1.25"
+                  },
+                  {
+                    "label": "1.26.x",
+                    "value": "1.26"
+                  },
+                  {
+                    "label": "1.27.x",
+                    "value": "1.27"
+                  },
+                  {
+                    "label": "1.28.x",
+                    "value": "1.28"
+                  }
+                ]
+              },
+              "multiselect": false,
               "toolTip": "Version of kubneretes to be used for the aks cluster",
-              "visible": "true"
+              "visible": true
+            },
+            {
+              "name": "aksClusterCustomDomain",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Custom Domain Prefix",
+              "toolTip": "Check to use a custom domain prefix for the cluster"
             },
             {
               "name": "aksClusterDnsPrefix",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Cluster Dns Prefix",
-              "defaultValue": "[concat(parameters('aksClusterName'),substring( uniqueString(resourceGroup().id), 1, 4 ))]",
-              "toolTip": "Domain name prefix for the aks cluster",
-              "visible": "true"
+              "label": "Cluster Dns Prefix",
+              "toolTip": "Domain name prefix for the aks cluster. Must be unique.",
+              "visible": "[ steps('aks').aksClusterCustomDomain ]"
             },
             {
               "name": "aksEnableAzurePolicy",
               "type": "Microsoft.Common.CheckBox",
-              "label": "aks Enable Azure Policy",
+              "label": "Enable Azure Policy",
               "visible": true,
-              "toolTip": "Check this box if you want to enable Azure policy in the aks cluster",
+              "toolTip": "Check this box to enable Azure policy in the AKS cluster",
               "constraints": {
                 "required": false
               }
@@ -944,9 +970,9 @@
             {
               "name": "aksAdminUserName",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Admin User Name",
+              "label": "Node Admin User Name",
               "defaultValue": "aksadmin",
-              "toolTip": "Default administrator user for aks nodes",
+              "toolTip": "Default administrator user for AKS nodes",
               "visible": "true"
             },
             {
@@ -958,14 +984,10 @@
                 "sshPublicKey": "SSH public key"
               },
               "toolTip": {
-                "authenticationType": "",
-                "password": "",
-                "sshPublicKey": ""
+                "sshPublicKey": "Select the public SSH key to use for node access"
               },
               "constraints": {
-                "required": true,
-                "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
-                "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+                "required": true
               },
               "options": {
                 "hideConfirmation": true,
@@ -976,14 +998,14 @@
             {
               "name": "aksSystemNodePoolName",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks System Node Pool Name",
+              "label": "System Node Pool Name",
               "defaultValue": "controlpool",
               "toolTip": "Name of the control node pool",
               "visible": "true"
             },
             {
               "name": "aksSystemNodeVmPoolType",
-              "label": "aks System Node Vm Pool Type",
+              "label": "System Node VM Pool Type",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "VirtualMachineScaleSets",
@@ -1004,7 +1026,7 @@
             {
               "name": "aksSystemNodeSize",
               "type": "Microsoft.Compute.SizeSelector",
-              "label": "aks System Node Count",
+              "label": "System Node Count",
               "defaultValue": "Standard_D8s_v3",
               "osPlatform": "Linux",
               "toolTip": "Size of the control node VMs",
@@ -1023,7 +1045,7 @@
             },
             {
               "name": "aksSystemNodeOsSku",
-              "label": "aks System Node Os Sku",
+              "label": "System Node OS Sku",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Ubuntu",
@@ -1046,7 +1068,7 @@
               "type": "Microsoft.Common.Slider",
               "min": 1,
               "max": 100,
-              "label": "aks System Node Count",
+              "label": "System Node Count",
               "defaultValue": 3,
               "visible": true,
               "toolTip": "Number of control nodes"
@@ -1054,7 +1076,7 @@
             {
               "name": "aksSystemOsDiskSize",
               "type": "Microsoft.Common.Slider",
-              "label": "aks System Os Disk Size",
+              "label": "System OS Disk Size",
               "defaultValue": "128",
               "min": 100,
               "max": 1000,
@@ -1067,7 +1089,7 @@
             {
               "name": "aksSystemNodeAutoScaling",
               "type": "Microsoft.Common.CheckBox",
-              "label": "aks System Node Auto Scaling",
+              "label": "System Node Auto Scaling",
               "defaultValue": false,
               "visible": true,
               "toolTip": "Check this box if you want to use auto scaling with the AKS control plane nodes",
@@ -1080,14 +1102,14 @@
               "type": "Microsoft.Common.Slider",
               "min": 1,
               "max": 100,
-              "label": "AKS System Node Max",
+              "label": "Max System Nodes",
               "defaultValue": 6,
               "toolTip": "Maximum number of control nodes for auto-scaling",
               "visible": "[ steps('aks').aksSystemNodeAutoScaling ]"
             },
             {
               "name": "aksSystemNodeScaleSetEvictionPolicy",
-              "label": "aks System Node Scale Set Eviction Policy",
+              "label": "System Node Scale Set Eviction Policy",
               "type": "Microsoft.Common.DropDown",
               "visible": "[ steps('aks').aksSystemNodeAutoScaling ]",
               "defaultValue": "Delete",
@@ -1107,7 +1129,7 @@
             },
             {
               "name": "aksSystemNodeScaleSetPriority",
-              "label": "aks System Node Scale Set Priority",
+              "label": "System Node Scale Set Priority",
               "type": "Microsoft.Common.DropDown",
               "visible": "[ steps('aks').aksSystemNodeAutoScaling ]",
               "defaultValue": "Regular",
@@ -1127,7 +1149,7 @@
             },
             {
               "name": "aksSystemNodeAvailabilityZone",
-              "label": "aks System Node Availability Zone",
+              "label": "System Node Availability Zone",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "multiselect": true,
@@ -1154,27 +1176,20 @@
             {
               "name": "aksSystemNodeMaxPods",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks System Node Max Pods",
+              "label": "System Node Max Pods",
               "defaultValue": "30",
               "toolTip": "Maximum pods per control node"
             },
             {
-              "name": "aksSystemNodeLabels",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks System Node Labels",
-              "defaultValue": "",
-              "toolTip": "Any labels to add to the control nodes"
-            },
-            {
               "name": "aksUserNodePoolName",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks User Node Pool Name",
+              "label": "User Node Pool Name",
               "defaultValue": "userpool",
               "toolTip": "Name for the user node pool. Operators and operands will run on these."
             },
             {
               "name": "aksUserNodeVmPoolType",
-              "label": "aks User Node Vm Pool Type",
+              "label": "User Node Vm Pool Type",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "VirtualMachineScaleSets",
@@ -1197,7 +1212,7 @@
               "type": "Microsoft.Common.Slider",
               "min": 3,
               "max": 100,
-              "label": "aks User Node Count",
+              "label": "User Node Count",
               "defaultValue": 3,
               "visible": true,
               "toolTip": "Number of user nodes to create in the pool."
@@ -1205,9 +1220,9 @@
             {
               "name": "aksUserNodeSize",
               "type": "Microsoft.Compute.SizeSelector",
-              "label": "aks User Node Size",
+              "label": "User Node Size",
               "osPlatform": "Linux",
-              "toolTip": "aks User Node Size",
+              "toolTip": "User Node VM size",
               "recommendedSizes": [
                 "Standard_D4s_v3"
               ],
@@ -1224,7 +1239,7 @@
             },
             {
               "name": "aksUserNodeOsSku",
-              "label": "aks User Node Os Sku",
+              "label": "User Node OS Type",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Ubuntu",
@@ -1247,7 +1262,7 @@
               "type": "Microsoft.Common.Slider",
               "min": 128,
               "max": 512,
-              "label": "AKS User Os Disk Size",
+              "label": "User Node OS Disk Size",
               "toolTip": "OS disk size in GiB for the user nodes",
               "defaultValue": 512,
               "visible": true
@@ -1255,7 +1270,7 @@
             {
               "name": "aksUserNodeAutoScaling",
               "type": "Microsoft.Common.CheckBox",
-              "label": "AKS User Node Auto Scaling",
+              "label": "User Node Auto Scaling",
               "visible": true,
               "toolTip": "Check this box if you want to  determine whether to use auto scaling with the aks worker plane nodes",
               "constraints": {
@@ -1267,14 +1282,14 @@
               "type": "Microsoft.Common.Slider",
               "min": 3,
               "max": 100,
-              "label": "AKS User Node Max",
+              "label": "User Node Max",
               "defaultValue": 10,
               "toolTip": "Maximum number of user nodes to which to scale the pool",
               "visible": "[ steps('aks').aksUserNodeAutoScaling ]"
             },
             {
               "name": "aksUserNodeScaleSetPriority",
-              "label": "aks User Node Scale Set Priority",
+              "label": "User Node Scale Set Priority",
               "type": "Microsoft.Common.DropDown",
               "visible": "[ steps('aks').aksUserNodeAutoScaling ]",
               "defaultValue": "Regular",
@@ -1294,7 +1309,7 @@
             },
             {
               "name": "aksUserNodeScaleSetEvictionPolicy",
-              "label": "aks User Node Scale Set Eviction Policy",
+              "label": "User Node Scale Set Eviction Policy",
               "type": "Microsoft.Common.DropDown",
               "visible": "[ steps('aks').aksUserNodeAutoScaling ]",
               "defaultValue": "Delete",
@@ -1314,7 +1329,7 @@
             },
             {
               "name": "aksUserNodeAvailabilityZone",
-              "label": "aks User Node Availability Zone",
+              "label": "User Node Availability Zone",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "multiselect": true,
@@ -1343,31 +1358,15 @@
               "type": "Microsoft.Common.Slider",
               "min": 30,
               "max": 250,
-              "label": "aks User Node Max Pods",
+              "label": "User Node Max Pods",
               "defaultValue": 30,
               "toolTip": "Maximum number of pods per user node",
               "visible": true
             },
             {
-              "name": "aksUserNodeLabels",
-              "type": "Microsoft.Common.TextBox",
-              "label": "AKS User Node Labels",
-              "defaultValue": "",
-              "toolTip": "Any additional labels to add to the user nodes",
-              "visible": true
-            },
-            {
-              "name": "aksUserNodeTaints",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks User Node Taints",
-              "defaultValue": [],
-              "toolTip": "Any taints to add to the user nodes",
-              "visible": true
-            },
-            {
               "name": "aksEnableUltraSsd",
               "type": "Microsoft.Common.CheckBox",
-              "label": "aks Enable Ultra Ssd",
+              "label": "Enable Ultra Ssd",
               "defaultValue": false,
               "visible": true,
               "toolTip": "Check this box if you want to enable Ultra SSD support for the aks cluster nodes",
@@ -1378,83 +1377,83 @@
             {
               "name": "aksServiceCidr",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Service Cidr",
+              "label": "Service Address Prefix",
               "defaultValue": "172.16.0.0/16",
-              "toolTip": "IP address prefix for the internal aks services"
+              "toolTip": "IP address prefix for the internal AKS services.  Must not overlap with any other internal networks or the VNet."
             },
             {
               "name": "aksDnsServiceIp",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Dns Service Ip",
+              "label": "Internal DNS Service IP",
               "defaultValue": "172.16.0.10",
-              "toolTip": "IP address for the internal DNS service. Must be within the aks Service CIDR address range"
+              "toolTip": "IP address for the internal DNS service. Must be within the Internal Service address prefix range"
             },
             {
               "name": "aksDockerBridgeCidr",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Docker Bridge Cidr",
+              "label": "Docker Bridge Address Prefix",
               "defaultValue": "172.17.0.1/16",
-              "toolTip": "IP address prefix for the docker bridge network. Must not overlap with any other internal or external IP addresses."
+              "toolTip": "IP address prefix for the docker bridge network.  Must not overlap with any other internal networks or the VNet."
             },
             {
               "name": "aksPodCidr",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Pod Cidr",
+              "label": "Internal Pod Address Prefix",
               "defaultValue": "192.168.0.0/16",
-              "toolTip": "IP address prefix for the pod network when kubenet is used"
+              "toolTip": "IP address prefix for the internal pod network. Must not overlap with any other internal networks or the VNet."
             },
             {
               "name": "aksAutoScalerScanInterval",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scan Interval",
+              "label": "Auto Scaler Scan Interval",
               "defaultValue": "10s",
-              "toolTip": "Scan interval for the auto-scaler of the aks cluster",
+              "toolTip": "Scan interval for the auto-scaler of the AKS cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             },
             {
               "name": "aksAutoScalerDownDelayPostAdd",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Down Delay PostAdd",
+              "label": "Auto Scaler Down Delay PostAdd",
               "defaultValue": "10m",
-              "toolTip": "Auto scaler scale down delay after add for the aks cluster",
+              "toolTip": "Auto scaler scale down delay after add for the AKS cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             },
             {
               "name": "aksAutoScalerDownDelayPostDelete",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Down Delay Post Delete",
+              "label": "Auto Scaler Down Delay Post Delete",
               "defaultValue": "20s",
-              "toolTip": "Auto scaler scale down delay after delete for the aks cluster",
+              "toolTip": "Auto scaler scale down delay after delete for the AKS cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             },
             {
               "name": "aksAutoScalerDownDelayPostFailure",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Down Delay Post Failure",
+              "label": "Auto Scaler Down Delay Post Failure",
               "defaultValue": "3m",
-              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
+              "toolTip": "Auto scaler scale down delay after failure for the AKS cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             },
             {
               "name": "aksAutoScalerScaleDownUnneededTime",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scale Down Unneeded Time",
+              "label": "Auto Scaler Scale Down Unneeded Time",
               "defaultValue": "10m",
-              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
+              "toolTip": "Auto-scaler scale down unneeded time for the AKS cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             },
             {
               "name": "aksAutoScalerScaleDownUnReadyTime",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scale Down UnReady Time",
+              "label": "Auto Scaler Scale Down UnReady Time",
               "defaultValue": "20m",
-              "toolTip": "",
+              "toolTip": "Auto-scaler scale down unready time for the AKS cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             },
             {
               "name": "aksAutoScalerScaleDownUtilThreshold",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scale Down Util Threshold",
+              "label": "Auto Scaler Scale Down Util Threshold",
               "defaultValue": "0.5",
               "toolTip": "Auto-scaler utilization threshold for the aks cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
@@ -1462,7 +1461,7 @@
             {
               "name": "aksAutoScalerMaxGraceTerminationTime",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Max Grace Termination Time",
+              "label": "Auto Scaler Max Grace Termination Time",
               "defaultValue": "600",
               "toolTip": "",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
@@ -1571,7 +1570,6 @@
         "aksSystemNodeScaleSetEvictionPolicy": "[steps('aks').aksSystemNodeScaleSetEvictionPolicy]",
         "aksSystemNodeAvailabilityZone": "[steps('aks').aksSystemNodeAvailabilityZone]",
         "aksSystemNodeMaxPods": "[steps('aks').aksSystemNodeMaxPods]",
-        "aksSystemNodeLabels": "[steps('aks').aksSystemNodeLabels]",
         "aksUserNodePoolName": "[steps('aks').aksUserNodePoolName]",
         "aksUserNodeVmPoolType": "[steps('aks').aksUserNodeVmPoolType]",
         "aksUserNodeCount": "[steps('aks').aksUserNodeCount]",
@@ -1584,8 +1582,6 @@
         "aksUserNodeScaleSetEvictionPolicy": "[steps('aks').aksUserNodeScaleSetEvictionPolicy]",
         "aksUserNodeAvailabilityZone": "[steps('aks').aksUserNodeAvailabilityZone]",
         "aksUserNodeMaxPods": "[steps('aks').aksUserNodeMaxPods]",
-        "aksUserNodeLabels": "[steps('aks').aksUserNodeLabels]",
-        "aksUserNodeTaints": "[steps('aks').aksUserNodeTaints]",
         "aksEnableEncryptionAtHost": "[basics('hostEncryption')]",
         "aksEnableUltraSsd": "[steps('aks').aksEnableUltraSsd]",
         "aksServiceCidr": "[steps('aks').aksServiceCidr]",
