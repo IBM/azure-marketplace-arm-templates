@@ -1458,7 +1458,7 @@
               "type": "Microsoft.Common.TextBox",
               "label": "VM Public IP Name",
               "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
-              "defaultValue": "[concat(basics('namePrefix'),'-pip')]",
+              "defaultValue": "[concat(basics('namePrefix'),'-mgmt-vm-pip')]",
               "toolTip": "Check this box if you want public ip to be created",
               "constraints": {
                 "required": false
@@ -1477,9 +1477,9 @@
               "type": "Microsoft.Common.TextBox",
               "label": "VM Domain Name",
               "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
-              "defaultValue": "[toLower( concat(basics('namePrefix'),uniqueString(resourceGroup().name)) )]",
+              "defaultValue": "",
               "toolTip": "Enter a domain name to give the public IP address. Must be unique.",
-              "placeholder": "mydomain",
+              "placeholder": "mypublicprefix",
               "constraints": {
                   "required": "[ steps('managementVM').vmCreatePublicIP ]",
                   "validations": [
@@ -1497,7 +1497,7 @@
             {
               "name": "domainInfo",
               "type": "Microsoft.Common.InfoBox",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP, not(equals(steps('managementVM').vmDomainName, '')))]",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP,not(equals(steps('managementVM').vmDomainName, '')))]",
               "options": {
                 "icon": "Info",
                 "text": "[concat('The VM public IP will be available at ',steps('managementVM').vmDomainName,'.',location(),'.cloudapp.azure.com')]"
