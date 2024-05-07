@@ -892,7 +892,7 @@
             {
               "name": "aksEnableAadRbac",
               "type": "Microsoft.Common.CheckBox",
-              "label": "Enable EntraID Rbac",
+              "label": "Enable EntraID RBAC",
               "defaultValue": false,
               "visible": "[steps('aks').aksEnableAadIntegration]",
               "toolTip": "Check this box to enable EntraID RBAC authentication for kubernetes users",
@@ -905,13 +905,16 @@
               "type": "Microsoft.Common.TextBox",
               "label": "Admin Group Object Id",
               "visible": "[steps('aks').aksEnableAadIntegration]",
-              "toolTip": "The EntraID group ID to be used for cluster access"
+              "toolTip": "The EntraID group ID to be used for cluster access",
+              "constraints": {
+                "required": "[steps('aks').aksEnableAadIntegration]"
+              }
             },
             {
               "name": "aksAadTenantId",
               "type": "Microsoft.Common.TextBox",
               "label": "EntraID Tenant Id",
-              "defaultValue": "[tenant().id]",
+              "defaultValue": "[ subscription().tenantId ]",
               "visible": "[steps('aks').aksEnableAadIntegration]",
               "toolTip": "Enter the tenant ID for the Entra ID directory"
             },
@@ -955,7 +958,10 @@
               "type": "Microsoft.Common.TextBox",
               "label": "Cluster Dns Prefix",
               "toolTip": "Domain name prefix for the aks cluster. Must be unique.",
-              "visible": "[ steps('aks').aksClusterCustomDomain ]"
+              "visible": "[ steps('aks').aksClusterCustomDomain ]",
+              "constraints": {
+                "required": "[ steps('aks').aksClusterCustomDomain ]"
+              }
             },
             {
               "name": "aksEnableAzurePolicy",
