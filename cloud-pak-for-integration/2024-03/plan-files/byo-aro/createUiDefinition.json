@@ -173,16 +173,12 @@
 						"constraints": {
 						  "allowedValues": [
 							{
-							  	"label": "IBM Cloud Pak for Integration (L-RJON-CD3JKX)",
-							  	"value": "[parse('{\"version\":\"2022.2.1\",\"license\":\"L-RJON-CD3JKX\"}')]"
-							},
-							{
-								"label": "IBM Cloud Pak for Integration LTS Reserved 2022.2.1 (L-RJON-CJR2WN)",
-								"value": "[parse('{\"version\":\"2022.2.1\",\"license\":\"L-RJON-CJR2WN\"}')]"
-							},
-							{
-								"label": "IBM Cloud Pak for Integration CD 2023.4.1 (L-VTPK-22YZPK)",
+								"label": "IBM Cloud Pak for Integration CD 2023.4.1 - Full License (L-VTPK-22YZPK)",
 								"value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-VTPK-22YZPK\"}')]"
+							},
+						  	{
+								"label": "IBM Cloud Pak for Integration CD 2023.4.1 - Reserved License (L-QYQF-8UFZBN)",
+								"value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-QYQF-8UFZBN\"}')]"
 							}
 						  ],
 						  "required": true
