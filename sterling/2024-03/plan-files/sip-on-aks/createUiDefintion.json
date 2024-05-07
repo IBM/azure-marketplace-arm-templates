@@ -1075,7 +1075,15 @@
               "visible": "true",
               "recommendedSizes": [
                 "Standard_D8s_v3"
-              ]
+              ],
+              "constraints": {
+                "allowedSizes": [
+                    "Standard_D2s_v3",
+                    "Standard_D4s_v3",
+                    "Standard_D8s_v3",
+                    "Standard_D16s_v3"
+                ]
+              }
             },
             {
               "name": "aksSystemNodeOsSku",
@@ -1267,16 +1275,11 @@
               ],
               "constraints": {
                 "allowedSizes": [
+                    "Standard_D2s_v3",
                     "Standard_D4s_v3",
                     "Standard_D8s_v3",
                     "Standard_D16s_v3"
                 ]
-              },
-              "osPlatform": "Linux",
-              "imageReference": {
-                "publisher": "RedHat",
-                "offer": "RHEL",
-                "sku": "8_6"
               },
               "count": 1,
               "visible": true
