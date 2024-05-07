@@ -494,12 +494,12 @@
               "name": "domainName",
               "type": "Microsoft.Common.TextBox",
               "label": "Domain Name",
-              "visible": "true",
+              "visible": true,
               "constraints": {
                 "required": true,
                 "validations": [
                   {
-                    "regex": "^[a-z][a-z0-9-_]{3,32}$",
+                    "regex": "^[a-z][a-z0-9-._]{3,32}$",
                     "message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
                   }
                 ]
@@ -507,6 +507,33 @@
               "toolTip": "FQDN of the suffix for the ingress",
               "defaultValue": "",
               "placeholder": "mydomain.net"
+            },
+            {
+              "name": "sipDomainInfo",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": "[ not( equals( steps('SIP').domainName, '' ) ) ]",
+              "options": {
+                "icon": "Info",
+                "text": "[concat('The SIP service will be created at https://sipservice-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName)]"
+              }
+            },
+            {
+              "name": "sipApiDocsDomainInfo",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": "[ not( equals( steps('SIP').domainName, '' ) ) ]",
+              "options": {
+                "icon": "Info",
+                "text": "[concat('The SIP API-Docs service will be created at https://sip-service-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName,'/api-docs/')]"
+              }
+            },
+            {
+              "name": "sipDomainNotice",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": "[ not( equals( steps('SIP').domainName, '' ) ) ]",
+              "options": {
+                "icon": "Warning",
+                "text": "[concat('Your DNS must be updated post deployment to use the created public IP created for the ingress of sipservice-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName)]"
+              }
             },
             {
               "name": "license",
