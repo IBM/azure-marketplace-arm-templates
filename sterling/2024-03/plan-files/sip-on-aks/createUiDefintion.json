@@ -289,7 +289,7 @@
                   }
                 },
                 "vmSubnet": {
-                  "label": "Management VM Subnet (Required if deploying a management VM",
+                  "label": "Management VM Subnet (Required if deploying a management VM)",
                   "defaultValue": {
                     "name": "vm-subnet",
                     "addressPrefixSize": "/28"
@@ -339,7 +339,7 @@
               "name": "natGwPublicIPPrefixName",
               "type": "Microsoft.Common.TextBox",
               "label": "Nat Gw Public IP Prefix Name",
-              "defaultValue": "[concat(basics('namePrefix'),'-ngw-pip')]",
+              "defaultValue": "[concat(basics('namePrefix'),'-nat-gw-pip')]",
               "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
               "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
             },
@@ -394,7 +394,12 @@
               "label": "VM Admin User Name",
               "defaultValue": "azureuser",
               "visible": "[steps('managementVM').deployManagementVm]",
-              "toolTip": "Administrator username to be created"
+              "toolTip": "Administrator username to be created",
+              "constraints": {
+                "required": false,
+                "regex": "^(?!root|user|admin)[a-z0-9A-Z]{5,30}$",
+                "validationMessage": "Only alphanumeric characters are allowed, and the value must be 5-30 characters long. Reserved usernames are not allowed."
+              }
             },
             {
               "name": "vmAuthentication",
@@ -406,10 +411,9 @@
                 "sshPublicKey": "SSH public key"
               },
               "toolTip": {
-                "authenticationType": "",
-                "password": "",
-                "confirmPassword": "",
-                "sshPublicKey": ""
+                "authenticationType": "SSH public key is recommended",
+                "password": "Password for the administrator user",
+                "sshPublicKey": "SSH public key to be used for access to the administrator user"
               },
               "constraints": {
                 "required": true,
@@ -438,7 +442,8 @@
                   "Standard_B2s",
                   "Standard_D2s_v3",
                   "Standard_D4s_v3",
-                  "Standard_D8s_v3"
+                  "Standard_D8s_v3",
+                  "Standard_D16s_v3"
                 ]
               },
               "options": {
@@ -616,7 +621,7 @@
               "type": "Microsoft.Common.DropDown",
               "label": "SIP Version",
               "visible": false,
-              "toolTip": "",
+              "toolTip": "Not shown pending more versions being available",
               "defaultValue": "10.0.2403.1",
               "constraints": {
                 "allowedValues": [
@@ -658,7 +663,7 @@
               "type": "Microsoft.Common.TextBox",
               "label": "Operator Namespace",
               "visible": "true",
-              "toolTip": "",
+              "toolTip": "The AKS namespace to be utilised by the operators",
               "defaultValue": "ibm-operators"
             },
             {
@@ -666,7 +671,7 @@
               "type": "Microsoft.Common.TextBox",
               "label": "Instance Namespace",
               "visible": "true",
-              "toolTip": "",
+              "toolTip": "The AKS namespace to be utilised by the operands",
               "defaultValue": "sip"
             },
             {
@@ -1037,7 +1042,7 @@
               "type": "Microsoft.Common.TextBox",
               "label": "aks System Node Pool Name",
               "defaultValue": "controlpool",
-              "toolTip": "",
+              "toolTip": "Name of the control node pool",
               "visible": "true"
             },
             {
@@ -1066,7 +1071,7 @@
               "label": "aks System Node Count",
               "defaultValue": "Standard_D8s_v3",
               "osPlatform": "Linux",
-              "toolTip": "",
+              "toolTip": "Size of the control node VMs",
               "visible": "true",
               "recommendedSizes": [
                 "Standard_D8s_v3"
@@ -1099,7 +1104,8 @@
               "max": 100,
               "label": "aks System Node Count",
               "defaultValue": 3,
-              "visible": true
+              "visible": true,
+              "toolTip": "Number of control nodes"
             },
             {
               "name": "aksSystemOsDiskSize",
@@ -1108,7 +1114,7 @@
               "defaultValue": "128",
               "min": 1,
               "max": 1000,
-              "toolTip": "TSize in GiB of the OS disk for the aks control plan nodes",
+              "toolTip": "Size in GiB of the OS disk for the aks control plan nodes",
               "visible": "true",
               "recommendedSizes": [
                 "128"
@@ -1119,8 +1125,9 @@
               "type": "Microsoft.Common.Slider",
               "min": 1,
               "max": 100,
-              "label": "aks System Node Max",
+              "label": "AKS System Node Max",
               "defaultValue": 6,
+              "toolTip": "Maximum number of control nodes for auto-scaling",
               "visible": true
             },
             {
@@ -1184,7 +1191,7 @@
                 2,
                 3
               ],
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Availability zones for the control nodes",
               "constraints": {
                 "allowedValues": [
                   {
@@ -1203,21 +1210,21 @@
               "type": "Microsoft.Common.TextBox",
               "label": "aks System Node Max Pods",
               "defaultValue": "30",
-              "toolTip": ""
+              "toolTip": "Maximum pods per control node"
             },
             {
               "name": "aksSystemNodeLabels",
               "type": "Microsoft.Common.TextBox",
               "label": "aks System Node Labels",
               "defaultValue": "",
-              "toolTip": ""
+              "toolTip": "Any labels to add to the control nodes"
             },
             {
               "name": "aksUserNodePoolName",
               "type": "Microsoft.Common.TextBox",
               "label": "aks User Node Pool Name",
-              "defaultValue": "workerpool",
-              "toolTip": ""
+              "defaultValue": "userpool",
+              "toolTip": "Name for the user node pool. Operators and operands will run on these."
             },
             {
               "name": "aksUserNodeVmPoolType",
@@ -1246,7 +1253,8 @@
               "max": 100,
               "label": "aks User Node Count",
               "defaultValue": 3,
-              "visible": true
+              "visible": true,
+              "toolTip": "Number of user nodes to create in the pool."
             },
             {
               "name": "aksUserNodeSize",
@@ -1298,7 +1306,8 @@
               "type": "Microsoft.Common.Slider",
               "min": 128,
               "max": 512,
-              "label": "aks User Os Disk Size",
+              "label": "AKS User Os Disk Size",
+              "toolTip": "OS disk size in GiB for the user nodes",
               "defaultValue": 512,
               "visible": true
             },
@@ -1307,14 +1316,15 @@
               "type": "Microsoft.Common.Slider",
               "min": 3,
               "max": 100,
-              "label": "aks User Node Max",
+              "label": "AKS User Node Max",
               "defaultValue": 10,
+              "toolTip": "Maximum number of user nodes to which to scale the pool",
               "visible": true
             },
             {
               "name": "aksUserNodeAutoScaling",
               "type": "Microsoft.Common.CheckBox",
-              "label": "aks User Node Auto Scaling",
+              "label": "AKS User Node Auto Scaling",
               "visible": true,
               "toolTip": "Check this box if you want to  determine whether to use auto scaling with the aks worker plane nodes",
               "constraints": {
@@ -1379,14 +1389,15 @@
               "max": 250,
               "label": "aks User Node Max Pods",
               "defaultValue": 30,
+              "toolTip": "Maximum number of pods per user node",
               "visible": true
             },
             {
               "name": "aksUserNodeLabels",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks User Node Labels",
+              "label": "AKS User Node Labels",
               "defaultValue": "",
-              "toolTip": "",
+              "toolTip": "Any additional labels to add to the user nodes",
               "visible": true
             },
             {
@@ -1394,7 +1405,7 @@
               "type": "Microsoft.Common.TextBox",
               "label": "aks User Node Taints",
               "defaultValue": [],
-              "toolTip": "",
+              "toolTip": "Any taints to add to the user nodes",
               "visible": true
             },
             {
