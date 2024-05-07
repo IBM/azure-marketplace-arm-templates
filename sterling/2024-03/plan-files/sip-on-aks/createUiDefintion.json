@@ -892,7 +892,7 @@
             {
               "name": "aksEnableAadRbac",
               "type": "Microsoft.Common.CheckBox",
-              "label": "Enable Aad Rbac",
+              "label": "Enable EntraID Rbac",
               "defaultValue": false,
               "visible": "[steps('aks').aksEnableAadIntegration]",
               "toolTip": "Check this box to enable EntraID RBAC authentication for kubernetes users",
@@ -903,14 +903,14 @@
             {
               "name": "aksAdminGroupObjectId",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Admin Group Object Id",
+              "label": "Admin Group Object Id",
               "visible": "[steps('aks').aksEnableAadIntegration]",
               "toolTip": "The EntraID group ID to be used for cluster access"
             },
             {
               "name": "aksAadTenantId",
               "type": "Microsoft.Common.TextBox",
-              "label": "aks Aad Tenant Id",
+              "label": "EntraID Tenant Id",
               "defaultValue": "[tenant().id]",
               "visible": "[steps('aks').aksEnableAadIntegration]",
               "toolTip": "Enter the tenant ID for the Entra ID directory"
@@ -999,8 +999,8 @@
               "name": "aksSystemNodePoolName",
               "type": "Microsoft.Common.TextBox",
               "label": "System Node Pool Name",
-              "defaultValue": "controlpool",
-              "toolTip": "Name of the control node pool",
+              "defaultValue": "systempool",
+              "toolTip": "Name of the system node pool",
               "visible": "true"
             },
             {
@@ -1029,7 +1029,7 @@
               "label": "System Node Count",
               "defaultValue": "Standard_D8s_v3",
               "osPlatform": "Linux",
-              "toolTip": "Size of the control node VMs",
+              "toolTip": "Size of the system node VMs",
               "visible": "true",
               "recommendedSizes": [
                 "Standard_D8s_v3"
@@ -1071,7 +1071,7 @@
               "label": "System Node Count",
               "defaultValue": 3,
               "visible": true,
-              "toolTip": "Number of control nodes"
+              "toolTip": "Number of system nodes"
             },
             {
               "name": "aksSystemOsDiskSize",
@@ -1080,7 +1080,7 @@
               "defaultValue": "128",
               "min": 100,
               "max": 1000,
-              "toolTip": "Size in GiB of the OS disk for the aks control plan nodes",
+              "toolTip": "Size in GiB of the OS disk for the aks system plan nodes",
               "visible": "true",
               "recommendedSizes": [
                 "128"
@@ -1092,7 +1092,7 @@
               "label": "System Node Auto Scaling",
               "defaultValue": false,
               "visible": true,
-              "toolTip": "Check this box if you want to use auto scaling with the AKS control plane nodes",
+              "toolTip": "Check this box if you want to use auto scaling with the AKS system plane nodes",
               "constraints": {
                 "required": false
               }
@@ -1104,7 +1104,7 @@
               "max": 100,
               "label": "Max System Nodes",
               "defaultValue": 6,
-              "toolTip": "Maximum number of control nodes for auto-scaling",
+              "toolTip": "Maximum number of system nodes for auto-scaling",
               "visible": "[ steps('aks').aksSystemNodeAutoScaling ]"
             },
             {
@@ -1155,7 +1155,7 @@
               "multiselect": true,
               "selectAll": true,
               "defaultValue": [{"value": "1"}, {"value": "2"}, {"value": "3"}],
-              "toolTip": "Availability zones for the control nodes",
+              "toolTip": "Availability zones for the system nodes",
               "constraints": {
                 "allowedValues": [
                   {
@@ -1178,7 +1178,7 @@
               "type": "Microsoft.Common.TextBox",
               "label": "System Node Max Pods",
               "defaultValue": "30",
-              "toolTip": "Maximum pods per control node"
+              "toolTip": "Maximum pods per system node"
             },
             {
               "name": "aksUserNodePoolName",
