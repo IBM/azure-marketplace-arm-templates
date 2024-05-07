@@ -301,6 +301,8 @@
             "type": "Microsoft.Insights/diagnosticSettings",
             "apiVersion": "2021-05-01-preview",
             "scope": "[format('Microsoft.Network/bastionHosts/{0}', variables('bastionHostName'))]",
+            "condition": "[and(parameters('createAnalyticsWorkspace'), parameters('deployLogAnalytics'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Insights/diagnosticSettings'), parameters('tagsByResource')['Microsoft.Insights/diagnosticSettings'], json('{}')) ]",
             "name": "default",
             "properties": {
             "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
@@ -312,8 +314,8 @@
             ]
             },
             "dependsOn": [
-            "[resourceId('Microsoft.Network/bastionHosts', variables('bastionHostName'))]",
-            "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+                "[resourceId('Microsoft.Network/bastionHosts', variables('bastionHostName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
             ]
         }
     ]
