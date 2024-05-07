@@ -312,6 +312,7 @@
                   "name": "bastionEnableFileCopy",
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable File Copy",
+                  "defaultValue": true,
                   "visible": "[steps('networking').bastion.deployBastion]",
                   "toolTip": "Check this box if you want to enable the file copy feature of the bastion service",
                   "constraints": {
@@ -322,6 +323,7 @@
                   "name": "bastionEnableIpConnect",
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable Ip Connect",
+                  "defaultValue": true,
                   "visible": "[steps('networking').bastion.deployBastion]",
                   "toolTip": "Check this box if you want to enable the IP Connect feature of the bastion service",
                   "constraints": {
@@ -343,6 +345,7 @@
                   "name": "bastionEnableShareableLink",
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable Shareable Link",
+                  "defaultValue": true,
                   "visible": "[steps('networking').bastion.deployBastion]",
                   "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service",
                   "constraints": {
