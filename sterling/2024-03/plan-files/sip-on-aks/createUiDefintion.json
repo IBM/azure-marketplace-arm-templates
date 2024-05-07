@@ -374,210 +374,6 @@
           ]
         },
         {
-          "name": "managementVM",
-          "label": "Management VM",
-          "elements": [
-            {
-              "name": "deployManagementVm",
-              "type": "Microsoft.Common.CheckBox",
-              "label": "Deploy Management VM",
-              "visible": true,
-              "defaultValue": false,
-              "toolTip": "Check this box if you want to deploy management VM for the cluster",
-              "constraints": {
-                "required": false
-              }
-            },
-            {
-              "name": "vmAdminUserName",
-              "type": "Microsoft.Common.TextBox",
-              "label": "VM Admin User Name",
-              "defaultValue": "azureuser",
-              "visible": "[steps('managementVM').deployManagementVm]",
-              "toolTip": "Administrator username to be created",
-              "constraints": {
-                "required": false,
-                "regex": "^(?!root|user|admin)[a-z0-9A-Z]{5,30}$",
-                "validationMessage": "Only alphanumeric characters are allowed, and the value must be 5-30 characters long. Reserved usernames are not allowed."
-              }
-            },
-            {
-              "name": "vmAuthentication",
-              "type": "Microsoft.Compute.CredentialsCombo",
-              "label": {
-                "authenticationType": "Authentication type",
-                "password": "Administrator User Password",
-                "confirmPassword": "Confirm administrator password",
-                "sshPublicKey": "SSH public key"
-              },
-              "toolTip": {
-                "authenticationType": "SSH public key is recommended",
-                "password": "Password for the administrator user",
-                "sshPublicKey": "SSH public key to be used for access to the administrator user"
-              },
-              "constraints": {
-                "required": true,
-                "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
-                "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
-              },
-              "options": {
-                "hideConfirmation": false,
-                "hidePassword": false
-              },
-              "osPlatform": "Linux",
-              "visible": "[steps('managementVM').deployManagementVm]"
-            },
-            {
-              "name": "vmSize",
-              "type": "Microsoft.Compute.SizeSelector",
-              "label": "VM Size",
-              "toolTip": "The size of the management VM",
-              "defaultValue": "Standard_B1s",
-              "recommendedSizes": [
-                "Standard_B1s"
-              ],
-              "constraints": {
-                "allowedSizes": [
-                  "Standard_B1s",
-                  "Standard_B2s",
-                  "Standard_D2s_v3",
-                  "Standard_D4s_v3",
-                  "Standard_D8s_v3",
-                  "Standard_D16s_v3"
-                ]
-              },
-              "options": {
-                "hideDiskTypeFilter": false
-              },
-              "osPlatform": "Linux",
-              "visible": "[steps('managementVM').deployManagementVm]"
-            },
-            {
-              "name": "vmDiskType",
-              "type": "Microsoft.Common.DropDown",
-              "label": "VM Disk Type",
-              "toolTip": "The type of disk for the management VM",
-              "multiLine": false,
-              "defaultValue": "Standard_LRS",
-              "recommendedSizes": [
-                "Standard_LRS"
-              ],
-              "constraints": {
-                "allowedValues": [
-                  {
-                    "label": "Premium_LRS",
-                    "value": "Premium_LRS"
-                  },
-                  {
-                    "label": "Premium_ZRS",
-                    "value": "Premium_ZRS"
-                  },
-                  {
-                    "label": "Standard_LRS",
-                    "value": "Standard_LRS"
-                  },
-                  {
-                    "label": "StandardSSD_LRS",
-                    "value": "StandardSSD_LRS"
-                  },
-                  {
-                    "label": "UltraSSD_LRS",
-                    "value": "UltraSSD_LRS"
-                  }
-                ]
-              },
-              "options": {
-                "hideDiskTypeFilter": false
-              },
-              "osPlatform": "Linux",
-              "visible": "[steps('managementVM').deployManagementVm]"
-            },
-            {
-              "name": "vmZone",
-              "type": "Microsoft.Common.DropDown",
-              "label": "VM Zone",
-              "visible": "[steps('managementVM').deployManagementVm]",
-              "toolTip": "Azure availability zone for management VM",
-              "defaultValue": "1",
-              "constraints": {
-                "allowedValues": [
-                  {
-                    "label": "1",
-                    "value": "1"
-                  },
-                  {
-                    "label": "2",
-                    "value": "2"
-                  },
-                  {
-                    "label": "3",
-                    "value": "3"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "vmCreatePublicIP",
-              "type": "Microsoft.Common.CheckBox",
-              "label": "VM Create Public IP",
-              "visible": "[steps('managementVM').deployManagementVm]",
-              "toolTip": "Check this box if you want public ip to be created",
-              "constraints": {
-                "required": false
-              }
-            },
-            {
-              "name": "vmPublicIPName",
-              "type": "Microsoft.Common.TextBox",
-              "label": "VM Public IP Name",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
-              "defaultValue": "[concat(basics('namePrefix'),'-pip')]",
-              "toolTip": "Check this box if you want public ip to be created",
-              "constraints": {
-                "required": false
-              }
-            },
-            {
-              "name": "checkDomainName",
-              "type": "Microsoft.Solutions.ArmApiControl",
-              "request": {
-                "method": "GET",
-                "path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('managementVM').vmDomainName,'&api-version=2022-11-01')]"
-              }
-            },
-            {
-              "name": "vmDomainName",
-              "type": "Microsoft.Common.TextBox",
-              "label": "VM Domain Name",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
-              "defaultValue": "[toLower( concat(basics('namePrefix'),uniqueString(resourceGroup().name)) )]",
-              "toolTip": "Enter a domain name to give the public IP address. Must be unique.",
-              "constraints": {
-                  "required": false,
-                  "validations": [
-                    {
-                      "isValid": "[steps('managementVM').checkDomainName.available]",
-                      "message": "Domain name is not available"
-                    },
-                    {
-                      "regex": "^[a-z][a-z0-9-_]{3,32}$",
-                      "message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
-                    }
-                  ]
-              }
-            },
-            {
-              "name": "domainInfo",
-              "type": "Microsoft.Common.InfoBox",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
-              "options": {
-                "icon": "Info",
-                "text": "[concat('The VM public IP will be available at ',steps('managementVM').vmDomainName,'.',location(),'.cloudapp.azure.com')]"
-              }
-            }
-          ]
-        },
-        {
           "name": "SIP",
           "label": "Sterling Intelligent Promising",
           "elements": [
@@ -1474,6 +1270,210 @@
               "defaultValue": "600",
               "toolTip": "",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            }
+          ]
+        },
+        {
+          "name": "managementVM",
+          "label": "Management VM",
+          "elements": [
+            {
+              "name": "deployManagementVm",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Deploy Management VM",
+              "visible": true,
+              "defaultValue": false,
+              "toolTip": "Check this box if you want to deploy management VM for the cluster",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "vmAdminUserName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "VM Admin User Name",
+              "defaultValue": "azureuser",
+              "visible": "[steps('managementVM').deployManagementVm]",
+              "toolTip": "Administrator username to be created",
+              "constraints": {
+                "required": false,
+                "regex": "^(?!root|user|admin)[a-z0-9A-Z]{5,30}$",
+                "validationMessage": "Only alphanumeric characters are allowed, and the value must be 5-30 characters long. Reserved usernames are not allowed."
+              }
+            },
+            {
+              "name": "vmAuthentication",
+              "type": "Microsoft.Compute.CredentialsCombo",
+              "label": {
+                "authenticationType": "Authentication type",
+                "password": "Administrator User Password",
+                "confirmPassword": "Confirm administrator password",
+                "sshPublicKey": "SSH public key"
+              },
+              "toolTip": {
+                "authenticationType": "SSH public key is recommended",
+                "password": "Password for the administrator user",
+                "sshPublicKey": "SSH public key to be used for access to the administrator user"
+              },
+              "constraints": {
+                "required": true,
+                "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+              },
+              "options": {
+                "hideConfirmation": false,
+                "hidePassword": false
+              },
+              "osPlatform": "Linux",
+              "visible": "[steps('managementVM').deployManagementVm]"
+            },
+            {
+              "name": "vmSize",
+              "type": "Microsoft.Compute.SizeSelector",
+              "label": "VM Size",
+              "toolTip": "The size of the management VM",
+              "defaultValue": "Standard_B1s",
+              "recommendedSizes": [
+                "Standard_B1s"
+              ],
+              "constraints": {
+                "allowedSizes": [
+                  "Standard_B1s",
+                  "Standard_B2s",
+                  "Standard_D2s_v3",
+                  "Standard_D4s_v3",
+                  "Standard_D8s_v3",
+                  "Standard_D16s_v3"
+                ]
+              },
+              "options": {
+                "hideDiskTypeFilter": false
+              },
+              "osPlatform": "Linux",
+              "visible": "[steps('managementVM').deployManagementVm]"
+            },
+            {
+              "name": "vmDiskType",
+              "type": "Microsoft.Common.DropDown",
+              "label": "VM Disk Type",
+              "toolTip": "The type of disk for the management VM",
+              "multiLine": false,
+              "defaultValue": "Standard_LRS",
+              "recommendedSizes": [
+                "Standard_LRS"
+              ],
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Premium_LRS",
+                    "value": "Premium_LRS"
+                  },
+                  {
+                    "label": "Premium_ZRS",
+                    "value": "Premium_ZRS"
+                  },
+                  {
+                    "label": "Standard_LRS",
+                    "value": "Standard_LRS"
+                  },
+                  {
+                    "label": "StandardSSD_LRS",
+                    "value": "StandardSSD_LRS"
+                  },
+                  {
+                    "label": "UltraSSD_LRS",
+                    "value": "UltraSSD_LRS"
+                  }
+                ]
+              },
+              "options": {
+                "hideDiskTypeFilter": false
+              },
+              "osPlatform": "Linux",
+              "visible": "[steps('managementVM').deployManagementVm]"
+            },
+            {
+              "name": "vmZone",
+              "type": "Microsoft.Common.DropDown",
+              "label": "VM Zone",
+              "visible": "[steps('managementVM').deployManagementVm]",
+              "toolTip": "Azure availability zone for management VM",
+              "defaultValue": "1",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "1",
+                    "value": "1"
+                  },
+                  {
+                    "label": "2",
+                    "value": "2"
+                  },
+                  {
+                    "label": "3",
+                    "value": "3"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vmCreatePublicIP",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "VM Create Public IP",
+              "visible": "[steps('managementVM').deployManagementVm]",
+              "toolTip": "Check this box if you want public ip to be created",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "vmPublicIPName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "VM Public IP Name",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
+              "defaultValue": "[concat(basics('namePrefix'),'-pip')]",
+              "toolTip": "Check this box if you want public ip to be created",
+              "constraints": {
+                "required": false
+              }
+            },
+            {
+              "name": "checkDomainName",
+              "type": "Microsoft.Solutions.ArmApiControl",
+              "request": {
+                "method": "GET",
+                "path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('managementVM').vmDomainName,'&api-version=2022-11-01')]"
+              }
+            },
+            {
+              "name": "vmDomainName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "VM Domain Name",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
+              "defaultValue": "[toLower( concat(basics('namePrefix'),uniqueString(resourceGroup().name)) )]",
+              "toolTip": "Enter a domain name to give the public IP address. Must be unique.",
+              "constraints": {
+                  "required": false,
+                  "validations": [
+                    {
+                      "isValid": "[steps('managementVM').checkDomainName.available]",
+                      "message": "Domain name is not available"
+                    },
+                    {
+                      "regex": "^[a-z][a-z0-9-_]{3,32}$",
+                      "message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
+                    }
+                  ]
+              }
+            },
+            {
+              "name": "domainInfo",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
+              "options": {
+                "icon": "Info",
+                "text": "[concat('The VM public IP will be available at ',steps('managementVM').vmDomainName,'.',location(),'.cloudapp.azure.com')]"
+              }
             }
           ]
         },
