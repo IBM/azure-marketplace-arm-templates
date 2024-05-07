@@ -639,14 +639,6 @@
               "toolTip": "Select to provide an existing public key for JWT. If not selected, will create a new key."
             },
             {
-              "name": "jwtKey",
-              "type": "Microsoft.Common.TextBox",
-              "label": "JWT Public Key",
-              "toolTip": "Use an existing JWT Public Key",
-              "multiLine": true,
-              "visible": "[steps('SIP').provideJwtKey]"
-            },
-            {
               "name": "jwtKeyInfo",
               "type": "Microsoft.Common.TextBlock",
               "options": {
@@ -657,6 +649,17 @@
                 }
               },
               "visible": "[steps('SIP').provideJwtKey]"
+            },
+            {
+              "name": "jwtKey",
+              "type": "Microsoft.Common.TextBox",
+              "label": "JWT Public Key",
+              "toolTip": "Use an existing JWT Public Key",
+              "multiLine": true,
+              "visible": "[steps('SIP').provideJwtKey]",
+              "constraints": {
+                "required": "[steps('SIP').provideJwtKey]"
+              }
             },
             {
               "name": "operatorNamespace",
