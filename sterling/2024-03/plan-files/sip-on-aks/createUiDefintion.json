@@ -974,70 +974,6 @@
               "osPlatform": "Linux"
             },
             {
-              "name": "aksAutoScalerScanInterval",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scan Interval",
-              "defaultValue": "10s",
-              "toolTip": "Scan interval for the auto-scaler of the aks cluster",
-              "visible": "true"
-            },
-            {
-              "name": "aksAutoScalerDownDelayPostAdd",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Down Delay PostAdd",
-              "defaultValue": "10m",
-              "toolTip": "Auto scaler scale down delay after add for the aks cluster",
-              "visible": "true"
-            },
-            {
-              "name": "aksAutoScalerDownDelayPostDelete",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Down Delay Post Delete",
-              "defaultValue": "20s",
-              "toolTip": "Auto scaler scale down delay after delete for the aks cluster",
-              "visible": "true"
-            },
-            {
-              "name": "aksAutoScalerDownDelayPostFailure",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Down Delay Post Failure",
-              "defaultValue": "3m",
-              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
-              "visible": "true"
-            },
-            {
-              "name": "aksAutoScalerScaleDownUnneededTime",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scale Down Unneeded Time",
-              "defaultValue": "10m",
-              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
-              "visible": "true"
-            },
-            {
-              "name": "aksAutoScalerScaleDownUnReadyTime",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scale Down UnReady Time",
-              "defaultValue": "20m",
-              "toolTip": "",
-              "visible": "true"
-            },
-            {
-              "name": "aksAutoScalerScaleDownUtilThreshold",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Scale Down Util Threshold",
-              "defaultValue": "0.5",
-              "toolTip": "Auto-scaler utilization threshold for the aks cluster",
-              "visible": "true"
-            },
-            {
-              "name": "aksAutoScalerMaxGraceTerminationTime",
-              "type": "Microsoft.Common.TextBox",
-              "label": "aks Auto Scaler Max Grace Termination Time",
-              "defaultValue": "600",
-              "toolTip": "",
-              "visible": "true"
-            },
-            {
               "name": "aksSystemNodePoolName",
               "type": "Microsoft.Common.TextBox",
               "label": "aks System Node Pool Name",
@@ -1120,13 +1056,24 @@
               "type": "Microsoft.Common.Slider",
               "label": "aks System Os Disk Size",
               "defaultValue": "128",
-              "min": 1,
+              "min": 100,
               "max": 1000,
               "toolTip": "Size in GiB of the OS disk for the aks control plan nodes",
               "visible": "true",
               "recommendedSizes": [
                 "128"
               ]
+            },
+            {
+              "name": "aksSystemNodeAutoScaling",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "aks System Node Auto Scaling",
+              "defaultValue": false,
+              "visible": true,
+              "toolTip": "Check this box if you want to use auto scaling with the AKS control plane nodes",
+              "constraints": {
+                "required": false
+              }
             },
             {
               "name": "aksSystemNodeMax",
@@ -1136,44 +1083,13 @@
               "label": "AKS System Node Max",
               "defaultValue": 6,
               "toolTip": "Maximum number of control nodes for auto-scaling",
-              "visible": true
-            },
-            {
-              "name": "aksSystemNodeAutoScaling",
-              "type": "Microsoft.Common.CheckBox",
-              "label": "aks System Node Auto Scaling",
-              "defaultValue": true,
-              "visible": true,
-              "toolTip": "Check this box if you want to determine whether to use auto scaling with the aks control plane nodes",
-              "constraints": {
-                "required": false
-              }
-            },
-            {
-              "name": "aksSystemNodeScaleSetPriority",
-              "label": "aks System Node Scale Set Priority",
-              "type": "Microsoft.Common.DropDown",
-              "visible": true,
-              "defaultValue": "Regular",
-              "toolTip": "SKU for the log analytics service. ",
-              "constraints": {
-                "allowedValues": [
-                  {
-                    "label": "Regular",
-                    "value": "Regular"
-                  },
-                  {
-                    "label": "Spot",
-                    "value": "Spot"
-                  }
-                ]
-              }
+              "visible": "[ steps('aks').aksSystemNodeAutoScaling ]"
             },
             {
               "name": "aksSystemNodeScaleSetEvictionPolicy",
               "label": "aks System Node Scale Set Eviction Policy",
               "type": "Microsoft.Common.DropDown",
-              "visible": true,
+              "visible": "[ steps('aks').aksSystemNodeAutoScaling ]",
               "defaultValue": "Delete",
               "toolTip": "SKU for the log analytics service. ",
               "constraints": {
@@ -1185,6 +1101,26 @@
                   {
                     "label": "Deallocate",
                     "value": "Deallocate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "aksSystemNodeScaleSetPriority",
+              "label": "aks System Node Scale Set Priority",
+              "type": "Microsoft.Common.DropDown",
+              "visible": "[ steps('aks').aksSystemNodeAutoScaling ]",
+              "defaultValue": "Regular",
+              "toolTip": "SKU for the log analytics service. ",
+              "constraints": {
+                "allowedValues": [
+                  {
+                    "label": "Regular",
+                    "value": "Regular"
+                  },
+                  {
+                    "label": "Spot",
+                    "value": "Spot"
                   }
                 ]
               }
@@ -1315,16 +1251,6 @@
               "visible": true
             },
             {
-              "name": "aksUserNodeMax",
-              "type": "Microsoft.Common.Slider",
-              "min": 3,
-              "max": 100,
-              "label": "AKS User Node Max",
-              "defaultValue": 10,
-              "toolTip": "Maximum number of user nodes to which to scale the pool",
-              "visible": true
-            },
-            {
               "name": "aksUserNodeAutoScaling",
               "type": "Microsoft.Common.CheckBox",
               "label": "AKS User Node Auto Scaling",
@@ -1335,10 +1261,20 @@
               }
             },
             {
+              "name": "aksUserNodeMax",
+              "type": "Microsoft.Common.Slider",
+              "min": 3,
+              "max": 100,
+              "label": "AKS User Node Max",
+              "defaultValue": 10,
+              "toolTip": "Maximum number of user nodes to which to scale the pool",
+              "visible": "[ steps('aks').aksUserNodeAutoScaling ]"
+            },
+            {
               "name": "aksUserNodeScaleSetPriority",
               "label": "aks User Node Scale Set Priority",
               "type": "Microsoft.Common.DropDown",
-              "visible": true,
+              "visible": "[ steps('aks').aksUserNodeAutoScaling ]",
               "defaultValue": "Regular",
               "toolTip": "Auto-scaler priority for the aks worker plane nodes",
               "constraints": {
@@ -1358,7 +1294,7 @@
               "name": "aksUserNodeScaleSetEvictionPolicy",
               "label": "aks User Node Scale Set Eviction Policy",
               "type": "Microsoft.Common.DropDown",
-              "visible": true,
+              "visible": "[ steps('aks').aksUserNodeAutoScaling ]",
               "defaultValue": "Delete",
               "toolTip": "SKU for the log analytics service. ",
               "constraints": {
@@ -1449,6 +1385,70 @@
               "label": "aks Pod Cidr",
               "defaultValue": "192.168.0.0/16",
               "toolTip": "IP address prefix for the pod network when kubenet is used"
+            },
+            {
+              "name": "aksAutoScalerScanInterval",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scan Interval",
+              "defaultValue": "10s",
+              "toolTip": "Scan interval for the auto-scaler of the aks cluster",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            },
+            {
+              "name": "aksAutoScalerDownDelayPostAdd",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Down Delay PostAdd",
+              "defaultValue": "10m",
+              "toolTip": "Auto scaler scale down delay after add for the aks cluster",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            },
+            {
+              "name": "aksAutoScalerDownDelayPostDelete",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Down Delay Post Delete",
+              "defaultValue": "20s",
+              "toolTip": "Auto scaler scale down delay after delete for the aks cluster",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            },
+            {
+              "name": "aksAutoScalerDownDelayPostFailure",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Down Delay Post Failure",
+              "defaultValue": "3m",
+              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            },
+            {
+              "name": "aksAutoScalerScaleDownUnneededTime",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scale Down Unneeded Time",
+              "defaultValue": "10m",
+              "toolTip": "Auto scaler scale down delay after failure for the aks cluster",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            },
+            {
+              "name": "aksAutoScalerScaleDownUnReadyTime",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scale Down UnReady Time",
+              "defaultValue": "20m",
+              "toolTip": "",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            },
+            {
+              "name": "aksAutoScalerScaleDownUtilThreshold",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Scale Down Util Threshold",
+              "defaultValue": "0.5",
+              "toolTip": "Auto-scaler utilization threshold for the aks cluster",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
+            },
+            {
+              "name": "aksAutoScalerMaxGraceTerminationTime",
+              "type": "Microsoft.Common.TextBox",
+              "label": "aks Auto Scaler Max Grace Termination Time",
+              "defaultValue": "600",
+              "toolTip": "",
+              "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             }
           ]
         },
