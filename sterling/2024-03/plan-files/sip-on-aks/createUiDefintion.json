@@ -1452,8 +1452,9 @@
               "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
               "defaultValue": "[toLower( concat(basics('namePrefix'),uniqueString(resourceGroup().name)) )]",
               "toolTip": "Enter a domain name to give the public IP address. Must be unique.",
+              "placeholder": "mydomain",
               "constraints": {
-                  "required": false,
+                  "required": "[ steps('managementVM').vmCreatePublicIP ]",
                   "validations": [
                     {
                       "isValid": "[steps('managementVM').checkDomainName.available]",
@@ -1469,7 +1470,7 @@
             {
               "name": "domainInfo",
               "type": "Microsoft.Common.InfoBox",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP, not(equals(steps('managementVM').vmDomainName, '')))]",
               "options": {
                 "icon": "Info",
                 "text": "[concat('The VM public IP will be available at ',steps('managementVM').vmDomainName,'.',location(),'.cloudapp.azure.com')]"
