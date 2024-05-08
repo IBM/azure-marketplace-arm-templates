@@ -203,7 +203,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Azure Default",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select routing method for outbound traffic",
               "constraints": {
                 "allowedValues": [
                   {
@@ -227,7 +227,7 @@
               "label": "Nat Gateway Name",
               "defaultValue": "[ concat( basics ('namePrefix'), '-nat-gw') ]",
               "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
-              "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
+              "toolTip": "Name of the NAT gateway to create if using NAT for outbound traffic"
             },
             {
               "name": "natGwPublicIPPrefixName",
@@ -235,7 +235,7 @@
               "label": "Nat Gw Public IP Prefix Name",
               "defaultValue": "[concat(basics('namePrefix'),'-nat-gw-pip')]",
               "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
-              "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
+              "toolTip": "Name of the public IP prefix if using NAT Gateway routing"
             },
             {
               "name": "natGwPublicIPPrefixLength",
@@ -243,7 +243,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
               "defaultValue": "28",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Specifies the length of the public IP prefix",
               "constraints": {
                 "allowedValues": [
                   {
@@ -358,7 +358,7 @@
                   "label": "Bastion Enable Tunneling",
                   "defaultValue": true,
                   "visible": "[steps('networking').bastion.deployBastion]",
-                  "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service"
+                  "toolTip": "Check this box if you want to enable the tunneling feature of the bastion service"
                 }
               ],
               "visible": true
@@ -624,7 +624,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "NodeImage",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select cluster node os upgrade channel ",
               "constraints": {
                 "allowedValues": [
                   {
@@ -648,7 +648,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "patch",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select cluster upgrade channel",
               "constraints": {
                 "allowedValues": [
                   {
@@ -739,6 +739,7 @@
             {
               "name": "aksKubernetesVersion",
               "type": "Microsoft.Common.DropDown",
+              "toolTip": "Version of kubernetes to be used for the AKS cluster",
               "label": "Kubernetes Version",
               "defaultValue": "1.27.x",
               "constraints": {
@@ -762,7 +763,7 @@
                 ]
               },
               "multiselect": false,
-              "toolTip": "Version of kubneretes to be used for the aks cluster",
+              "toolTip": "Version of kuberenetes to be used for the aks cluster",
               "visible": true
             },
             {
@@ -833,7 +834,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "VirtualMachineScaleSets",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select the type of VM pool for the control nodes - virtual machine set or availability set",
               "constraints": {
                 "allowedValues": [
                   {
@@ -873,7 +874,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Ubuntu",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select aks system node sku",
               "constraints": {
                 "allowedValues": [
                   {
@@ -895,7 +896,7 @@
               "label": "System Node Count",
               "defaultValue": 3,
               "visible": true,
-              "toolTip": "Number of system nodes"
+              "toolTip": "Number of system nodes to deploy by default"
             },
             {
               "name": "aksSystemOsDiskSize",
@@ -937,7 +938,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": "[ steps('aks').aksSystemNodeAutoScaling ]",
               "defaultValue": "Delete",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select auto-scaler eviction policy for the AKS control plan nodes",
               "constraints": {
                 "allowedValues": [
                   {
@@ -957,7 +958,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": "[ steps('aks').aksSystemNodeAutoScaling ]",
               "defaultValue": "Regular",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select auto-scaler priority for the AKS control plan nodes",
               "constraints": {
                 "allowedValues": [
                   {
@@ -1017,7 +1018,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "VirtualMachineScaleSets",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select the type of VM pool for the system nodes - virtual machine set or availability set",
               "constraints": {
                 "allowedValues": [
                   {
@@ -1067,7 +1068,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Ubuntu",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select aks user node os type",
               "constraints": {
                 "allowedValues": [
                   {
@@ -1137,7 +1138,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": "[ steps('aks').aksUserNodeAutoScaling ]",
               "defaultValue": "Delete",
-              "toolTip": "SKU for the log analytics service. ",
+              "toolTip": "Select auto-scaler eviction policy for the AKS worker plane nodes",
               "constraints": {
                 "allowedValues": [
                   {
@@ -1287,7 +1288,7 @@
               "type": "Microsoft.Common.TextBox",
               "label": "Auto Scaler Max Grace Termination Time",
               "defaultValue": "600",
-              "toolTip": "",
+              "toolTip": "Auto-scaler maximum graceful termination time interval in seconds for the AKS cluster",
               "visible": "[ or(steps('aks').aksSystemNodeAutoScaling, steps('aks').aksUserNodeAutoScaling) ]"
             }
           ]
@@ -1451,7 +1452,7 @@
               "label": "VM Public IP Name",
               "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
               "defaultValue": "[concat(basics('namePrefix'),'-mgmt-vm-pip')]",
-              "toolTip": "Check this box if you want public ip to be created",
+              "toolTip": "Name for the public IP address if created",
               "constraints": {
                 "required": false
               }
@@ -1523,6 +1524,7 @@
             {
               "name": "logRetentionPeriod",
               "type": "Microsoft.Common.Slider",
+              "toolTip": "Days to retain logs. Use -1 for unlimited SKU. 730 is the maximum for all other SKU's",
               "min": 60,
               "max": 730,
               "label": "Log Retention Period",
