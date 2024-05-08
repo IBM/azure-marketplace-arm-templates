@@ -168,14 +168,15 @@
 						"label": "Cloud Pak for Integration version",
 						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
 						"constraints": {
-						  {
-							  "label": "IBM Cloud Pak for Integration CD 2023.4.1 - Full License (L-VTPK-22YZPK)",
-							  "value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-VTPK-22YZPK\"}')]"
-						  },
-						  {
-							  "label": "IBM Cloud Pak for Integration CD 2023.4.1 - Reserved License (L-QYQF-8UFZBN)",
-							  "value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-QYQF-8UFZBN\"}')]"
-						  }
+						"allowedValues": [
+							  {
+								  "label": "IBM Cloud Pak for Integration CD 2023.4.1 - Full License (L-VTPK-22YZPK)",
+								  "value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-VTPK-22YZPK\"}')]"
+							  },
+							  {
+								  "label": "IBM Cloud Pak for Integration CD 2023.4.1 - Reserved License (L-QYQF-8UFZBN)",
+								  "value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-QYQF-8UFZBN\"}')]"
+							  }
 						  ],
 						  "required": true
 						},
@@ -285,6 +286,7 @@
 						],
 						"constraints": {
 							"allowedSizes": [
+								"Standard_D4s_v3",
 								"Standard_D8s_v3",
 								"Standard_D16s_v3",
 								"Standard_D32s_v3",
@@ -321,11 +323,14 @@
 						"toolTip": "The size of the worker nodes",
 						"defaultValue": "Standard_D16s_v3",
 						"recommendedSizes": [
+							"Standard_D8s_v3",
 							"Standard_D16s_v3",
 							"Standard_D32s_v3"
 						],
 						"constraints": {
 							"allowedSizes": [
+								"Standard_D4s_v3",
+								"Standard_D8s_v3",
 								"Standard_D16s_v3",
 								"Standard_D32s_v3",
 								"Standard_D16as_v4",
@@ -365,7 +370,7 @@
 					{
 							"name": "workerCount",
 							"type": "Microsoft.Common.Slider",
-							"min": 3,
+							"min": 2,
 							"max": 64,
 							"label": "Worker Node Quantity",
 							"defaultValue": 3,
