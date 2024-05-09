@@ -227,7 +227,16 @@
               "label": "Nat Gateway Name",
               "defaultValue": "[ concat( basics ('namePrefix'), '-nat-gw') ]",
               "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
-              "toolTip": "Name of the NAT gateway to create if using NAT for outbound traffic"
+              "toolTip": "Name of the NAT gateway to create if using NAT for outbound traffic",
+              "constraints": {
+                "required": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
+                "validations": [
+                  {
+                    "regex": "^[a-z0-9A-Z-_]{3,30}$",
+                    "message": "Must be between 3 and 30 characters and have only alphanumeric, dash or underscore."
+                  }
+                ]
+              }
             },
             {
               "name": "natGwPublicIPPrefixName",
@@ -235,7 +244,16 @@
               "label": "Nat Gw Public IP Prefix Name",
               "defaultValue": "[concat(basics('namePrefix'),'-nat-gw-pip')]",
               "visible": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
-              "toolTip": "Name of the public IP prefix if using NAT Gateway routing"
+              "toolTip": "Name of the public IP prefix if using NAT Gateway routing",
+              "constraints": {
+                "required": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
+                "validations": [
+                  {
+                    "regex": "^[a-z0-9A-Z-_]{3,30}$",
+                    "message": "Must be between 3 and 30 characters and have only alphanumeric, dash or underscore."
+                  }
+                ]
+              }
             },
             {
               "name": "natGwPublicIPPrefixLength",
@@ -245,6 +263,7 @@
               "defaultValue": "28",
               "toolTip": "Specifies the length of the public IP prefix",
               "constraints": {
+                "required": false,
                 "allowedValues": [
                   {
                     "label": "28",
@@ -373,16 +392,17 @@
               "name": "ibmEntitlementKey",
               "type": "Microsoft.Common.PasswordBox",
               "label": {
-                "password": "IBM Entitlement Key"
+                "password": "IBM Entitlement API Key",
+                "confirmPassword": "Confirm IBM Entitlement API Key"
               },
               "toolTip": "Enter your provided IBM entitlement API key for software image download from icr.io",
               "constraints": {
                 "required": true,
-                "regex": "^[a-zA-Z0-9]{8,}$",
+                "regex": "^[a-zA-Z0-9._-]{100,}$",
                 "validationMessage": "Entitlement Key must be at least  characters long, contain only numbers and letters"
               },
               "options": {
-                "hideConfirmation": true
+                "hideConfirmation": false
               },
               "visible": true
             },
@@ -393,10 +413,10 @@
                 "password": "Trust Store Password",
                 "confirmPassword": "Re-enter trust store password"
               },
-              "toolTip": "",
+              "toolTip": "The trust store password is used to create the final trust store where you can add or import certificates.",
               "constraints": {
                 "required": true,
-                "regex": "^[a-zA-Z0-9]{8,}$",
+                "regex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
                 "validationMessage": "Password must be atleast 8 characters long, contain only numbers and letters"
               },
               "options": {
@@ -415,7 +435,7 @@
                 "allowedValues": [
                   {
                     "label": "10.0.2403.1",
-                    "value": "10.0.2403.1"
+                    "value": "10.0.2403.1-amd64"
                   }
                 ]
               }
@@ -815,7 +835,7 @@
                 "required": true
               },
               "options": {
-                "hideConfirmation": true,
+                "hideConfirmation": false,
                 "hidePassword": true
               },
               "osPlatform": "Linux"
@@ -1302,7 +1322,7 @@
               "type": "Microsoft.Common.CheckBox",
               "label": "Deploy Management VM",
               "visible": true,
-              "defaultValue": false,
+              "defaultValue": true,
               "toolTip": "Check this box if you want to deploy management VM for the cluster",
               "constraints": {
                 "required": false
@@ -1540,6 +1560,7 @@
             {
               "name": "tagsByResource",
               "type": "Microsoft.Common.TagsByResource",
+              "toolTip": "Specify tags to add to created resources.",
               "resources": [
                 "Microsoft.Storage/storageAccounts",
                 "Microsoft.Compute/virtualMachines",
@@ -1560,7 +1581,7 @@
       ],
       "outputs": {
         "namePrefix": "[basics('namePrefix')]",
-        "location": "[resourceGroup().location]",
+        "location": "[location()]",
         "deployLogAnalytics": "[steps('monitoring').deployLogAnalytics]",
         "deployManagementVm": "[steps('managementVM').deployManagementVm]",
         "deployBastion": "[steps('networking').bastion.deployBastion]",
