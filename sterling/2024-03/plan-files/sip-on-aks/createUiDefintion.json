@@ -763,7 +763,7 @@
                 ]
               },
               "multiselect": false,
-              "toolTip": "Version of kuberenetes to be used for the aks cluster",
+              "toolTip": "Version of kubernetes to be used for the aks cluster",
               "visible": true
             },
             {
@@ -874,7 +874,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Ubuntu",
-              "toolTip": "Select aks system node sku",
+              "toolTip": "Select the OS type for the AKS system nodes",
               "constraints": {
                 "allowedValues": [
                   {
@@ -905,7 +905,7 @@
               "defaultValue": "128",
               "min": 100,
               "max": 1000,
-              "toolTip": "Size in GiB of the OS disk for the aks system plan nodes",
+              "toolTip": "Size in GiB of the OS disk for the AKS system plan nodes",
               "visible": "true",
               "recommendedSizes": [
                 "128"
@@ -1068,7 +1068,7 @@
               "type": "Microsoft.Common.DropDown",
               "visible": true,
               "defaultValue": "Ubuntu",
-              "toolTip": "Select aks user node os type",
+              "toolTip": "Select the OS type for the AKS user nodes",
               "constraints": {
                 "allowedValues": [
                   {
