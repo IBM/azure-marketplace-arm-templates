@@ -173,11 +173,11 @@
                 "bastionSubnet": {
                   "label": "Bastion Subnet (Required if deploying bastion service)",
                   "defaultValue": {
-                    "name": "bastion-Subnet",
-                    "addressPrefixSize": "/28"
+                    "name": "AzureBastionSubnet",
+                    "addressPrefixSize": "/26"
                   },
                   "constraints": {
-                    "minAddressPrefixSize": "/28",
+                    "minAddressPrefixSize": "/26",
                     "minAddressCount": 5,
                     "requireContiguousAddresses": false
                   }
@@ -232,8 +232,8 @@
                 "required": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
                 "validations": [
                   {
-                    "regex": "^[a-z0-9A-Z-_]{3,30}$",
-                    "message": "Must be between 3 and 30 characters and have only alphanumeric, dash or underscore."
+                    "regex": "^[a-z0-9A-Z][a-z0-9A-Z-_]{1,30}[a-z0-9A-Z]$",
+                    "message": "Must be between 3 and 30 characters and have only alphanumeric, dash or underscore. Must start and end with an alphanumeric character."
                   }
                 ]
               }
@@ -249,8 +249,8 @@
                 "required": "[equals(steps('networking').outboundRouting,'NAT Gateway')]",
                 "validations": [
                   {
-                    "regex": "^[a-z0-9A-Z-_]{3,30}$",
-                    "message": "Must be between 3 and 30 characters and have only alphanumeric, dash or underscore."
+                    "regex": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{1,78}[a-zA-Z0-9_]$",
+                    "message": "Must be between 3 and 80 characters. Alphanumeric, underscores, periods and hyphens allowed. Must start with alphanumeric and end with alphanumeric or underscore"
                   }
                 ]
               }
@@ -321,7 +321,7 @@
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Disable Copy Paste",
                   "defaultValue": false,
-                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "visible": "[and(steps('networking').bastion.deployBastion, equals(steps('networking').bastion.bastionSku, 'Standard'))]",
                   "toolTip": "Check this box if you want to disable ability to copy and paste to bastion session",
                   "constraints": {
                     "required": false
@@ -332,7 +332,7 @@
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable File Copy",
                   "defaultValue": true,
-                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "visible": "[and(steps('networking').bastion.deployBastion, equals(steps('networking').bastion.bastionSku, 'Standard'))]",
                   "toolTip": "Check this box if you want to enable the file copy feature of the bastion service",
                   "constraints": {
                     "required": false
@@ -343,7 +343,7 @@
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable Ip Connect",
                   "defaultValue": true,
-                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "visible": "[and(steps('networking').bastion.deployBastion, equals(steps('networking').bastion.bastionSku, 'Standard'))]",
                   "toolTip": "Check this box if you want to enable the IP Connect feature of the bastion service",
                   "constraints": {
                     "required": false
@@ -365,7 +365,7 @@
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable Shareable Link",
                   "defaultValue": true,
-                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "visible": "[and(steps('networking').bastion.deployBastion, equals(steps('networking').bastion.bastionSku, 'Standard'))]",
                   "toolTip": "Check this box if you want to enable the Shareable link feature of the bastion service",
                   "constraints": {
                     "required": false
@@ -376,7 +376,7 @@
                   "type": "Microsoft.Common.CheckBox",
                   "label": "Bastion Enable Tunneling",
                   "defaultValue": true,
-                  "visible": "[steps('networking').bastion.deployBastion]",
+                  "visible": "[and(steps('networking').bastion.deployBastion, equals(steps('networking').bastion.bastionSku, 'Standard'))]",
                   "toolTip": "Check this box if you want to enable the tunneling feature of the bastion service"
                 }
               ],
