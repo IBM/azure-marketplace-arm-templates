@@ -109,7 +109,7 @@
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": ""
+                "description": "Flag to determine whether to deploy SIP (debug only)"
             }
         },
         "workspaceName": {
@@ -122,7 +122,6 @@
         "logRetentionPeriod": {
             "type": "int",
             "defaultValue": 60,
-            "maxValue": 730,
             "metadata": {
                 "description": "Days to retain logs. Use -1 for unlimited SKU. 730 is the maximum for all other SKU's "
             }
@@ -225,7 +224,7 @@
                 "Enabled",
                 "Disabled"
             ],
-            "defaultValue": "Enabled",
+            "defaultValue": "Disabled",
             "metadata": {
                 "description": "Enable or disable registry zone redundancy and associated duplication"
             }
@@ -636,6 +635,7 @@
         "aksUserNodeMaxPods": {
             "type": "int",
             "defaultValue": 30,
+            "minValue": 2,
             "maxValue": 250,
             "metadata": {
                 "description": "Maximum number of pods that can run on an AKS worker plane node"
@@ -706,7 +706,7 @@
         },
         "aksNetworkPlugin": {
             "type": "string",
-            "defaultValue": "azure",
+            "defaultValue": "kubenet",
             "allowedValues": [
                 "azure",
                 "kubenet",
@@ -881,6 +881,7 @@
         },
         "vmAdminPassword": {
             "type": "secureString",
+            "defaultValue": "",
             "metadata": {
                 "description": "Default admin password or SSH key for VM"
             }
@@ -926,17 +927,6 @@
             ],
             "metadata": {
                 "description": "Availability zone for the Management VM"
-            }
-        },
-        "vmOSVersion": {
-            "type": "string",
-            "defaultValue": "Ubuntu 22.04 LTS",
-            "allowedValues": [
-                "Ubuntu 20.04 LTS",
-                "Ubuntu 22.04 LTS"
-            ],
-            "metadata": {
-                "description": "Operating system version"
             }
         },
         "vmCreatePublicIP": {
@@ -1080,7 +1070,7 @@
     "resources": [
         {
             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-            "apiVersion": "2018-11-30",
+            "apiVersion": "2023-01-31",
             "name": "[parameters('managedIdName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"    
@@ -1227,7 +1217,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.Network/publicIPPrefixes",
-                            "apiVersion": "2022-05-01",
+                            "apiVersion": "2023-11-01",
                             "name": "[parameters('publicIPPrefixName')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPPrefixes'), parameters('tagsByResource')['Microsoft.Network/publicIPPrefixes'], json('{}')) ]",
@@ -1242,7 +1232,7 @@
                         },
                         {
                             "type": "Microsoft.Network/natGateways",
-                            "apiVersion": "2022-05-01",
+                            "apiVersion": "2023-11-01",
                             "name": "[parameters('ngwName')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/natGateways'), parameters('tagsByResource')['Microsoft.Network/natGateways'], json('{}')) ]",
