@@ -1766,14 +1766,22 @@
               }
             },
             {
+              "name": "logRetentionPeriodUnlimited",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Use unlimited SKU for log retention",
+              "toolTip": "Select to store logs indefinitely",
+              "visible": "[steps('monitoring').deployLogAnalytics]",
+              "defaultValue": false
+            },
+            {
               "name": "logRetentionPeriod",
               "type": "Microsoft.Common.Slider",
-              "toolTip": "Days to retain logs. Use -1 for unlimited SKU. 730 is the maximum for all other SKU's",
-              "min": 60,
+              "toolTip": "Days to retain logs.",
+              "min": 1,
               "max": 730,
               "label": "Log Retention Period",
               "defaultValue": 60,
-              "visible": "[steps('monitoring').deployLogAnalytics]"
+              "visible": "[and(steps('monitoring').deployLogAnalytics, not(steps('monitoring').logRetentionPeriodUnlimited))]"
             }
           ]
         },
@@ -1809,7 +1817,7 @@
         "deployLogAnalytics": "[steps('monitoring').deployLogAnalytics]",
         "deployManagementVm": "[steps('managementVM').deployManagementVm]",
         "deployBastion": "[steps('networking').bastion.deployBastion]",
-        "logRetentionPeriod": "[steps('monitoring').logRetentionPeriod]",
+        "logRetentionPeriod": "[if(steps('monitoring').logRetentionPeriodUnlimited), -1, steps('monitoring').logRetentionPeriod)]",
         "bastionSku": "[steps('networking').bastion.bastionSku]",
         "bastionDisableCopyPaste": "[steps('networking').bastion.bastionDisableCopyPaste]",
         "bastionEnableFileCopy": "[steps('networking').bastion.bastionEnableFileCopy]",
