@@ -573,6 +573,8 @@
          ],
         "outputs": {
             "namePrefix": "[basics('namePrefix')]",
+			"existingVnet": "[if(equals(steps('networking').vnet.newOrExisting,'new'),false,true)]",
+			"networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
 			"vnetName": "[steps('networking').vnet.name]",
 			"vnetCIDR": "[first( steps('networking').vnet.addressPrefixes ) ]",
 			"controlSubnetCIDR": "[steps('networking').vnet.subnets.controlSubnet.addressPrefix]",
