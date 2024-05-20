@@ -86,7 +86,7 @@
 						"minAddressPrefixSize": "/22"
 					},
 					"options": {
-						"hideExisting": true
+						"hideExisting": false
 					},
 					"subnets": {
 						"controlSubnet": {
@@ -263,7 +263,7 @@
 					{
 						"name": "versionWarningLTS",
 						"type": "Microsoft.Common.InfoBox",
-						"visible": "[if(or(equals(steps('openshift').aroVersion, ''),startsWith(steps('openshift').aroVersion,'4.10'),startsWith(steps('openshift').aroVersion,'4.12')),false,true)]",
+						"visible": "[if(or(equals(steps('openshift').aroVersion, ''),startsWith(steps('openshift').aroVersion,'4.10'),startsWith(steps('openshift').aroVersion,'4.12'),startsWith(steps('openshift').aroVersion,'4.14')startsWith(steps('openshift').aroVersion,'4.16')),false,true)]",
 						"options": {
 							"icon": "Warning",
 							"text": "Cloud Pak for Integration is only supported on LTS (even) versions of OpenShift."
@@ -324,13 +324,16 @@
 						"type": "Microsoft.Compute.SizeSelector",
 						"label": "Worker VM Size",
 						"toolTip": "The size of the worker nodes",
-						"defaultValue": "Standard_D16s_v3",
+						"defaultValue": "Standard_D8s_v3",
 						"recommendedSizes": [
+							"Standard_D8s_v3",
 							"Standard_D16s_v3",
 							"Standard_D32s_v3"
 						],
 						"constraints": {
 							"allowedSizes": [
+								"Standard_D4s_v3",
+								"Standard_D8s_v3",
 								"Standard_D16s_v3",
 								"Standard_D32s_v3",
 								"Standard_D16as_v4",
@@ -528,7 +531,7 @@
 						"toolTip": "Refer to https://console.redhat.com/openshift/install/pull-secret",
 						"multiLine": true,
 						"constraints": {
-						  "required": true,
+						  "required": false,
 						  "validations": [
 							{
 								"regex": "{.*:{.*:.*}}",
