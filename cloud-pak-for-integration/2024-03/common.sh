@@ -249,8 +249,8 @@ function cli-download() {
     fi
 
     if [[ -z ${3} ]] || [[ ${3}  == "4" ]] || [[ ${3} == "stable" ]]; then
-        # Install the latest stable version
-        local OC_VERSION="stable"
+        # Install the latest stable version. Using 4.12 to avoid issues with container compatibility.
+        local OC_VERSION="stable-4.12"
         local OCP_RELEASE=12
     elif [[ ${VERSION} =~ [0-9][.][0-9]+[.][0-9]+ ]]; then
         # Install a specific version and patch level
