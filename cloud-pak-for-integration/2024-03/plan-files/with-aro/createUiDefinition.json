@@ -524,14 +524,23 @@
                         }	
 					},
 					{
+						"name": "pullSecretInfoBox",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+							"icon": "Info",
+							"text": "A Red Hat pull secret and associated subscription is required to install some of the components."
+						}
+					},
+					{
 						"name": "pullSecret",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Red Hat Pull Secret",
-						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
+						"visible": true,
 						"toolTip": "Refer to https://console.redhat.com/openshift/install/pull-secret",
 						"multiLine": true,
 						"constraints": {
-						  "required": false,
+						  "required": true,
 						  "validations": [
 							{
 								"regex": "{.*:{.*:.*}}",
