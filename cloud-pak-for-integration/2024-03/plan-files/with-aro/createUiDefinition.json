@@ -529,7 +529,7 @@
 						"visible": true,
 						"options": {
 							"icon": "Info",
-							"text": "A Red Hat pull secret and associated subscription is required to install some of the components."
+							"text": "A Red Hat pull secret and associated subscription is required to install some of the components. The installed component costs are included in the IBM Cloud Pak license for use with the Cloud Pak."
 						}
 					},
 					{
