@@ -20,5 +20,5 @@ if [[ -z $SUBSCRIPTION_ID ]]; then SUBSCRIPTION_ID=""; fi
 if [[ -z $STORAGE_SIZE ]]; then export STORAGE_SIZE="2Ti"; fi
 if [[ -z $EXISTING_NODES ]]; then EXISTING_NODES="no"; fi
 if [[ -z $BRANCH ]]; then BRANCH="main"; fi
-if [[ -z $BASE_URI ]]; then VERSION_URI="https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates"; fi
+if [[ -z $VERSION_URI ]]; then VERSION_URI="https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates"; fi
 if [[ -z $VERSION_PATH ]]; then VERSION_PATH="cloud-pak-for-integration/version-files"; fi
