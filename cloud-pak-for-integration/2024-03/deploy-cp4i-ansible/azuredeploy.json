@@ -317,7 +317,7 @@
                 "version": "latest"
             }
         },
-        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - echo adminuser=',parameters('adminUserName'),' >> /tmp/script-parameters.txt\n - yum update -y\n - yum install python3.11 python3.11-pip -y\n  - python3.11 -m pip install ansible-core==2.16.3')]",
+        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- python3.11\n- python3.11-pip\nruncmd:\n- echo adminuser=',parameters('adminUserName'),' >> /tmp/script-parameters.txt\n- python3.11 -m pip install ansible-core==2.16.3\n')]",
         "securityProfile": {
             "uefiSettings": {
                 "secureBootEnabled": false,
@@ -333,8 +333,6 @@
             "existing": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]"
         },
         "subnetId": "[concat(variables('vnetId')[parameters('virtualNetworkNewOrExisting')],'/subnets/',parameters('subnetName'))]",
-        "scriptPath": "[uri(variables('baseURL'),concat(parameters('branch'),variables('scriptOffset')))]",
-        "scriptOffset": "/instana/instana-on-vm/",
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3.11",
             "log_level": "[parameters('logLevel')]",
@@ -521,9 +519,10 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-og.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-pn-instance.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/install-oc.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/main.yaml'))]"
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /bin/bash ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }
