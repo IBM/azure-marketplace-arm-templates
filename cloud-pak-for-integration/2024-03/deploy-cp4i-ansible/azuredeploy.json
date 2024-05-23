@@ -512,16 +512,16 @@
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
                     "fileUris": [
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/templates/catalogsource.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/templates/operatorgroup.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/templates/pn-instance.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/templates/subscription-cluster.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/templates/subscription-namespace.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/create-catalog.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/create-og.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/create-pn-instance.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/install-oc.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/main.yaml'))]"
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/templates/catalogsource.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/templates/operatorgroup.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/templates/pn-instance.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/templates/subscription-cluster.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/templates/subscription-namespace.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-catalog.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-og.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-pn-instance.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/install-oc.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/main.yaml'))]"
                     ],
                     "commandToExecute": "[concat('/bin/bash ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
