@@ -43,46 +43,77 @@
     - name: Check if already logged into cluster
       ansible.builtin.shell: |
         set timeout 30
-        {{ directories.bin_dir }}/oc status > /dev/null 2>&1
+        {{ directories.bin_dir }}/oc status 2> /dev/null
         exit 0
       args:
         executable: /bin/bash
       register: response
 
-    - name: Log into the OpenShift cluster with credentials
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ cluster.username }} --password={{ cluster.password }}"
-      args:
-        executable: /bin/bash
-      register: response
-      until: response.stdout == "Succeeded"
-      retries: "{{ default.retries }}"
-      delay: "{{ default.retry_delay }}"
-      when: 
-        - cluster.token == "" or cluster.token is not defined
-        - response.stdout == ""
-
-    - name: Log into the OpenShift cluster with token
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster.token }}"
-      args:
-        executable: /bin/bash
-      register: response
-      until: response.stdout == "Succeeded"
-      retries: "{{ default.retries }}"
-      delay: "{{ default.retry_delay }}"
-      when: 
-        - cluster.token != ""
-        - cluster.token is defined
-        - response.stdout == ""
-
     - name: Fail if cluster details are not provided
       ansible.builtin.fail:
         msg: "Cluster login details are not provided"
+      when: 
+        - ( cluster.api_server is not defined ) or ( cluster.token is not defined and cluster.password is not defined ) 
+        - response.stdout == ""
 
-    - name: Log into OpenShift cluster
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc login {{ cluster.api_server }} -u {{ cluster.user }} -p {{ cluster.password }}"
+    - name: Set username to kubeadmin if not provided
+      ansible.builtin.set_fact:
+        username: "kubeadmin"
+      when: cluster.username is not defined
+
+    - name: Set username to kubeadmin if not empty
+      ansible.builtin.set_fact:
+        username: "kubeadmin"
+      when: 
+        - cluster.username is defined
+        - cluster.username == ""
+
+    - name: Set username to kubeadmin if not provided
+      ansible.builtin.set_fact:
+        username: "{{ cluster.username }}"
+      when: cluster.username != ""
+
+    - name: Set token to empty if not defined
+      ansible.builtin.set_fact:
+        token: ""
+      when: cluster.token is not defined
+
+    - name: Set token if defined
+      ansible.builtin.set_fact:
+        token: "{{ cluster.token }}"
+      when:
+        - cluster.token is defined
+        - cluster.token != ""
+
+    - name: Log into the OpenShift cluster with credentials
+      ansible.builtin.shell: |
+        set timeout 30
+        {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --password={{ cluster.password }} 2> /dev/null | grep Login
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Login successful."
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - token == ""
+        - response.stdout == ""
+
+    - name: Log into the OpenShift cluster with token
+      ansible.builtin.shell: |
+        set timeout 30
+        {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ token }} 2> /dev/null | grep Login
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Login successful."
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - token != ""
+        - response.stdout == ""
 
     - name: Create template directory if not already in place
       ansible.builtin.file:
