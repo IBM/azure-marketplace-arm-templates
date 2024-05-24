@@ -524,6 +524,8 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-catalog.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-og.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-pn-instance.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/create-subscription.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/oc-login.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/install-oc.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/wait-for-cloud-init.sh'))]"
