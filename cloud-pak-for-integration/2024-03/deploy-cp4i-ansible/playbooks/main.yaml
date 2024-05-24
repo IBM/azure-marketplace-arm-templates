@@ -40,10 +40,52 @@
         file: install-oc.yaml
       when: not oc_file.stat.exists
 
-    # - name: Log into OpenShift cluster
+    - name: Check if already logged into cluster
+      ansible.builtin.shell: |
+        set timeout 30
+        {{ directories.bin_dir }}/oc status > /dev/null 2>&1
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
 
-    - name: Create template directory if nto already in place
-      ansible.bultin.file:
+    - name: Log into the OpenShift cluster with credentials
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ cluster.username }} --password={{ cluster.password }}"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - cluster.token == "" or cluster.token is not defined
+        - response.stdout == ""
+
+    - name: Log into the OpenShift cluster with token
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster.token }}"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - cluster.token != ""
+        - cluster.token is defined
+        - response.stdout == ""
+
+    - name: Fail if cluster details are not provided
+      ansible.builtin.fail:
+        msg: "Cluster login details are not provided"
+
+    - name: Log into OpenShift cluster
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc login {{ cluster.api_server }} -u {{ cluster.user }} -p {{ cluster.password }}"
+
+    - name: Create template directory if not already in place
+      ansible.builtin.file:
         path: ./templates
         state: directory
       

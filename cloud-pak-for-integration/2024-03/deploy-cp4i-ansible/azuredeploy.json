@@ -352,6 +352,12 @@
             "instance": {
                 "name": "[parameters('instanceName')]",
                 "namespace": "[parameters('instanceNamespace')]"
+            },
+            "cluster": {
+                "apiServer": "",
+                "username": "",
+                "password": "",
+                "token": ""
             }
         }
     },
@@ -522,7 +528,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /bin/bash ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /bin/bash /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }

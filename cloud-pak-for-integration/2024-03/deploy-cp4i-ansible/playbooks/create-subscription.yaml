@@ -2,7 +2,7 @@
 
 - name: Output name of subscription to be created
   debug:
-    msg: "Creating subscription for item.metadata.name"
+    msg: "Creating subscription for {{ item.metadata.name }}"
 
 - name: Create operator group definition (namespace scoped)
   ansible.builtin.template:
