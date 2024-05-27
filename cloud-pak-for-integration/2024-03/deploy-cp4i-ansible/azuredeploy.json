@@ -186,6 +186,37 @@
                 "description": "Domain name prefix for the public IP address"
             }
         },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Password",
+                "Token"
+            ],
+            "metadata": {
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
         "cloudPakVersion": {
             "type": "string",
             "defaultValue": "2023.4.1",
@@ -354,10 +385,10 @@
                 "namespace": "[parameters('instanceNamespace')]"
             },
             "cluster": {
-                "apiServer": "",
-                "username": "",
-                "password": "",
-                "token": ""
+                "apiServer": "[parameters('openShiftApiUrl')]",
+                "username": "[parameters('openShiftUsername')]",
+                "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
             }
         }
     },
