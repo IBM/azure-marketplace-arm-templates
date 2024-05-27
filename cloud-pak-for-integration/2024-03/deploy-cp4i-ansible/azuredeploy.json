@@ -317,7 +317,7 @@
                 "version": "latest"
             }
         },
-        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- python3.11\n- python3.11-pip\nruncmd:\n-python3.11 -m pip install ansible-core==2.16.3')]",
+        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- python3.11\n- python3.11-pip\nruncmd:\n- python3.11 -m pip install ansible-core==2.16.3')]",
         "securityProfile": {
             "uefiSettings": {
                 "secureBootEnabled": false,
