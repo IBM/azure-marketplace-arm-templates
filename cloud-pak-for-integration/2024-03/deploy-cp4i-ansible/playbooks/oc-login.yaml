@@ -21,15 +21,14 @@
 
 - name: Set token to empty if not defined
   ansible.builtin.set_fact:
-    token: ""
+    cluster_token: ""
   when: cluster.token is not defined
 
 - name: Set token if defined
   ansible.builtin.set_fact:
-    token: "{{ cluster.token }}"
+    cluster_token: "{{ cluster.token }}"
   when:
     - cluster.token is defined
-    - cluster.token != ""
 
 - name: Log into the OpenShift cluster with credentials
   ansible.builtin.shell: |
@@ -43,13 +42,12 @@
   retries: "{{ default.retries }}"
   delay: "{{ default.retry_delay }}"
   when: 
-    - token == ""
-    - response.stdout == ""
+    - cluster_token == ""
 
 - name: Log into the OpenShift cluster with token
   ansible.builtin.shell: |
     set timeout 30
-    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ token }} 2> /dev/null | grep Login
+    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster_token }} 2> /dev/null | grep Login
     exit 0
   args:
     executable: /bin/bash
@@ -58,5 +56,4 @@
   retries: "{{ default.retries }}"
   delay: "{{ default.retry_delay }}"
   when: 
-    - token != ""
-    - response.stdout == ""
+    - cluster_token != ""
