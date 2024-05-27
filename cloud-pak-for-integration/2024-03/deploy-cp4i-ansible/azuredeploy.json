@@ -371,7 +371,7 @@
             "cloud_pak": {
                 "version": "[parameters('cloudPakVersion')]",
                 "license": "[parameters('cloudPakLicense')]",
-                "licensce_accepted": "[parameters('licenseAccepted')]",
+                "license_accepted": "[parameters('licenseAccepted')]",
                 "branch": "[parameters('branch')]",
                 "version_uri": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates",
                 "version_path": "cloud-pak-for-integration/version-files"
@@ -385,7 +385,7 @@
                 "namespace": "[parameters('instanceNamespace')]"
             },
             "cluster": {
-                "apiServer": "[parameters('openShiftApiUrl')]",
+                "api_server": "[parameters('openShiftApiUrl')]",
                 "username": "[parameters('openShiftUsername')]",
                 "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
                 "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"

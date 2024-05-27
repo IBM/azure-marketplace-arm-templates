@@ -33,12 +33,12 @@
 - name: Log into the OpenShift cluster with credentials
   ansible.builtin.shell: |
     set timeout 30
-    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --password={{ cluster.password }} 2> /dev/null | grep Login
+    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --password={{ cluster.password }} 2> /dev/null 
     exit 0
   args:
     executable: /bin/bash
   register: response
-  until: response.stdout == "Login successful."
+  until: response.stdout != ""
   retries: "{{ default.retries }}"
   delay: "{{ default.retry_delay }}"
   when: 
@@ -47,12 +47,12 @@
 - name: Log into the OpenShift cluster with token
   ansible.builtin.shell: |
     set timeout 30
-    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster_token }} 2> /dev/null | grep Login
+    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --token={{ cluster_token }} 2> /dev/null 
     exit 0
   args:
     executable: /bin/bash
   register: response
-  until: response.stdout == "Login successful."
+  until: response.stdout != ""
   retries: "{{ default.retries }}"
   delay: "{{ default.retry_delay }}"
   when: 

@@ -141,20 +141,21 @@
       set_fact:
         secretExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
 
-    - name: Get IBM entitlement key if not provided and secret not created
-      ansible.builtin.pause:
-        prompt: "Please provide IBM entitlment key: "
-      register: entitlementKey
+    - name: Fail if IBM entitlement key is not provided and secret not created
+      ansible.builtin.fail:
+        msg: "IBM Entitlement Key not provided."
       when: 
-        - entitlementKey is not defined
+        - (entitlementKey is not defined) or (entitlementKey == "")
         - not secretExists
 
     - name: Create the entitlement key secret
       ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc create secret docker-registry ibm-entitlement-key --docker-server=cp.icr.io --docker-username=cp --docker-password={{ entitlementKey.user_input }} -n {{ instance.namespace }}"
+        cmd: "{{ directories.bin_dir }}/oc create secret docker-registry ibm-entitlement-key --docker-server=cp.icr.io --docker-username=cp --docker-password={{ entitlementKey }} -n {{ instance.namespace }}"
       args:
         executable: /bin/bash
-      when: not secretExists
+      when: 
+        - not secretExists
+        - entitlementKey is defined
       register: result
 
     - name: Create catalog source definitions
