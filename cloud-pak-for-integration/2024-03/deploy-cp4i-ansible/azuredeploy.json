@@ -317,7 +317,7 @@
                 "version": "latest"
             }
         },
-        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- ansible\nruncmd:\n- echo adminuser=',parameters('adminUserName'),' >> /tmp/script-parameters.txt\n')]",
+        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- python3.11\n- python3.11-pip\nruncmd:\n-python3.11 -m pip install ansible-core==2.16.3')]",
         "securityProfile": {
             "uefiSettings": {
                 "secureBootEnabled": false,
@@ -334,7 +334,7 @@
         },
         "subnetId": "[concat(variables('vnetId')[parameters('virtualNetworkNewOrExisting')],'/subnets/',parameters('subnetName'))]",
         "scriptParameters": {
-            "ansible_python_interpreter": "/usr/bin/python3.11",
+            "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
             "entitlementKey": "[parameters('entitlementKey')]",
             "cloud_pak": {
@@ -530,7 +530,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /bin/bash /usr/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }
