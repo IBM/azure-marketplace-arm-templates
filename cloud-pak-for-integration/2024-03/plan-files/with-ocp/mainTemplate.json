@@ -426,7 +426,7 @@
     },
     "resources": [
             { 
-                "apiVersion": "2021-04-01",
+                "apiVersion": "2023-07-01",
                 "name": "pid-863f503a-9654-4ffe-9149-d0bd97ec7280-partnercenter", 
                 "condition": "[parameters('recordDeployment')]",
                 "comments": "Resource GUID for Cloud Pak for Integration BYOL marketplace entry",
@@ -442,7 +442,7 @@
             },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "condition": "[parameters('deployPrereqs')]",
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
@@ -487,7 +487,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "condition": "[parameters('deployNSG')]",
             "name": "deployNetworkSecurityGroups",
             "properties": {
@@ -514,7 +514,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "name": "virtualNetwork",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployNetworkSecurityGroups')]"
@@ -546,7 +546,7 @@
                         "value": "[parameters('controlSubnetName')]"
                     },
                     "controlSubnetNsgId": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployNetworkSecurityGroups'),'2022-09-01').outputs['controlSubnetNsgId'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployNetworkSecurityGroups'),'2023-07-01').outputs['controlSubnetNsgId'].value]" 
                     },
                     "workerSubnetName": {
                         "value": "[parameters('workerSubnetName')]"
@@ -555,7 +555,7 @@
                         "value": "[parameters('workerSubnetCIDR')]"
                     },
                     "workerSubnetNsgId": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployNetworkSecurityGroups'),'2022-09-01').outputs['workerSubnetNsgId'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployNetworkSecurityGroups'),'2023-07-01').outputs['workerSubnetNsgId'].value]" 
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
@@ -565,7 +565,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "name": "createKeyVault",
             "condition": "[parameters('deployKeyVault')]",
             "dependsOn": [
@@ -598,7 +598,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "name": "createSshKeys",
             "condition": "[ equals( parameters('publicSshKey'), '') ]",
             "dependsOn": [
@@ -647,7 +647,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "name": "deployOpenShift",
             "condition": "[parameters('deployOCP')]",
             "dependsOn": [
@@ -769,7 +769,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "name": "deployOdf",
             "condition": "[and(parameters('deployODF'),equals(parameters('storageType'),'ODF'))]",
             "dependsOn": [
@@ -808,10 +808,10 @@
                         "value": "[parameters('storageAccountName')]"
                     },
                     "ocpApiServer": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['apiServer'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['apiServer'].value]" 
                     },
                     "ocpUsername": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminUser'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['adminUser'].value]" 
                     },
                     "vaultName": {
                         "value": "[parameters('vaultName')]"
@@ -839,7 +839,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "name": "deployCloudPakForIntegration",
             "condition": "[parameters('deployCP4I')]",
             "dependsOn": [
@@ -891,7 +891,7 @@
                         "value": "IPI"
                     },
                     "apiServer": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['apiServer'].value]"
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['apiServer'].value]"
                     },
                     "vaultName": {
                         "value": "[parameters('vaultName')]"
@@ -900,7 +900,7 @@
                         "value": "[parameters('clusterPasswordSecretName')]"
                     },
                     "ocpAdministrator": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['adminUser'].value]" 
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['adminUser'].value]" 
                     },
                     "deployOnVnet": {
                         "value": "[if(equals(parameters('endpointVisibility'),'Private'),bool('true'),bool('false'))]"
@@ -937,12 +937,12 @@
         "clusterURL": {
             "type": "string",
             "condition": "[parameters('deployOCP')]",
-            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2022-09-01').outputs['consoleURL'].value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['consoleURL'].value]"
         },
         "platformNavigatorURL": {
             "type": "string",
             "condition": "[equals(parameters('acceptLicense'),'accept')]",
-            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployCloudPakForIntegration'),'2022-09-01').outputs['cp4iConsoleURL'].value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployCloudPakForIntegration'),'2023-07-01').outputs['cp4iConsoleURL'].value]"
         }
     }
 }
