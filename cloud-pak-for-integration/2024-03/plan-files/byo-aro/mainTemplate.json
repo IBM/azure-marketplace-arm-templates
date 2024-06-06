@@ -17,6 +17,14 @@
                 "description": "Location for deployment container"
             }
         },
+        "deploymentApproach": {
+            "type": "string",
+            "defaultValue": "vm",
+            "allowedValues": [
+                "vm",
+                "container"
+            ]
+        },
         "ibmEntitlementKey": {
             "type": "securestring",
             "metadata": {
@@ -73,11 +81,36 @@
                 "description": "Name of the ARO cluster"
             }
         },
-        "namespace": {
+        "operatorScope": {
             "type": "string",
-            "defaultValue": "cp4i",
+            "defaultValue": "namespace",
+            "allowedValues": [
+                "cluster",
+                "namespace"
+            ],
             "metadata": {
-                "description": "Namespace for CP4I instance"
+                "description": "Scope of the operator installation"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "ibmint",
+            "metadata": {
+                "description": "Namespace to be utilized for the operators if namespace scoped"
+            }
+        },
+        "instanceNamespace": {
+            "type": "string",
+            "defaultValue": "ibmint",
+            "metadata": {
+                "description": "Namespace for the Platform Navigator instance"
+            }
+        },
+        "instanceName": {
+            "type": "string",
+            "defaultValue": "quickstart-integration",
+            "metadata": {
+                "description": "Name for the Platform Navigator instance"
             }
         },
         "privateVnet": {
@@ -115,6 +148,125 @@
                 "description": "Network address of the subnet to attach the deployment script container to"
             }
         },
+        "vmAdminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "vmAdminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine."
+            }
+        },
+        "vmAuthType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "vmSecurityType": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2s",
+            "allowedValues": [
+                "Standard_B2s",
+                "Standard_D2s_v3",
+                "Standard_D4s_v3"
+            ],
+            "metadata": {
+                "description": "Size of Virtual Machine"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 8.7",
+            "allowedValues": [
+                "RHEL 8.6",
+                "RHEL 8.7",
+                "RHEL 9.2"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "vmCreatePublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "vmPublicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "vmDomainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "vaultName": {
+            "type": "string",
+            "defaultValue": "[ concat( parameters('namePrefix'), '-', substring( uniqueString(resourceGroup().id), 1, 5 ), '-keyvault' ) ]",
+            "metadata": {
+                "description": "Name of the key vault to store credentials"
+            }
+        },
+        "keyName": {
+            "type": "string",
+            "defaultValue": "[ concat(parameters('namePrefix'), '-sshkey') ]",
+            "metadata": {
+                "description": "Name of the secret to create in the key vault for the private SSH key"
+            }
+        },
         "tagsByResource": {
             "type": "object",
             "defaultValue": {},
@@ -135,6 +287,17 @@
             "metadata": {
                 "description": "Deployment version to use"
             }
+        },
+        "logLevel": {
+            "type": "string",
+            "defaultValue": "info",
+            "allowedValues": [
+                "info",
+                "debug"
+            ],
+            "metadata": {
+                "description": "Log level for Ansible playbook (VM Approach)"
+            }
         }
         
     },
@@ -143,7 +306,7 @@
     },
     "resources": [
         { 
-            "apiVersion": "2021-04-01",
+            "apiVersion": "2023-07-01",
             "name": "pid-863f503a-9654-4ffe-9149-d0bd97ec7280-partnercenter", 
             "comments": "Resource GUID for Cloud Pak for Integration BYOL marketplace entry",
             "type": "Microsoft.Resources/deployments",
@@ -158,7 +321,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
             "name": "scriptPrerequisites",
             "properties": {
                 "mode": "Incremental",
@@ -199,7 +362,8 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2023-07-01",
+            "condition": "[equals(parameters('deploymentApproach'),'container')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
             ],
@@ -251,7 +415,7 @@
                         "value": "[parameters('aroClusterName')]"
                     },
                     "namespace": {
-                        "value": "[parameters('namespace')]"
+                        "value": "[parameters('instanceNamespace')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -279,13 +443,373 @@
                     }
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "name": "createKeyVault",
+            "condition": "[equals(parameters('deploymentApproach'),'vm')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/',parameters('deploymentVersion'),'/keyvault/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": false
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[equals(parameters('deploymentApproach'), 'vm')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'createKeyVault')]"
+            ],
+            "name": "obtainAroCredentials",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "aroClusterName": {
+                        "value": "[parameters('aroClusterName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('storageAccountName')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "createStorageAccount": {
+                        "value": false 
+                    },
+                    "rgRoleGuid": {
+                        "value": "[guid(parameters('aroClusterName'))]" 
+                    },
+                    "createManagedId": {
+                        "value": false 
+                    },
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "keyName": {
+                        "value": "[parameters('keyName')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "namePrefix": {
+                            "type": "string"
+                        },
+                        "aroClusterName": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "storageAccountName": {
+                            "type": "string"
+                        },
+                        "managedIdName": {
+                            "type": "string"
+                        },
+                        "createManagedId": {
+                            "type": "bool"
+                        },
+                        "createStorageAccount": {
+                            "type": "bool"
+                        },
+                        "rgRoleGuid": {
+                            "type": "string"
+                        },
+                        "vaultName": {
+                            "type": "string"
+                        },
+                        "keyName": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "variables": {
+                        "containerGroupName": "[concat(parameters('namePrefix'), '-obtain-aro-credentials')]",
+                        "azureCliVersion": "2.45.0",
+                        "scriptName": "[concat(parameters('namePrefix'),'-obtain-aro-credentials-script')]",
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Storage/storageAccounts",
+                            "apiVersion": "2023-01-01",
+                            "name": "[parameters('storageAccountName')]",
+                            "condition": "[parameters('createStorageAccount')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
+                            "location": "[parameters('location')]",
+                            "sku": {
+                                "name": "Standard_LRS",
+                                "tier": "Standard"
+                            },
+                            "kind": "StorageV2",
+                            "properties": {
+                                "accessTier": "Hot"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+                            "apiVersion": "2023-01-31",
+                            "condition": "[parameters('createManagedId')]",
+                            "name": "[parameters('managedIdName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+                        },
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2022-04-01",
+                            "name": "[variables('roleDefinitionName')]",
+                            "dependsOn": [
+                                "[parameters('managedIdName')]"
+                            ],
+                            "properties": {
+                                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                                "scope": "[resourceGroup().id]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Resources/deploymentScripts",
+                            "apiVersion": "2023-08-01",
+                            "comments": "Obtains the ARO cluster login details",
+                            "name": "[variables('scriptName')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]",
+                                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+                            ],
+                            "location": "[parameters('location')]",
+                            "identity": {
+                                "type": "UserAssigned",
+                                "userAssignedIdentities": {
+                                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
+                                }
+                            },
+                            "kind": "AzureCLI",
+                            "properties": {
+                                "forceUpdateTag": "[parameters('rgRoleGuid')]",
+                                "containerSettings": {
+                                    "containerGroupName": "[variables('containerGroupName')]"
+                                },
+                                "storageAccountSettings": {
+                                    "storageAccountName": "[parameters('storageAccountName')]",
+                                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                                },
+                                "environmentVariables": [
+                                    {
+                                        "name": "RESOURCE_GROUP",
+                                        "value": "[resourceGroup().name]"
+                                    },
+                                    {
+                                        "name": "ARO_CLUSTER",
+                                        "value": "[parameters('aroClusterName')]"
+                                    }
+                                ],
+                                "azCliVersion": "[variables('azureCliVersion')]",
+                                "scriptContent": "URL=$(az aro show -n $ARO_CLUSTER -g $RESOURCE_GROUP --query 'apiserverProfile.url' -o tsv) ; PASSWORD=$(az aro list-credentials -n $ARO_CLUSTER -g $RESOURCE_GROUP --query 'kubeadminPassword' -o tsv) ; USERNAME=$(az aro list-credentials -n $ARO_CLUSTER -g $RESOURCE_GROUP --query 'kubeadminUsername' -o tsv)  ; jq -n -c --arg \"apiUrl\" $URL --arg username \"$USERNAME\" --arg password \"$PASSWORD\" '{\"aroCredentials\": {\"apiUrl\": $apiUrl, \"username\": $username, \"password\": $password}}' > $AZ_SCRIPTS_OUTPUT_PATH",
+                                "timeout": "PT15M",
+                                "cleanupPreference": "OnSuccess",
+                                "retentionInterval": "P1D"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.KeyVault/vaults/secrets",
+                            "name": "[ concat(parameters('vaultName'), '/', parameters('keyName') ) ]",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName'))]"
+                            ],
+                            "apiVersion": "2022-07-01",
+                            "properties": {
+                                "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.aroCredentials.password ]"
+                            }
+                        }
+                    ],
+                    "outputs": {
+                        "apiUrl": {
+                            "type": "string",
+                            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.aroCredentials.apiUrl ]"
+                        },
+                        "username": {
+                            "type": "string",
+                            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.aroCredentials.username ]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[equals(parameters('deploymentApproach'),'vm')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'obtainAroCredentials')]"
+            ],
+            "name": "cp4iDeploymentViaVm",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('vmAdminUserName')]" 
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('vmAdminPassword')]" 
+                    },
+                    "authType": {
+                        "value": "[parameters('vmAuthType')]" 
+                    },
+                    "securityType": {
+                        "value": "[parameters('vmSecurityType')]" 
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]" 
+                    },
+                    "vmDiskType": {
+                        "value": "[parameters('vmDiskType')]" 
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]" 
+                    },
+                    "vmOSVersion": {
+                        "value": "[parameters('vmOSVersion')]" 
+                    },
+                    "createPublicIP": {
+                        "value": "[parameters('vmCreatePublicIP')]" 
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('vmPublicIPName')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('vmDomainName')]" 
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','obtainAroCredentials'),'2023-07-01').outputs['apiUrl'].value]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','obtainAroCredentials'),'2023-07-01').outputs['username'].value]" 
+                    },
+                    "openShiftAuthType": {
+                        "value": "password"
+                    },
+                    "openShiftPassword": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[resourceId('Microsoft.KeyVault/vaults',parameters('vaultName'))]"
+                            },
+                            "secretName": "[parameters('keyName')]"
+                        }
+                    },
+                    "cloudPakVersion": {
+                        "value": "[parameters('cp4iVersion')]"
+                    },
+                    "cloudPakLicense": {
+                        "value": "[parameters('cp4iLicense')]"
+                    },
+                    "entitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "operatorScope": {
+                        "value": "[parameters('operatorScope')]" 
+                    },
+                    "operatorNamespace": {
+                        "value": "[parameters('operatorNamespace')]" 
+                    },
+                    "instanceNamespace": {
+                        "value": "[parameters('instanceNamespace')]" 
+                    },
+                    "instanceName": {
+                        "value": "[parameters('instanceName')]" 
+                    },
+                    "licenseAccepted": {
+                        "value": "[parameters('acceptLicense')]" 
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                }
+            }
         }
     ],
     "outputs": {
         "platformNavigatorURL": {
             "type": "string",
             "condition": "[equals(parameters('acceptLicense'),'accept')]",
-            "value": "[uri(concat('https://cp4i-navigator-pn-',parameters('namespace'),'.apps.domain.',parameters('location'),'.aroapp.io/'),'')]"
+            "value": "[uri(concat('https://cp4i-navigator-pn-',parameters('instanceNamespace'),'.apps.domain.',parameters('location'),'.aroapp.io/'),'')]"
         }
     }
 }
