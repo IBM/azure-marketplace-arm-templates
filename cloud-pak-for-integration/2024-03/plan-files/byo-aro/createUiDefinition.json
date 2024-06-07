@@ -83,6 +83,14 @@
 				}
 			},
 			{
+				"name": "subnetDetails",
+                "type": "Microsoft.Solutions.ArmApiControl",
+                "request": {
+                    "method": "GET",
+                    "path": "[concat(basics('clusterDetails').properties.masterProfile.subnetId,'?api-version=2023-09-01')]"
+                }
+			},
+			{
 				"name": "privateVnet",
 				"type": "Microsoft.Common.CheckBox",
 				"label": "Private API",
@@ -279,9 +287,10 @@
 			"instanceNamespace": "[steps('cp4i').nameSpace]",
             "storageClass": "[steps('cp4i').storageClass]",
 			"privateVnet": "[basics('privateVnet')]",
+			"networkResourceGroup": "",
 			"vnetName": "",
-			"subnetName": "",
-			"subnetCidr": "",
+			"subnetName": "[basics('subnetDetails').name]",
+			"subnetCidr": "[basics('subnetDetails').properties.addressPrefix]",
 			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
 			"openshiftAdminUsername": "[basics('clusterCredentials').kubeadminUsername]",
 			"openshiftAdminPassword": "[basics('clusterCredentials').kubeadminPassword]"
