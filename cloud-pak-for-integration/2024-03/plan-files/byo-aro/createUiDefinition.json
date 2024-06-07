@@ -49,7 +49,7 @@
                 "type": "Microsoft.Solutions.ArmApiControl",
                 "request": {
                     "method": "GET",
-                    "path": "[concat(subscription().id, '/resourcegroups/',resourceGroup().name,'/providers/Microsoft.RedHatOpenShift/openShiftClusters?api-version=2022-09-04')]"
+                    "path": "[concat(subscription().id, '/resourceGroups/',resourceGroup().name,'/providers/Microsoft.RedHatOpenShift/openShiftClusters?api-version=2023-09-04')]"
                 }
             },
             {
@@ -63,6 +63,25 @@
                 },
                 "visible": true
             },
+            {
+                "name": "clusterDetails",
+                "type": "Microsoft.Solutions.ArmApiControl",
+                "request": {
+                    "method": "GET",
+                    "path": "[concat(subscription().id, '/resourceGroups/',resourceGroup().name,'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'?api-version=2023-09-04')]"
+                }
+            },
+			{
+				"name": "clusterCredentials",
+				"type": "Microsoft.Solutions.ArmApiControl",
+				"request": {
+					"method": "POST",
+					"body": {
+						"":""
+					},
+					"path": "[concat(subscription().id, '/resourceGroups/',resourceGroup().name,'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'/listCredentials?api-version=2023-09-04')]"
+				}
+			},
 			{
 				"name": "privateVnet",
 				"type": "Microsoft.Common.CheckBox",
@@ -257,12 +276,15 @@
             "acceptLicense": "[steps('cp4i').acceptLicense]",
 			"cp4iVersion": "[steps('cp4i').cp4iEdition.version ]",
 			"cp4iLicense": "[steps('cp4i').cp4iEdition.license ]",
-			"namespace": "[steps('cp4i').nameSpace]",
+			"instanceNamespace": "[steps('cp4i').nameSpace]",
             "storageClass": "[steps('cp4i').storageClass]",
 			"privateVnet": "[basics('privateVnet')]",
-			"vnetName": "[if()]",
-			"subnetName": "[if()]",
-			"subnetCidr": "[if()]"
+			"vnetName": "",
+			"subnetName": "",
+			"subnetCidr": "",
+			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
+			"openshiftAdminUsername": "[basics('clusterCredentials').kubeadminUsername]",
+			"openshiftAdminPassword": "[basics('clusterCredentials').kubeadminPassword]"
          }
     }
 }
