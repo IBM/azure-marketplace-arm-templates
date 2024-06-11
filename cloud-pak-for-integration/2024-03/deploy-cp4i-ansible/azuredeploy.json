@@ -176,7 +176,25 @@
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Flag to indicate whether a public ip address should be created."
+                "description": "Flag to indicate whether a public ip address should be used."
+            }
+        },
+        "publicIpNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to determine whether the public IP is existing or not"
+            }
+        },
+        "publicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group for public IP address if using an existing one"
             }
         },
         "publicIPName": {
@@ -191,6 +209,13 @@
             "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
             "metadata": {
                 "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "deployCp4i": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to run the VM extension that installs the Cloud Pak (Debug Only)"
             }
         },
         "openShiftApiUrl": {
@@ -362,8 +387,13 @@
             },
             "securityType": "[parameters('securityType')]"
         },
-        "publicIP": {
-            "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+        "publicIpId": {
+            "new": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            },
+            "existing": {
+                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            }
         },
         "vnetId": {
             "new": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
@@ -430,7 +460,7 @@
         {
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2022-07-01",
-            "condition": "[parameters('createPublicIP')]",
+            "condition": "[and(parameters('createPublicIP'),equals(parameters('publicIpNewOrExisting'),'new'))]",
             "name": "[parameters('publicIPName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
@@ -466,7 +496,7 @@
                             "subnet": {
                                 "id": "[variables('subnetId')]"
                             },
-                            "publicIPAddress": "[if(parameters('createPublicIP'),variables('publicIP'),json('null'))]",
+                            "publicIPAddress": "[if(parameters('createPublicIP'),variables('publicIpId')[parameters('publicIpNewOrExisting')],json('null'))]",
                             "privateIPAllocationMethod": "Dynamic"
                         }
                     }
@@ -543,6 +573,7 @@
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
             "name": "[concat(parameters('vmName'),'/','installCloudPak')]",
+            "condition": "[parameters('deployCp4i')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
             ],
@@ -584,12 +615,7 @@
         "publicIP": {
             "condition": "[parameters('createPublicIP')]",
             "type": "string",
-            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
-        },
-        "fqdn": {
-            "condition": "[parameters('createPublicIP')]",
-            "type": "string",
-            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').dnsSettings.fqdn]"
+            "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
         }
     }
 }
