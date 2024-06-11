@@ -272,6 +272,24 @@
                 "description": "Flag to indicate whether a public ip address should be created."
             }
         },
+        "vmPublicIpNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to determine whether the public IP is existing or not"
+            }
+        },
+        "vmPublicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group for public IP address if using an existing one"
+            }
+        },
         "vmPublicIPName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
@@ -529,6 +547,12 @@
                     },
                     "createPublicIP": {
                         "value": "[parameters('vmCreatePublicIP')]" 
+                    },
+                    "publicIpNewOrExisting": {
+                        "value": "[parameters('vmPublicIpNewOrExisting')]" 
+                    },
+                    "publicIpResourceGroup": {
+                        "value": "[parameters('vmPublicIpResourceGroup')]" 
                     },
                     "publicIPName": {
                         "value": "[parameters('vmPublicIPName')]" 
