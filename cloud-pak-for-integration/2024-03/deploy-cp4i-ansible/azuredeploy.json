@@ -17,6 +17,13 @@
                 "description": "Azure location for resources"
             }
         },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
         "vnetName": {
             "type": "string",
             "defaultValue": "vnet",
@@ -311,7 +318,6 @@
     },
     "variables": {
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
-        "vmName": "[concat(parameters('namePrefix'),'-vm')]",
         "nsgName": "[concat(parameters('namePrefix'), '-nsg')]",
         "nicName": "[concat(parameters('namePrefix'),'-nic')]",
         "linuxConfigSSH": {
@@ -488,7 +494,7 @@
         {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2021-03-01",
-            "name": "[variables('vmName')]",
+            "name": "[parameters('vmName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/virtualMachines'), parameters('tagsByResource')['Microsoft.Compute/virtualMachines'], json('{}')) ]",
             "properties": {
@@ -512,7 +518,7 @@
                     ]
                 },
                 "osProfile": {
-                    "computerName": "[variables('vmName')]",
+                    "computerName": "[parameters('vmName')]",
                     "adminUsername": "[parameters('adminUserName')]",
                     "adminPassword": "[parameters('adminPassword')]",
                     "customData": "[base64(variables('vmBootstrap'))]",
@@ -536,9 +542,9 @@
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
-            "name": "[concat(variables('vmName'),'/','installCloudPak')]",
+            "name": "[concat(parameters('vmName'),'/','installCloudPak')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName'))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
             ],
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
@@ -569,7 +575,7 @@
     "outputs": {
         "vmName": {
             "type": "string",
-            "value": "[variables('vmName')]"
+            "value": "[parameters('vmName')]"
         },
         "internalIP": {
             "type": "string",
