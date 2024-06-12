@@ -4,7 +4,7 @@
     "version": "0.1.2-preview",
     "parameters": {
 		"config": {
-			"isWizard": false,
+			"isWizard": true,
 			"basics": {
 				"resourceGroup": {
 					"constraints": {
@@ -18,7 +18,7 @@
 					"allowExisting": true
 				},
 				"location": {
-					"visible": false,
+					"visible": true,
 					"resourceTypes": [
 						"Microsoft.Resources/deploymentScripts",
 						"Microsoft.ManagedIdentity/userAssignedIdentities",
@@ -44,13 +44,32 @@
 					]
 				}
             },
-            {
+			{
                 "name": "clustersApi",
                 "type": "Microsoft.Solutions.ArmApiControl",
                 "request": {
                     "method": "GET",
-                    "path": "[concat(subscription().id, '/resourceGroups/',resourceGroup().name,'/providers/Microsoft.RedHatOpenShift/openShiftClusters?api-version=2023-09-04')]"
+                    "path": "[concat(subscription().id, '/resourcegroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters?api-version=2023-09-04')]"
                 }
+            },
+            {
+                "name": "resourceGroupsApi",
+                "type": "Microsoft.Solutions.ArmApiControl",
+                "request": {
+                    "method": "GET",
+                    "path": "[concat(subscription().id, '/resourceGroups?api-version=2021-04-01')]"
+                }
+            },
+            {
+                "name": "aroResourceGroup",
+                "type": "Microsoft.Common.DropDown",
+                "label": "ARO cluster resource group",
+                "toolTip": "Select the resource group containing the ARO cluster to use. This should be the resource group used to create the ARO cluster, not the one containing the ARO resources. The list of clusters depends upon the chosen resource group.",
+                "constraints": {
+                    "allowedValues": "[map(basics('resourceGroupsApi').value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
+                    "required": true    
+                },
+                "visible": true
             },
             {
                 "name": "aroClusterDropDown",
@@ -61,14 +80,14 @@
                     "allowedValues": "[map(basics('clustersApi').value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
                     "required": true    
                 },
-                "visible": true
+                "visible": "[not( equals( basics('aroResourceGroup'), '' ))]"
             },
             {
                 "name": "clusterDetails",
                 "type": "Microsoft.Solutions.ArmApiControl",
                 "request": {
                     "method": "GET",
-                    "path": "[concat(subscription().id, '/resourceGroups/',resourceGroup().name,'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'?api-version=2023-09-04')]"
+                    "path": "[concat(subscription().id, '/resourceGroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'?api-version=2023-09-04')]"
                 }
             },
 			{
@@ -79,7 +98,7 @@
 					"body": {
 						"":""
 					},
-					"path": "[concat(subscription().id, '/resourceGroups/',resourceGroup().name,'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'/listCredentials?api-version=2023-09-04')]"
+					"path": "[concat(subscription().id, '/resourceGroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'/listCredentials?api-version=2023-09-04')]"
 				}
 			}
         ],
@@ -537,8 +556,8 @@
 			"tagsByResource": "[steps('deployVm').resourceTags]",
 			"vmName": "[steps('deployVm').vmName]",
 			"vmAdminUserName": "[steps('deployVm').vmUsername]",
-			"vmAdminPassword": "[steps('deployVm').vmPassword]",
-			"vmAuthType": "[steps('deployVm').vmAuthType]",
+			"vmAdminPassword": "[if(equals(steps('deployVm').vmPassword.authenticationType,'password'),steps('deployVm').vmPassword.password,steps('deployVm').vmPassword.sshPublicKey)]",
+			"vmAuthType": "[steps('deployVm').vmPassword.authenticationType]",
 			"vmSize": "[steps('deployVm').vmSize]",
 			"vmDiskType": "[steps('deployVm').vmDiskType]",
 			"vmZone": "[steps('deployVm').vmZone]",
