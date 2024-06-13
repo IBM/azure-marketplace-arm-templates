@@ -160,6 +160,24 @@
                 "description": "Name of the virtual network containing the subnet to attach to. Used for private vnet."
             }
         },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "Address prefix for the new or existing virtual network"
+            }
+        },
+        "vnetNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Determines whether the VNet needs to be created or using an existing one"
+            }
+        },
         "subnetName": {
             "type": "string",
             "defaultValue": "script-subnet",
@@ -487,7 +505,99 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
             "condition": "[equals(parameters('deploymentApproach'),'vm')]",
+            "name": "virtualNetwork",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]" 
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('subnetCidr')]"
+                    },
+                    "existingVnet": {
+                        "value": "[equals(parameters('vnetNewOrExisting'), 'existing')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCIDR": {
+                            "type": "string"
+                        },
+                        "existingVnet": {
+                            "type": "bool"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2022-07-01",
+                            "name": "[parameters('vnetName')]",
+                            "condition": "[not(parameters('existingVnet'))]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                            ],
+                            "name": "[concat(parameters('vnetName'), '/' ,parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCIDR')]"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[equals(parameters('deploymentApproach'),'vm')]",
             "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
             "name": "cp4iDeploymentViaVm",
             "properties": {
@@ -612,11 +722,6 @@
             }
         }
     ],
-    "outputs": {
-        "platformNavigatorURL": {
-            "type": "string",
-            "condition": "[equals(parameters('acceptLicense'),'accept')]",
-            "value": "[uri(concat('https://cp4i-navigator-pn-',parameters('instanceNamespace'),'.apps.domain.',parameters('location'),'.aroapp.io/'),'')]"
-        }
+    "outputs": {    
     }
 }
