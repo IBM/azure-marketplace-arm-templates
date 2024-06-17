@@ -76,7 +76,7 @@
 					},
 					"toolTip": {
 						"virtualNetwork": "Selecting an existing VNet or enter the name of a new one",
-						"subnets": "The name and CIDR for the subnet (script subnet only used for private API deployments"
+						"subnets": "The name and CIDR of the subnets for the cluster and deployment VM"
 					},
 					"defaultValue": {
 						"name": "vnet",
@@ -113,15 +113,15 @@
 								"requireContiguousAddresses": true
 							}
 						},
-						"scriptSubnet": {
-							"label": "Script Endpoint Subnet",
+						"vmSubnet": {
+							"label": "Deployment VM Subnet",
 							"defaultValue": {
-								"name": "script-subnet",
-								"addressPrefixSize": "/28"
+								"name": "vm-subnet",
+								"addressPrefixSize": "/27"
 							},
 							"constraints": {
-								"minAddressPrefixSize": "/28",
-								"minAddressCount": 5,
+								"minAddressCount": 1,
+								"minAddressPrefixSize": "/30",
 								"requireContiguousAddresses": false
 							}
 						}
@@ -578,6 +578,241 @@
                         }
                     }
 				]
+			},
+			{
+				"name": "deployVm",
+				"label": "Deployment VM",
+				"elements": [	
+					{
+						"name": "deployVmInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+							"icon": "Info",
+							"text": "The deployment VM is used to run the deployment scripts and may be removed post implementation." 
+						}
+					},
+					{
+						"name": "vmName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "VM Hostname",
+						"toolTip": "Name of the virtual machine",
+						"visible": true,
+						"defaultValue": "[concat(basics('namePrefix'),'-vm')]",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z-_]{5,64}$",
+									"message": "Alphanumeric, underscores and dashes only between 5 and 64 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Administrator username for virtual machine",
+						"toolTip": "Username for the virtual machine",
+						"visible": true,
+						"defaultValue": "azureuser",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^(?!administrator|admin|user|user1|test|user2|test1|user3|admin1|actuser|admin2|aspnet|backup|console|david|guest|john|owner|server|support|support_388945a0|test2|test3|user4|user5|root)[a-z0-9A-Z]{5,64}$",
+									"message": "Alphanumeric only between 5 and 64 characters. Must not contain disallowed values"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmPassword",
+						"type": "Microsoft.Compute.CredentialsCombo",
+						"label": {
+						  "authenticationType": "Authentication type",
+						  "password": "Password",
+						  "confirmPassword": "Confirm password",
+						  "sshPublicKey": "SSH public key"
+						},
+						"toolTip": {
+						  "authenticationType": "SSH key or password. SSH key is recommended.",
+						  "password": "Password for the administrator user",
+						  "sshPublicKey": "Public SSH key for the administrator user. Private key required for access."
+						},
+						"constraints": {
+						  "required": true,
+						  "customPasswordRegex": "^(?!abc@123|P@$$w0rd|P@ssw0rd|P@ssword123|Pa$$word|pass@word1|Password!|Password1|Password22|iloveyou!)(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,72}$",
+						  "customValidationMessage": "The password must have a lowercase character, an uppercase character, a digit and a special character and contain at least 6 characters, up to 72 characters."
+						},
+						"options": {
+						  "hideConfirmation": false,
+						  "hidePassword": false
+						},
+						"osPlatform": "Linux",
+						"visible": true
+					},
+					{
+						"name": "vmSize",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "VM Size",
+						"toolTip": "Azure VM Size",
+						"recommendedSizes": [
+						  "Standard_B2s"
+						],
+						"constraints": {
+						  "allowedSizes": [
+							"Standard_B2s",
+							"Standard_D2s_v3",
+							"Standard_D4s_v3"
+						  ],
+						  "numAvailabilityZonesRequired": 1,
+						  "zone": "3"
+						},
+						"options": {
+						  "hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"imageReference": {
+						  "publisher": "RedHat",
+						  "offer": "RHEL",
+						  "sku": "9_2"
+						},
+						"count": 1,
+						"visible": true
+					},
+					{
+						"name": "vmZone",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Availability Zone for VM",
+						"defaultValue": ["1"],
+						"toolTip": "Zone must be present in selected region",
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "1",
+									"value": "1"
+								},
+								{
+									"label": "2",
+									"value": "2"
+								},
+								{
+									"label": "3",
+									"value": "3"
+								}
+							]
+						},
+						"required": true,
+						"visible": true
+					},
+					{
+						"name": "vmDiskType",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OS disk type for VM",
+						"toolTip": "Select the disk type for the deployment VM operating system disk",
+						"defaultValue": ["Standard SSD"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Premium SSD",
+									"value": "Premium_LRS"
+								},
+								{
+									"label": "Standard SSD",
+									"value": "Standard_LRS"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "vmOsVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "RHEL Version",
+						"toolTip": "Select the version of RHEL for the dpeloyment VM",
+						"defaultValue": ["RHEL 9.2"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "RHEL 8.6",
+									"value": "RHEL 8.6"
+								},
+								{
+									"label": "RHEL 8.7",
+									"value": "RHEL 8.7"
+								},
+								{
+									"label": "RHEL 9.2",
+									"value": "RHEL 9.2"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "networkInfoPrivate",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Private')]",
+						"options": {
+							"icon": "Warning",
+							"text": "With a private API for the ARO cluster, the network for the virtual machine must be the same as the internal API endpoint or at a minimum must be able to reach the internal API endpoint of the OpenShift cluster." 
+						}
+					},
+					{
+						"name": "networkInfoPublic",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Public')]",
+						"options": {
+							"icon": "Warning",
+							"text": "Ensure that the public API endpoint is accessible from the virtual network." 
+						}
+					},
+					{
+						"name": "vmPublicIPRequired",
+						"label": "VM Public IP",
+						"type": "Microsoft.Common.CheckBox",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "vmPublicIP",
+						"type": "Microsoft.Network.PublicIpAddressCombo",
+						"label": {
+							"publicIpAddress": "Public IP address for VM",
+							"domainNameLabel": "Domain name label for the VM's public IP"
+						},
+						"toolTip": {
+							"publicIpAddress": "Name of the public IP for the VM",
+							"domainNameLabel": "Domain name label for the public IP of the VM"
+						},
+						"defaultValue": {
+							"publicIpAddressName": "[concat(basics('namePrefix'),'-pip')]",
+							"domainNameLabel": "[toLower( concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)) )]"
+						},
+						"constraints": {
+							"required": {
+								"domainNameLabel": false
+							}
+						},
+						"options": {
+							"hideNone": true,
+							"hideDomainNameLabel": false,
+							"hideExisting": false,
+							"zone": "[steps('deployVm').vmZone]"
+						},
+						"visible": "[steps('deployVm').vmPublicIPRequired]"
+					}
+				]
 			}
          ],
         "outputs": {
@@ -590,8 +825,6 @@
 			"controlSubnetName": "[steps('networking').vnet.subnets.controlSubnet.name]",
 			"workerSubnetCIDR": "[steps('networking').vnet.subnets.workerSubnet.addressPrefix]",
 			"workerSubnetName": "[steps('networking').vnet.subnets.workerSubnet.name]",
-			"scriptSubnetCidr": "[steps('networking').vnet.subnets.scriptSubnet.addressPrefix]",
-			"scriptSubnetName": "[steps('networking').vnet.subnets.scriptSubnet.name]",
 			"deployODF": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('cp4i').ibmEntitlementKey]",
@@ -612,7 +845,24 @@
 			"domain": "[steps('openshift').domainName]",
 			"encryption": "[steps('openshift').encryption]",
 			"apiVisibility": "[steps('openshift').apiVisibility]",
-			"ingressVisibility": "[steps('openshift').ingressVisibility]"
+			"ingressVisibility": "[steps('openshift').ingressVisibility]",
+			"vmName": "[steps('deployVm').vmName]",
+			"vmAdminUserName": "[steps('deployVm').vmUsername]",
+			"vmAdminPassword": "[if(equals(steps('deployVm').vmPassword.authenticationType,'password'),steps('deployVm').vmPassword.password,steps('deployVm').vmPassword.sshPublicKey)]",
+			"vmAuthType": "[steps('deployVm').vmPassword.authenticationType]",
+			"vmSize": "[steps('deployVm').vmSize]",
+			"vmDiskType": "[steps('deployVm').vmDiskType]",
+			"vmZone": "[steps('deployVm').vmZone]",
+			"vmOSVersion": "[steps('deployVm').vmOsVersion]",
+			"subnetName": "[steps('networking').vnet.subnets.vmSubnet.name]",
+			"subnetCidr": "[steps('networking').vnet.subnets.vmSubnet.name]",
+			"vmCreatePublicIP": "[steps('deployVm').vmPublicIPRequired]",
+			"vmPublicIPName": "[steps('deployVm').vmPublicIP.name]",
+			"vmPublicIpResourceGroup": "[steps('deployVm').vmPublicIP.resourceGroup]",
+			"vmPublicIpNewOrExisting": "[steps('deployVm').vmPublicIP.newOrExistingOrNone]",
+			"vmDomainName": "[steps('deployVm').vmPublicIP.domainNameLabel]",
+			"deploymentVersion": "2024-03",
+			"logLevel": "info"
          }
     }
 }
