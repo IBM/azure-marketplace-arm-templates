@@ -124,7 +124,7 @@
     - name: Create instance namespace
       ansible.builtin.shell: |
         set timeout 300
-        {{ directories.bin_dir }}/oc create ns {{ operator.namespace }}
+        {{ directories.bin_dir }}/oc create ns {{ instance.namespace }}
         exit 0
       when: not instanceNamespaceExists
 
