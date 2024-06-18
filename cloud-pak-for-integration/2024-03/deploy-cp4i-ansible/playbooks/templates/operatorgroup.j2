@@ -1,8 +1,8 @@
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: {{ instance.namespace }}-og
-  namespace: {{ instance.namespace }}
+  name: {{ operator.namespace }}-og
+  namespace: {{ operator.namespace }}
 spec:
   targetNamespaces:
-    - {{ instance.namespace }}
+    - {{ operator.namespace }}
