@@ -512,6 +512,10 @@
         "aroVersion": {
             "type": "string",
             "value": "[parameters('aroVersion')]"
+        },
+        "clusterId": {
+            "type": "string",
+            "value": "[resourceId(parameters('clusterName'),'2022-04-01')]"
         }
     }
 }
