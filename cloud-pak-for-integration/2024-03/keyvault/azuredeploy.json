@@ -34,6 +34,7 @@
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.KeyVault/vaults'), parameters('tagsByResource')['Microsoft.KeyVault/vaults'], json('{}')) ]",
             "properties":{
                 "enableRbacAuthorization": true,
+                "enabledForTemplateDeployment": true,
                 "tenantId": "[tenant().tenantId]",
                 "sku": "[variables('vaultSku')]"
             }
@@ -53,7 +54,7 @@
                 "[resourceId('Microsoft.KeyVault/vaults', parameters('vaultName'))]"
             ],
             "scope": "[concat('Microsoft.KeyVault/vaults/', parameters('vaultName'))]",
-            "name": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+            "name": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id, parameters('vaultName'))]",
             "properties": {
                 "roleDefinitionId": "[variables('roleDefinitionId')]",
                 "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
