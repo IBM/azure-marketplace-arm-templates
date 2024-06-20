@@ -59,6 +59,14 @@
                 "description": "Name of the secret to create in the key vault for the private SSH key"
             }
         },
+        "deploymentApproach": {
+            "type": "string",
+            "defaultValue": "vm",
+            "allowedValues": [
+                "vm",
+                "container"
+            ]
+        },
         "deployPrereqs": {
             "type": "bool",
             "defaultValue": true,
@@ -269,6 +277,38 @@
                 "description": "Namespace for CP4I instance"
             }
         },
+        "operatorScope": {
+            "type": "string",
+            "defaultValue": "namespace",
+            "allowedValues": [
+                "cluster",
+                "namespace"
+            ],
+            "metadata": {
+                "description": "Scope of the operator installation"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "ibmint",
+            "metadata": {
+                "description": "Namespace to be utilized for the operators if namespace scoped"
+            }
+        },
+        "instanceNamespace": {
+            "type": "string",
+            "defaultValue": "ibmint",
+            "metadata": {
+                "description": "Namespace for the Platform Navigator instance"
+            }
+        },
+        "instanceName": {
+            "type": "string",
+            "defaultValue": "quickstart-integration",
+            "metadata": {
+                "description": "Name for the Platform Navigator instance"
+            }
+        },
         "rgRoleGuidOdf": {
             "type": "string",
             "defaultValue": "[newGuid()]",
@@ -360,6 +400,20 @@
                 "description": "Network address of the subnet to attach the deployment script container to"
             }
         },
+        "vmSubnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Name of the subnet to attach the deployment / management VM to. Used for private vnet."
+            }
+        },
+        "vmSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.3.0/27",
+            "metadata": {
+                "description": "Network address of the subnet to attach the deployment / management VM to"
+            }
+        },
         "workerNsgName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-',parameters('workerSubnetName'),'-nsg')]",
@@ -379,6 +433,136 @@
             "defaultValue": "ocs-storagecluster-cephfs",
             "metadata": {
                 "description": "Name of the RWX file storage class on the OpenShift cluster."
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "vmAdminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "vmAdminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine."
+            }
+        },
+        "vmAuthType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "vmSecurityType": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2s",
+            "allowedValues": [
+                "Standard_B2s",
+                "Standard_D2s_v3",
+                "Standard_D4s_v3"
+            ],
+            "metadata": {
+                "description": "Size of Virtual Machine"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 8.7",
+            "allowedValues": [
+                "RHEL 8.6",
+                "RHEL 8.7",
+                "RHEL 9.2"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "vmCreatePublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "vmPublicIpNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to determine whether the public IP is existing or not"
+            }
+        },
+        "vmPublicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group for public IP address if using an existing one"
+            }
+        },
+        "vmPublicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "vmDomainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
             }
         },
         "logLevel": {
@@ -722,8 +906,14 @@
                     "workerSubnetName": {
                         "value": "[parameters('workerSubnetName')]"
                     },
+                    "createSubnet": {
+                        "value": false
+                    },
                     "subnetName": {
                         "value": "[parameters('scriptSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('scriptSubnetCidr')]"
                     },
                     "masterNodeSize": {
                         "value": "[parameters('masterNodeSize')]"
@@ -841,7 +1031,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
             "name": "deployCloudPakForIntegration",
-            "condition": "[parameters('deployCP4I')]",
+            "condition": "[and(parameters('deployCP4I'),equals(parameters('deploymentApproach'),'container'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployOpenShift')]",
@@ -931,6 +1121,238 @@
                     }
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('deployCP4I'),equals(parameters('deploymentApproach'),'vm'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployNetworkSecurityGroups')]"
+            ],
+            "name": "vmSubnet",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]" 
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('vmSubnetCidr')]"
+                    },
+                    "existingVnet": {
+                        "value": true 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCIDR": {
+                            "type": "string"
+                        },
+                        "existingVnet": {
+                            "type": "bool"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2022-07-01",
+                            "name": "[parameters('vnetName')]",
+                            "condition": "[not(parameters('existingVnet'))]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                            ],
+                            "name": "[concat(parameters('vnetName'), '/' ,parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCIDR')]"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('deployCP4I'),equals(parameters('deploymentApproach'),'vm'))]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployOpenShift')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployOdf')]"
+            ],
+            "name": "cp4iDeploymentViaVm",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/cloud-pak-for-integration/',parameters('deploymentVersion'),'/deploy-cp4i-ansible/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "virtualNetworkResourceGroupName": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('vmSubnetCidr')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('vmAdminUserName')]" 
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('vmAdminPassword')]" 
+                    },
+                    "authType": {
+                        "value": "[parameters('vmAuthType')]" 
+                    },
+                    "securityType": {
+                        "value": "[parameters('vmSecurityType')]" 
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]" 
+                    },
+                    "vmDiskType": {
+                        "value": "[parameters('vmDiskType')]" 
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]" 
+                    },
+                    "vmOSVersion": {
+                        "value": "[parameters('vmOSVersion')]" 
+                    },
+                    "createPublicIP": {
+                        "value": "[parameters('vmCreatePublicIP')]" 
+                    },
+                    "publicIpNewOrExisting": {
+                        "value": "[parameters('vmPublicIpNewOrExisting')]" 
+                    },
+                    "publicIpResourceGroup": {
+                        "value": "[parameters('vmPublicIpResourceGroup')]" 
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('vmPublicIPName')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('vmDomainName')]" 
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['apiServer'].value]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['adminUser'].value]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "reference": {
+                            "keyVault": {
+                                "id": "[reference(resourceId('Microsoft.Resources/deployments','createKeyVault'),'2023-07-01').outputs['vaultId'].value]"
+                            },
+                            "secretName": "[parameters('clusterPasswordSecretName')]"
+                        }  
+                    },
+                    "cloudPakVersion": {
+                        "value": "[parameters('cp4iVersion')]"
+                    },
+                    "cloudPakLicense": {
+                        "value": "[parameters('cp4iLicense')]"
+                    },
+                    "entitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "operatorScope": {
+                        "value": "[parameters('operatorScope')]" 
+                    },
+                    "operatorNamespace": {
+                        "value": "[parameters('operatorNamespace')]" 
+                    },
+                    "instanceNamespace": {
+                        "value": "[parameters('instanceNamespace')]" 
+                    },
+                    "instanceName": {
+                        "value": "[parameters('instanceName')]" 
+                    },
+                    "licenseAccepted": {
+                        "value": "[if(equals(parameters('acceptLicense'),'accept'),bool('true'),bool('false'))]" 
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                }
+            }
         }
     ],
     "outputs": {
@@ -938,11 +1360,6 @@
             "type": "string",
             "condition": "[parameters('deployOCP')]",
             "value": "[reference(resourceId('Microsoft.Resources/deployments','deployOpenShift'),'2023-07-01').outputs['consoleURL'].value]"
-        },
-        "platformNavigatorURL": {
-            "type": "string",
-            "condition": "[equals(parameters('acceptLicense'),'accept')]",
-            "value": "[reference(resourceId('Microsoft.Resources/deployments','deployCloudPakForIntegration'),'2023-07-01').outputs['cp4iConsoleURL'].value]"
         }
     }
 }
