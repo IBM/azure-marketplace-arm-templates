@@ -570,31 +570,7 @@
 							}
 						  ]
 						}
-					},
-                    {
-                        "name": "odfNodeSize",
-                        "type": "Microsoft.Common.DropDown",
-                        "label": "ODF Size per Node",
-						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
-                        "toolTip": "ODF Cluster Size will be three times this size",
-                        "defaultValue": "2 TiB",
-                        "constraints": {
-                            "allowedValues": [
-                                {
-                                    "label": "1 TiB",
-                                    "value": "1Ti"
-                                },
-                                {
-                                    "label": "2 TiB",
-                                    "value": "2Ti"
-                                },
-                                {
-                                    "label": "3 TiB",
-                                    "value": "3Ti"
-                                }
-                            ]
-                        }
-                    }
+					}
 				]
 			},
 			{
@@ -797,6 +773,7 @@
 					{
 						"name": "vmPublicIPRequired",
 						"label": "VM Public IP",
+						"toolTip": "Create a public IP for the deployment VM?",
 						"type": "Microsoft.Common.CheckBox",
 						"constraints": {
 							"required": false
@@ -843,7 +820,6 @@
 			"controlSubnetName": "[steps('networking').vnet.subnets.controlSubnet.name]",
 			"workerSubnetCIDR": "[steps('networking').vnet.subnets.workerSubnet.addressPrefix]",
 			"workerSubnetName": "[steps('networking').vnet.subnets.workerSubnet.name]",
-			"deployODF": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
 			"operatorNamespace": "[steps('cp4i').namespace]",
 			"instanceNamespace": "[steps('cp4i').namespace]",
 			"instanceName": "[steps('cp4i').instanceName]",
@@ -860,7 +836,6 @@
 			"masterSize": "[steps('openshift').masterNodes]",
 			"workerSize": "[steps('openshift').workerNodes]",
 			"workerCount": "[steps('openshift').workerCount]",
-            "storageSizePerNode": "[steps('openshift').odfNodeSize]",
 			"aroVersion": "[steps('openshift').aroVersion]",
 			"domain": "[steps('openshift').domainName]",
 			"encryption": "[steps('openshift').encryption]",

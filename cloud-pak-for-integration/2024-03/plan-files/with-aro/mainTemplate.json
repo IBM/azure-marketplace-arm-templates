@@ -689,7 +689,7 @@
         },
         {
             "type": "Microsoft.RedHatOpenShift/OpenShiftClusters",
-            "apiVersion": "2022-04-01",
+            "apiVersion": "2023-04-01",
             "name": "[parameters('clusterName')]",
             "condition": "[parameters('deployARO')]",
             "location": "[parameters('location')]",

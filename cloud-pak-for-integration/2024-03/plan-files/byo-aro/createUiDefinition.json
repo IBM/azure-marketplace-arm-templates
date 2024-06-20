@@ -203,7 +203,7 @@
 						"type": "Microsoft.Common.TextBox",
 						"label": "Platform UI namespace",
 						"defaultValue": "[basics('namePrefix')]",
-						"toolTip": "Namespace where you want to install the Platform UI.",
+						"toolTip": "Namespace where you want to install the operators and Platform Navigator instance",
 						"multiLine": false,
 						"constraints": {
 						  "required": true,
@@ -221,7 +221,7 @@
 						"type": "Microsoft.Common.TextBox",
 						"label": "Platform UI instance name",
 						"defaultValue": "integration-quickstart",
-						"toolTip": "Name of the Platform UI instance to be created.",
+						"toolTip": "Name of the Platform Navigator instance to be created.",
 						"multiLine": false,
 						"constraints": {
 						  "required": true,
@@ -491,6 +491,7 @@
 					{
 						"name": "vmPublicIPRequired",
 						"label": "VM Public IP",
+						"toolTip": "Create a public IP for the deployment VM?",
 						"type": "Microsoft.Common.CheckBox",
 						"constraints": {
 							"required": false
@@ -527,6 +528,7 @@
 					{
 						"name": "resourceTags",
 						"type": "Microsoft.Common.TagsByResource",
+						"toolTip": "Adds tags for the created resources",
 						"resources": [
 							"Microsoft.Network.virtualNetworks",
 							"Microsoft.Compute/virtualMachines",

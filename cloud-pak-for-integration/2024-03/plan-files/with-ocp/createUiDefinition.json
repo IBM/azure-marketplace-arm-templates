@@ -762,6 +762,7 @@
 					{
 						"name": "vmPublicIPRequired",
 						"label": "VM Public IP",
+						"toolTip": "Create a public IP for the deployment VM?",
 						"type": "Microsoft.Common.CheckBox",
 						"constraints": {
 							"required": false
