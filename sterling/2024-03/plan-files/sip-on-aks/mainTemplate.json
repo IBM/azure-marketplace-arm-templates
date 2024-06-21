@@ -1,0 +1,2152 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names. Must start with a letter and be 3 to 10 characters."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure region for the deployment"
+            }
+        },
+        "scriptStorageAccountName": {
+            "type": "string",
+            "defaultValue": "[ concat( toLower( parameters('namePrefix') ), 'script', substring( uniqueString(resourceGroup().id), 1, 7 ) ) ]",
+            "minLength": 3,
+            "maxLength": 24,
+            "metadata": {
+                "description": "Storage account name for the deployment scripts"
+            }
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[ concat( parameters('namePrefix'), '-id' ) ]",
+            "minLength": 3,
+            "maxLength": 24,
+            "metadata": {
+                "description": "Name of the managed identity for the resource group"
+            }
+        },
+        "vaultName": {
+            "type": "string",
+            "defaultValue": "[ concat( parameters('namePrefix'), '-', substring( uniqueString(resourceGroup().id), 1, 5 ), '-keyvault' ) ]",
+            "metadata": {
+                "description": "Name of the key vault to store credentials"
+            }
+        },
+        "keyName": {
+            "type": "string",
+            "defaultValue": "[ concat(parameters('namePrefix'), '-sshkey') ]",
+            "metadata": {
+                "description": "Name of the secret to create in the key vault for the private SSH key"
+            }
+        },
+        "sshKeyScriptGuid": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "Identifier for SSH key creation script. Script will only re-run if changed."
+            }
+        },
+        "deployPrereqs": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to run the script prerequisites (for debug only)"
+            }
+        },
+        "deployKeyVault": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create the key vault (for debug only)"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Azure monitor for resources"
+            }
+        },
+        "deployManagementVm": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy a management VM for the cluster"
+            }
+        },
+        "deployBastion": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy a bastion service to access the environment"
+            }
+        },
+        "deployAcr": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the private Azure Container Registry (debug only)"
+            }
+        },
+        "deployAks": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the Azure Kubernetes Service (debug only)"
+            }
+        },
+        "deploySip": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy SIP (debug only)"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace"
+            }
+        },
+        "logRetentionPeriod": {
+            "type": "int",
+            "defaultValue": 60,
+            "metadata": {
+                "description": "Days to retain logs. Use -1 for unlimited SKU. 730 is the maximum for all other SKU's "
+            }
+        },
+        "logAnalyticsSku": {
+            "type": "string",
+            "defaultValue": "PerGB2018",
+            "allowedValues": [
+                "Free",
+                "Standalone",
+                "PerNode",
+                "PerGB2018"
+            ],
+            "metadata": {
+                "description": "SKU for the log analytics service."
+            }
+        },
+        "bastionSku": {
+            "type": "string",
+            "allowedValues": [
+                "Basic",
+                "Standard"
+            ],
+            "defaultValue": "Standard",
+            "metadata": {
+                "description": "SKU for the bastion service"
+            }
+        },
+        "bastionDisableCopyPaste": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Disable ability to copy and paste to bastion session"
+            }
+        },
+        "bastionDnsName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "DNS name for the Bastion front end if required"
+            }
+        },
+        "bastionEnableFileCopy": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the file copy feature of the bastion service"
+            }
+        },
+        "bastionEnableIpConnect": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the IP Connect feature of the bastion service"
+            }
+        },
+        "bastionEnableKerberos": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the kerberos feature of the bastion service"
+            }
+        },
+        "bastionEnableShareableLink": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the Shareable link feature of the bastion service"
+            }
+        },
+        "bastionEnableTunneling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable the tunneling feature of the bastion service"
+            }
+        },
+        "registryName": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),'r',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name of the container registry"
+            }
+        },
+        "registrySku": {
+            "type": "string",
+            "defaultValue": "Premium",
+            "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+            ],
+            "metadata": {
+                "description": "Container Registry SKU"
+            }
+        },
+        "acrZoneRedundancy": {
+            "type": "string",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "defaultValue": "Disabled",
+            "metadata": {
+                "description": "Enable or disable registry zone redundancy and associated duplication"
+            }
+        },
+        "hostEncryption": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether hosts should have host-level encryption enabled, \"Encryption At Host\" (requires activation for Azure subscription)"
+            }
+        },
+        "publicSshKey": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Public SSH Key for the AKS nodes"
+            }
+        },
+        "aksClusterName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-aks')]",
+            "metadata": {
+                "description": "Name for the AKS cluster"
+            }
+        },
+        "aksSkuTier": {
+            "type": "string",
+            "defaultValue": "Premium",
+            "allowedValues": [
+                "Free",
+                "Standard",
+                "Premium"
+            ],
+            "metadata": {
+                "description": "SKU tier for the AKS cluster. "
+            }
+        },
+        "aksClusterPrivate": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the AKS cluster will private only - i.e. will not have any public ingress"
+            }
+        },
+        "aksClusterDisableLocalAccounts": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether local kubernetes accounts should be disabled. Setting this requires all users to be defined in EntraID"
+            }
+        },
+        "aksClusterNodeOsUpgradeChannel": {
+            "type": "string",
+            "defaultValue": "NodeImage",
+            "allowedValues": [
+                "NodeImage",
+                "None",
+                "Unmanaged"
+            ]
+        },
+        "aksClusterUpgradeChannel": {
+            "type": "string",
+            "defaultValue": "patch",
+            "allowedValues": [
+                "none-image",
+                "none",
+                "patch",
+                "rapid",
+                "stable"
+            ]
+        },
+        "aksEnablePodIdentityProfile": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the AKS pod identity profile should be enabled. Requires feature to be enabled in subscription"
+            }
+        },
+        "aksEnableAadIntegration": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable AKS EntraID integration"
+            }
+        },
+        "aksEnableAadRbac": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable EntraID RBAC authentication for kubernetes users"
+            }
+        },
+        "aksAdminGroupObjectId": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "EntraID group object Id that will have admin access to the AKS cluster. Only valid and required if AAD RBAC is enabled."
+            }
+        },
+        "aksAadTenantId": {
+            "type": "string",
+            "defaultValue": "[tenant().tenantId]",
+            "metadata": {
+                "description": "Tenant Id for the EntraID group object that will have admin access to the AKS cluster. Only valid if AAD RBAC is enabled."
+            }
+        },
+        "aksKubernetesVersion": {
+            "type": "string",
+            "defaultValue": "1.27",
+            "metadata": {
+                "description": "Version of kubneretes to be used for the AKS cluster"
+            }
+        },
+        "aksClusterDnsPrefix": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('aksClusterName'),substring( uniqueString(resourceGroup().id), 1, 4 ))]",
+            "metadata": {
+                "description": "Domain name prefix for the AKS cluster"
+            }
+        },
+        "aksEnableRbac": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use RBAC for the AKS cluster"
+            }
+        },
+        "aksEnableAzurePolicy": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to enable Azure policy in the AKS cluster"
+            }
+        },
+        "aksAdminUserName": {
+            "type": "string",
+            "defaultValue": "aksadmin",
+            "metadata": {
+                "description": "Default administrator user for AKS nodes"
+            }
+        },
+        "aksAutoScalerScanInterval": {
+            "type": "string",
+            "defaultValue": "10s",
+            "metadata": {
+                "description": "Scan interval for the auto-scaler of the AKS cluster."
+            }
+        },
+        "aksAutoScalerDownDelayPostAdd": {
+            "type": "string",
+            "defaultValue": "10m",
+            "metadata": {
+                "description": "Auto scaler scale down delay after add for the AKS cluster."
+            }
+        },
+        "aksAutoScalerDownDelayPostDelete": {
+            "type": "string",
+            "defaultValue": "20s",
+            "metadata": {
+                "description": "Auto scaler scale down delay after delete for the AKS cluster."
+            }
+        },
+        "aksAutoScalerDownDelayPostFailure": {
+            "type": "string",
+            "defaultValue": "3m",
+            "metadata": {
+                "description": "Auto scaler scale down delay after failure for the AKS cluster."
+            }
+        },
+        "aksAutoScalerScaleDownUnneededTime": {
+            "type": "string",
+            "defaultValue": "10m",
+            "metadata": {
+                "description": "Auto-scaler scale down unneeded time for the AKS cluster."
+            }
+        },
+        "aksAutoScalerScaleDownUnReadyTime": {
+            "type": "string",
+            "defaultValue": "20m",
+            "metadata": {
+                "description": "Auto-scaler scale down unready time for the AKS cluster."
+            }
+        },
+        "aksAutoScalerScaleDownUtilThreshold": {
+            "type": "string",
+            "defaultValue": "0.5",
+            "metadata": {
+                "description": "Auto-scaler utilization threshold for the AKS cluster."
+            }
+        },
+        "aksAutoScalerMaxGraceTerminationTime": {
+            "type": "string",
+            "defaultValue": "600",
+            "metadata": {
+                "description": "Auto-scaler maximum graceful termination time interval in seconds for the AKS cluster."
+            }
+        },
+        "aksSystemNodePoolName": {
+            "type": "string",
+            "defaultValue": "controlpool",
+            "metadata": {
+                "description": "The name of the AKS control node pool"
+            }
+        },
+        "aksSystemNodeVmPoolType": {
+            "type": "string",
+            "defaultValue": "VirtualMachineScaleSets",
+            "allowedValues": [
+                "VirtualMachineScaleSets",
+                "AvailabilitySet"
+            ],
+            "metadata": {
+                "description": "The type of VM pool for the control nodes - virtual machine set or availability set"
+            }
+        },
+        "aksSystemNodeCount": {
+            "type": "int",
+            "defaultValue": 3,
+            "minValue": 1,
+            "maxValue": 100,
+            "metadata": {
+                "description": "Number of AKS control nodes to deploy by default"
+            }
+        },
+        "aksSystemNodeSize": {
+            "type": "string",
+            "defaultValue": "Standard_D8s_v3",
+            "metadata": {
+                "description": "VM size of each AKS control plane node"
+            }
+        },
+        "aksSystemNodeOsSku": {
+            "type": "string",
+            "defaultValue": "Ubuntu",
+            "allowedValues": [
+                "AzureLinux",
+                "Ubuntu"
+            ]
+        },
+        "aksSystemOsDiskSize": {
+            "type": "int",
+            "defaultValue": 128,
+            "metadata": {
+                "description": "Size in GiB of the OS disk for the AKS control plan nodes"
+            }
+        },
+        "aksSystemNodeMax": {
+            "type": "int",
+            "defaultValue": 6,
+            "minValue": 1,
+            "maxValue": 100,
+            "metadata": {
+                "description": "Maximum number of AKS control plane nodes to scale up to"
+            }
+        },
+        "aksSystemNodeAutoScaling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use auto scaling with the AKS control plane nodes"
+            }
+        },
+        "aksSystemNodeScaleSetPriority": {
+            "type": "string",
+            "defaultValue": "Regular",
+            "allowedValues": [
+                "Spot",
+                "Regular"
+            ],
+            "metadata": {
+                "description": "Auto-scaler priority for the AKS control plan nodes"
+            }
+        },
+        "aksSystemNodeScaleSetEvictionPolicy": {
+            "type": "string",
+            "defaultValue": "Delete",
+            "allowedValues": [
+                "Delete",
+                "Deallocate"
+            ],
+            "metadata": {
+                "description": "Auto-scaler eviction policy for the AKS control plan nodes"
+            }
+        },
+        "aksSystemNodeAvailabilityZone": {
+            "type": "array",
+            "defaultValue": [
+                "1",
+                "2",
+                "3"
+            ],
+            "metadata": {
+                "description": "Array of the availability zones to be used for the AKS control plane nodes (only relevant when pool type is virtual machine scale set.)"
+            }
+        },
+        "aksSystemNodeMaxPods": {
+            "type": "int",
+            "defaultValue": 30,
+            "metadata": {
+                "description": "Maximum number of pods that can run on an AKS control plane node"
+            }
+        },
+        "aksSystemNodeLabels": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Additional labels for the AKS control plane nodes"
+            }
+        },
+        "aksUserNodePoolName": {
+            "type": "string",
+            "defaultValue": "workerpool",
+            "metadata": {
+                "description": "The name of the AKS control node pool"
+            }
+        },
+        "aksUserNodeVmPoolType": {
+            "type": "string",
+            "defaultValue": "VirtualMachineScaleSets",
+            "allowedValues": [
+                "VirtualMachineScaleSets",
+                "AvailabilitySet"
+            ],
+            "metadata": {
+                "description": "The type of VM pool for the system nodes - virtual machine set or availability set"
+            }
+        },
+        "aksUserNodeCount": {
+            "type": "int",
+            "defaultValue": 3,
+            "minValue": 3,
+            "maxValue": 100,
+            "metadata": {
+                "description": "Number of AKS control nodes to deploy by default"
+            }
+        },
+        "aksUserNodeSize": {
+            "type": "string",
+            "defaultValue": "Standard_D8s_v3",
+            "metadata": {
+                "description": "VM size of each AKS control plane node"
+            }
+        },
+        "aksUserNodeOsSku": {
+            "type": "string",
+            "defaultValue": "Ubuntu",
+            "allowedValues": [
+                "AzureLinux",
+                "Ubuntu"
+            ]
+        },
+        "aksUserOsDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "metadata": {
+                "description": "Size in GiB of the OS disk for the AKS worker plan nodes"
+            }
+        },
+        "aksUserNodeMax": {
+            "type": "int",
+            "defaultValue": 10,
+            "minValue": 3,
+            "maxValue": 100,
+            "metadata": {
+                "description": "Maximum number of AKS worker plane nodes to scale up to"
+            }
+        },
+        "aksUserNodeAutoScaling": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to use auto scaling with the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeScaleSetPriority": {
+            "type": "string",
+            "defaultValue": "Regular",
+            "allowedValues": [
+                "Spot",
+                "Regular"
+            ],
+            "metadata": {
+                "description": "Auto-scaler priority for the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeScaleSetEvictionPolicy": {
+            "type": "string",
+            "defaultValue": "Delete",
+            "allowedValues": [
+                "Delete",
+                "Deallocate"
+            ],
+            "metadata": {
+                "description": "Auto-scaler eviction policy for the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeAvailabilityZone": {
+            "type": "array",
+            "defaultValue": [
+                "1",
+                "2",
+                "3"
+            ],
+            "metadata": {
+                "description": "Array of the availability zones to be used for the AKS worker plane nodes (only relevant when pool type is virtual machine scale set.)"
+            }
+        },
+        "aksUserNodeMaxPods": {
+            "type": "int",
+            "defaultValue": 30,
+            "minValue": 2,
+            "maxValue": 250,
+            "metadata": {
+                "description": "Maximum number of pods that can run on an AKS worker plane node"
+            }
+        },
+        "aksUserNodeLabels": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Additional labels for the AKS worker plane nodes"
+            }
+        },
+        "aksUserNodeTaints": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Array of additional taints for the AKS worker plane nodes"
+            }
+        },
+        "aksEnableEncryptionAtHost": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable encryption at host on AKS cluster nodes. Not supported on all VM sizes or Azure regions. Refer https://docs.microsoft.com/azure/aks/enable-host-encryption"
+            }
+        },
+        "aksEnableFips": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable FIPS on AKS cluster nodes. Refer to https://learn.microsoft.com/en-us/azure/aks/use-multiple-node-pools#add-a-fips-enabled-node-pool-preview"
+            }
+        },
+        "aksEnableUltraSsd": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to enable Ultra SSD support for the AKS cluster nodes"
+            }
+        },
+        "aksServiceCidr": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/16",
+            "metadata": {
+                "description": "IP address prefix for the internal AKS services"
+            }
+        },
+        "aksDnsServiceIp": {
+            "type": "string",
+            "defaultValue": "172.16.0.10",
+            "metadata": {
+                "description": "IP address for the internal DNS service. Must be within the serviceCIDR"
+            }
+        },
+        "aksDockerBridgeCidr": {
+            "type": "string",
+            "defaultValue": "172.17.0.1/16",
+            "metadata": {
+                "description": "IP address prefix for the docker bridge network. Must not overlap with any other internal or external IP addresses."
+            }
+        },
+        "aksPodCidr": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/16",
+            "metadata": {
+                "description": "IP address prefix for the pod network when kubenet is used"
+            }
+        },
+        "aksNetworkPlugin": {
+            "type": "string",
+            "defaultValue": "kubenet",
+            "allowedValues": [
+                "azure",
+                "kubenet",
+                "none"
+            ],
+            "metadata": {
+                "description": "Specifies the type of AKS network plugin to be used - azure, kubenet or none"
+            }
+        },
+        "aksNetworkPolicy": {
+            "type": "string",
+            "defaultValue": "calico",
+            "allowedValues": [
+                "azure",
+                "calico",
+                "cilium"
+            ],
+            "metadata": {
+                "description": "Specifies the network policy for building networks in the AKS cluster - Calico, Cilium or Azure"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group containing the virtual network"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the virtual network already exists"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/16",
+            "metadata": {
+                "description": "CIDR for Virtual Network"
+            }
+        },
+        "outboundRouting": {
+            "type": "string",
+            "defaultValue": "NAT Gateway",
+            "allowedValues": [
+                "Azure Default",
+                "NAT Gateway",
+                "User Defined"
+            ],
+            "metadata": {
+                "description": "Routing method for outbound traffic"
+            }
+        },
+        "natGatewayName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-nat-gateway')]",
+            "metadata": {
+                "description": "Name of the NAT gateway to create if using NAT for outbound traffic"
+            }
+        },
+        "natGwPublicIPPrefixName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-ngw-pip')]",
+            "metadata": {
+                "description": "Name of the public IP prefix if using NAT Gateway routing"
+            }
+        },
+        "natGwPublicIPPrefixLength": {
+            "type": "int",
+            "defaultValue": 28,
+            "allowedValues": [
+                28,
+                29,
+                30,
+                31
+            ],
+            "metadata": {
+                "description": "Specifies the length of the public IP prefix."
+            }
+        },
+        "aksSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the AKS subnet"
+            }
+        },
+        "aksSubnetName": {
+            "type": "string",
+            "defaultValue": "control-subnet",
+            "metadata": {
+                "description": "Name of the AKS subnet"
+            }
+        },
+        "podSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.64.0/18",
+            "metadata": {
+                "description": "IP address CIDR for the AKS pod IP address when azure network plugin is used. Must have sufficient IP addresses for all possible pods."
+            }
+        },
+        "podSubnetName": {
+            "type": "string",
+            "defaultValue": "pod-subnet",
+            "metadata": {
+                "description": "Subnet name for the AKS pod IP address when azure network plugin is used."
+            }
+        },
+        "endpointSubnetName": {
+            "type": "string",
+            "defaultValue": "endpoint-subnet",
+            "metadata": {
+                "description": "Name of the subnet to attach the private link services to"
+            }
+        },
+        "endpointSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/27",
+            "metadata": {
+                "description": "Address prefix for the private link subnet"
+            }
+        },
+        "scriptSubnetName": {
+            "type": "string",
+            "defaultValue": "script-subnet",
+            "metadata": {
+                "description": "Name of the subnet to attach the deployment script container to"
+            }
+        },
+        "scriptSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.32/27",
+            "metadata": {
+                "description": "Address prefix for the script subnet"
+            }
+        },
+        "bastionSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.64/27",
+            "metadata": {
+                "description": "CIDR for the bastion subnet"
+            }
+        },
+        "vmSubnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Subnet name to attach to VM"
+            }
+        },
+        "vmSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.96/27",
+            "metadata": {
+                "description": "Address prefix for the management VM subnet"
+            }
+        },
+        "vmAdminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VM"
+            }
+        },
+        "vmAdminPassword": {
+            "type": "secureString",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Default admin password or SSH key for VM"
+            }
+        },
+        "vmAuthType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B1s",
+            "metadata": {
+                "description": "Size of AKS management VM"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the Management VM"
+            }
+        },
+        "vmCreatePublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "vmPublicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-mgmt-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "vmDomainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "privateDeployment": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether deployment will have access from the internet or not. Set true to only allow access from VNet."
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "IBM Container Regisry (icr.io) entitlement key"
+            }
+        },
+        "trustStorePassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password to be used for the trust store"
+            }
+        },
+        "jwtPublicKey": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The base64 encoded JWT public key to be used"
+            }
+        },
+        "omsGatewayOperatorCatalog": {
+            "type": "string",
+            "defaultValue": "cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0",
+            "metadata": {
+                "description": "IBM Order Management System gateway operator catalog image"
+            }
+        },
+        "sipOperatorCatalog": {
+            "type": "string",
+            "defaultValue": "cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0",
+            "metadata": {
+                "description": "IBM Sterling Intelligent Promising operator catalog image"
+            }
+        },
+        "sipTag": {
+            "type": "string",
+            "defaultValue": "10.0.2403.1-amd64",
+            "metadata": {
+                "description": "SIP Application image tag"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-operators",
+            "metadata": {
+                "description": "Namespace in AKS for the operators"
+            }
+        },
+        "instanceNamespace": {
+            "type": "string",
+            "defaultValue": "sip",
+            "metadata": {
+                "description": "Namespace in AKS for the created instances"
+            }
+        },
+        "pvcName": {
+            "type": "string",
+            "defaultValue": "sip-pvc",
+            "metadata": {
+                "description": "Persistent Volume Claim (PVC) name for the SIP persistent volume"
+            }
+        },
+        "pvcSize": {
+            "type": "string",
+            "defaultValue": "10Gi",
+            "metadata": {
+                "description": "Size of the PVC for the SIP persistent volume"
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "metadata": {
+                "description": "FQDN of the suffix for the ingress"
+            }
+        },
+        "license": {
+            "type": "string",
+            "allowedValues": [
+                "accept",
+                "decline"
+            ],
+            "defaultValue": "decline",
+            "metadata": {
+                "description": "Accept the license terms. Required to create an instance."
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for linked deployments."
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-03",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
+    },
+    "resources": [
+        { 
+            "apiVersion": "2022-09-01",
+            "comments": "This is the deployment identifier for BYOL SIP",
+            "name": "pid-5d9caee0-1d1b-4247-a73e-b639318236bb", 
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2023-01-31",
+            "name": "[parameters('managedIdName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"    
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "virtualNetwork",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[if(parameters('existingVnet'),bool('false'),bool('true'))]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    "existingVnet": {
+                        "value": "[parameters('existingVnet')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "existingVnet": {
+                            "type": "bool"
+                        },
+                        "managedIdName": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "variables": {
+                        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2022-07-01",
+                            "name": "[parameters('vnetName')]",
+                            "condition": "[not(parameters('existingVnet'))]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2022-04-01",
+                            "name": "[variables('roleDefinitionName')]",
+                            "dependsOn": [
+                                "[parameters('managedIdName')]"
+                            ],
+                            "properties": {
+                                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                                "scope": "[resourceGroup().id]",
+                                "principalType": "ServicePrincipal"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployNatGateway",
+            "condition": "[equals(parameters('outboundRouting'),'NAT Gateway')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "ngwName": {
+                        "value": "[parameters('natGatewayName')]" 
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "publicIPPrefixLength": {
+                        "value": "[parameters('natGwPublicIPPrefixLength')]" 
+                    },
+                    "publicIPPrefixName": {
+                        "value": "[parameters('natGwPublicIPPrefixName')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "ngwName": {
+                            "type": "string"
+                        },
+                        "publicIPPrefixName": {
+                            "type": "string"
+                        },
+                        "publicIPPrefixLength": {
+                            "type": "int"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/publicIPPrefixes",
+                            "apiVersion": "2023-11-01",
+                            "name": "[parameters('publicIPPrefixName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPPrefixes'), parameters('tagsByResource')['Microsoft.Network/publicIPPrefixes'], json('{}')) ]",
+                            "sku": {
+                                "name": "Standard",
+                                "tier": "Regional"
+                            },
+                            "properties": {
+                                "prefixLength": "[parameters('publicIPPrefixLength')]",
+                                "publicIPAddressVersion": "IPv4"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/natGateways",
+                            "apiVersion": "2023-11-01",
+                            "name": "[parameters('ngwName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/natGateways'), parameters('tagsByResource')['Microsoft.Network/natGateways'], json('{}')) ]",
+                            "sku": {
+                                "name": "Standard"
+                            },
+                            "properties": {
+                                "idleTimeoutInMinutes": 4,
+                                "publicIpPrefixes": [
+                                    {
+                                    "id": "[resourceId('Microsoft.Network/publicIPPrefixes', parameters('publicIPPrefixName'))]"
+                                    }
+                                ]
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/publicIPPrefixes', parameters('publicIPPrefixName'))]"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployBastion",
+            "condition": "[parameters('deployBastion')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "sku": {
+                        "value": "[parameters('bastionSku')]"
+                    },
+                    "disableCopyPaste": {
+                        "value": "[parameters('bastionDisableCopyPaste')]"
+                    },
+                    "dnsName": {
+                        "value": "[parameters('bastionDnsName')]"
+                    },
+                    "enableFileCopy": {
+                        "value": "[parameters('bastionEnableFileCopy')]"
+                    },
+                    "enableIpConnect": {
+                        "value": "[parameters('bastionEnableIpConnect')]"
+                    },
+                    "enableKerberos": {
+                        "value": "[parameters('bastionEnableKerberos')]"
+                    },
+                    "enableShareableLink": {
+                        "value": "[parameters('bastionEnableShareableLink')]"
+                    },
+                    "enableTunneling": {
+                        "value": "[parameters('bastionEnableTunneling')]"
+                    },
+                    "bastionSubnetCIDR": {
+                        "value": "[parameters('bastionSubnetCidr')]"
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/bastion/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployMonitoring",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "publicAccess": {
+                        "value": "[if(parameters('privateDeployment'),'Disabled','Enabled')]" 
+                    },
+                    "logRetentionPeriod": {
+                        "value": "[parameters('logRetentionPeriod')]"
+                    },
+                    "logAnalyticsSku": {
+                        "value": "[parameters('logAnalyticsSku')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "createManagedId": {
+                        "value": false
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/log-analytics/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployPrerequisites",
+            "condition": "[parameters('deployPrereqs')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('scriptSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('scriptSubnetCidr')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/script-prerequisites/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployKeyVault",
+            "condition": "[if(equals(parameters('publicSshKey'), ''),true(),parameters('deployKeyVault'))]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "networkRuleDefaultAction": {
+                        "value": "[if(parameters('privateDeployment'),'Deny','Allow')]"
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('endpointSubnetCidr')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/keyvault/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "createSshKey",
+            "comments": "Creates a new SSH key and stores in keyvault if no public key is provided",
+            "condition": "[equals(parameters('publicSshKey'), '')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "keyName": {
+                        "value": "[parameters('keyName')]"
+                    },
+                    "createManagedId": {
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
+                    },
+                    "createStorageAccount": {
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
+                    },
+                    "rgRoleGuid": {
+                        "value": "[parameters('sshKeyScriptGuid')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/ssh-key/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "createJwtKey",
+            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPublicKey'),''))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "createStorageAccount": {
+                        "value": false
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "createManagedId": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "managedIdResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "uploadToVault": {
+                        "value": "[parameters('deployKeyVault')]"
+                    },
+                    "vaultName": {
+                        "value": "[parameters('vaultName')]"
+                    },
+                    "vaultResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/jwt-key/azuredeploy.json'))]",
+                    "contentVersion":"1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployRegistry",
+            "condition": "[parameters('deployAcr')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployBastion')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "registryName": {
+                        "value": "[parameters('registryName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "enableAdminUser": {
+                        "value": true
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    "registrySku": {
+                        "value": "[parameters('registrySku')]"
+                    },
+                    "zoneRedundancy": {
+                        "value": "[parameters('acrZoneRedundancy')]"
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "publicNetworkAccess": {
+                        "value": "[if(parameters('privateDeployment'),'Disabled','Enabled')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "createSubnet": {
+                        "value": true
+                    },
+                    "subnetName": {
+                        "value": "[parameters('endpointSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('endpointSubnetCidr')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/acr/azuredeploy.json'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployAks",
+            "condition": "[parameters('deployAks')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployRegistry')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "aksSubnetName": {
+                        "value": "[parameters('aksSubnetName')]"
+                    },
+                    "aksSubnetCIDR": {
+                        "value": "[parameters('aksSubnetCIDR')]"
+                    },
+                    "podSubnetName": {
+                        "value": "[parameters('podSubnetName')]"
+                    },
+                    "podSubnetCIDR": {
+                        "value": "[parameters('podSubnetCIDR')]"
+                    },
+                    "ngwName": {
+                        "value": "[parameters('natGatewayName')]"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "outboundRouting": {
+                        "value": "[parameters('outboundRouting')]"
+                    },
+                    "createNatGateway": {
+                        "value": false
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "aksClusterName": {
+                        "value": "[parameters('aksClusterName')]"
+                    },
+                    "aksSkuTier": {
+                        "value": "[parameters('aksSkuTier')]"
+                    },
+                    "aksClusterPrivate": {
+                        "value": "[parameters('aksClusterPrivate')]"
+                    },
+                    "aksClusterDisableLocalAccounts": {
+                        "value": "[parameters('aksClusterDisableLocalAccounts')]"
+                    },
+                    "aksClusterNodeOsUpgradeChannel": {
+                        "value": "[parameters('aksClusterNodeOsUpgradeChannel')]"
+                    },
+                    "aksClusterUpgradeChannel": {
+                        "value": "[parameters('aksClusterUpgradeChannel')]"
+                    },
+                    "aksEnablePodIdentityProfile": {
+                        "value": "[parameters('aksEnablePodIdentityProfile')]"
+                    },
+                    "aksEnableAadIntegration": {
+                        "value": "[parameters('aksEnableAadIntegration')]"
+                    },
+                    "aksEnableAadRbac": {
+                        "value": "[parameters('aksEnableAadRbac')]"
+                    },
+                    "aksAdminGroupObjectId": {
+                        "value": "[parameters('aksAdminGroupObjectId')]"
+                    },
+                    "aksAadTenantId": {
+                        "value": "[parameters('aksAadTenantId')]"
+                    },
+                    "aksKubernetesVersion": {
+                        "value": "[parameters('aksKubernetesVersion')]"
+                    },
+                    "aksClusterDnsPrefix": {
+                        "value": "[parameters('aksClusterDnsPrefix')]"
+                    },
+                    "aksEnableRbac": {
+                        "value": "[parameters('aksEnableRbac')]"
+                    },
+                    "aksEnableAzurePolicy": {
+                        "value": "[parameters('aksEnableAzurePolicy')]"
+                    },
+                    "aksAdminUserName": {
+                        "value": "[parameters('aksAdminUserName')]"
+                    },
+                    "aksSshPublicKey": {
+                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2022-09-01').outputs['publicKey'].value,parameters('publicSshKey'))]"       
+                    },
+                    "aksAutoScalerScanInterval": {
+                        "value": "[parameters('aksAutoScalerScanInterval')]"
+                    },
+                    "aksAutoScalerDownDelayPostAdd": {
+                        "value": "[parameters('aksAutoScalerDownDelayPostAdd')]"
+                    },
+                    "aksAutoScalerDownDelayPostDelete": {
+                        "value": "[parameters('aksAutoScalerDownDelayPostDelete')]"
+                    },
+                    "aksAutoScalerDownDelayPostFailure": {
+                        "value": "[parameters('aksAutoScalerDownDelayPostFailure')]"
+                    },
+                    "aksAutoScalerScaleDownUnneededTime": {
+                        "value": "[parameters('aksAutoScalerScaleDownUnneededTime')]"
+                    },
+                    "aksAutoScalerScaleDownUnReadyTime": {
+                        "value": "[parameters('aksAutoScalerScaleDownUnReadyTime')]"
+                    },
+                    "aksAutoScalerScaleDownUtilThreshold": {
+                        "value": "[parameters('aksAutoScalerScaleDownUtilThreshold')]"
+                    },
+                    "aksAutoScalerMaxGraceTerminationTime": {
+                        "value": "[parameters('aksAutoScalerMaxGraceTerminationTime')]"
+                    },
+                    "aksSystemNodePoolName": {
+                        "value": "[parameters('aksSystemNodePoolName')]"
+                    },
+                    "aksSystemNodeVmPoolType": {
+                        "value": "[parameters('aksSystemNodeVmPoolType')]"
+                    },
+                    "aksSystemNodeCount": {
+                        "value": "[parameters('aksSystemNodeCount')]"
+                    },
+                    "aksSystemNodeSize": {
+                        "value": "[parameters('aksSystemNodeSize')]"
+                    },
+                    "aksSystemNodeType": {
+                        "value": "Linux"
+                    },
+                    "aksSystemNodeOsSku": {
+                        "value": "[parameters('aksSystemNodeOsSku')]"
+                    },
+                    "aksSystemOsDiskSize": {
+                        "value": "[parameters('aksSystemOsDiskSize')]"
+                    },
+                    "aksSystemNodeMax": {
+                        "value": "[parameters('aksSystemNodeMax')]"
+                    },
+                    "aksSystemNodeMin": {
+                        "value": 3
+                    },
+                    "aksSystemNodeAutoScaling": {
+                        "value": "[parameters('aksSystemNodeAutoScaling')]"
+                    },
+                    "aksSystemNodeScaleSetPriority": {
+                        "value": "[parameters('aksSystemNodeScaleSetPriority')]"
+                    },
+                    "aksSystemNodeScaleSetEvictionPolicy": {
+                        "value": "[parameters('aksSystemNodeScaleSetEvictionPolicy')]"
+                    },
+                    "aksSystemNodeAvailabilityZone": {
+                        "value": "[parameters('aksSystemNodeAvailabilityZone')]"
+                    },
+                    "aksSystemNodeMaxPods": {
+                        "value": "[parameters('aksSystemNodeMaxPods')]"
+                    },
+                    "aksSystemNodeLabels": {
+                        "value": "[parameters('aksSystemNodeLabels')]"
+                    },
+                    "aksSystemNodeTaints": {
+                        "value": [
+                            "CriticalAddonsOnly=true:NoSchedule"
+                        ]
+                    },
+                    "aksUserNodePoolName": {
+                        "value": "[parameters('aksUserNodePoolName')]"
+                    },
+                    "aksUserNodeVmPoolType": {
+                        "value": "[parameters('aksUserNodeVmPoolType')]"
+                    },
+                    "aksUserNodeCount": {
+                        "value": "[parameters('aksUserNodeCount')]"
+                    },
+                    "aksUserNodeSize": {
+                        "value": "[parameters('aksUserNodeSize')]"
+                    },
+                    "aksUserNodeType": {
+                        "value": "Linux"
+                    },
+                    "aksUserNodeOsSku": {
+                        "value": "[parameters('aksUserNodeOsSku')]"
+                    },
+                    "aksUserOsDiskSize": {
+                        "value": "[parameters('aksUserOsDiskSize')]"
+                    },
+                    "aksUserNodeMax": {
+                        "value": "[parameters('aksUserNodeMax')]"
+                    },
+                    "aksUserNodeMin": {
+                        "value": 2
+                    },
+                    "aksUserNodeMaxPods": {
+                        "value": "[parameters('aksUserNodeMaxPods')]"
+                    },
+                    "aksUserNodeAutoScaling": {
+                        "value": "[parameters('aksUserNodeAutoScaling')]"
+                    },
+                    "aksUserNodeScaleSetPriority": {
+                        "value": "[parameters('aksUserNodeScaleSetPriority')]"
+                    },
+                    "aksUserNodeScaleSetEvictionPolicy": {
+                        "value": "[parameters('aksUserNodeScaleSetEvictionPolicy')]"
+                    },
+                    "aksUserNodeAvailabilityZone": {
+                        "value": "[parameters('aksUserNodeAvailabilityZone')]"
+                    },
+                    "aksUserNodeLabels": {
+                        "value": "[parameters('aksUserNodeLabels')]"
+                    },
+                    "aksUserNodeTaints": {
+                        "value": "[parameters('aksUserNodeTaints')]"
+                    },
+                    "aksEnableEncryptionAtHost": {
+                        "value": "[parameters('aksEnableEncryptionAtHost')]"
+                    },
+                    "aksEnableFips": {
+                        "value": "[parameters('aksEnableFips')]"
+                    },
+                    "aksEnableUltraSsd": {
+                        "value": "[parameters('aksEnableUltraSsd')]"
+                    },
+                    "aksEnableNodePublicIp": {
+                        "value": false
+                    },
+                    "aksDnsServiceIp": {
+                        "value": "[parameters('aksDnsServiceIp')]"
+                    },
+                    "aksServiceCidr": {
+                        "value": "[parameters('aksServiceCidr')]"
+                    },
+                    "aksDockerBridgeCidr": {
+                        "value": "[parameters('aksDockerBridgeCidr')]"
+                    },
+                    "aksPodCidr": {
+                        "value": "[parameters('aksPodCidr')]"
+                    },
+                    "aksLoadBalancerSku": {
+                        "value": "standard"
+                    },
+                    "aksNetworkPlugin": {
+                        "value": "[parameters('aksNetworkPlugin')]"
+                    },
+                    "aksNetworkPolicy": {
+                        "value": "[parameters('aksNetworkPolicy')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/aks/azuredeploy.json'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deployManagementVm",
+            "condition": "[parameters('deployManagementVm')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[concat(parameters('namePrefix'),'-mgmt')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "outboundRouting": {
+                        "value": "[parameters('outboundRouting')]"   
+                    },
+                    "createNatGateway": {
+                        "value": false
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('vmSubnetCidr')]"
+                    },
+                    "ngwName": {
+                        "value": "[parameters('natGatewayName')]" 
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('vmAdminUserName')]" 
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('vmAdminPassword')]" 
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "authType": {
+                        "value": "[parameters('vmAuthType')]"  
+                    },
+                    "encryptionAtHost": {
+                        "value": "[parameters('hostEncryption')]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]" 
+                    },
+                    "vmDiskType": {
+                        "value": "[parameters('vmDiskType')]" 
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]"
+                    },
+                    "createPublicIP": {
+                        "value": "[parameters('vmCreatePublicIP')]" 
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('vmPublicIPName')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('vmDomainName')]" 
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('workspaceName')]"
+                    },
+                    "createAnalyticsWorkspace": {
+                        "value": false
+                    },
+                    "deployLogAnalytics": {
+                        "value": "[parameters('deployLogAnalytics')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/aks-management-vm/azuredeploy.json'))]"
+                }
+            } 
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "deploySip",
+            "condition": "[parameters('deploySip')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployRegistry')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[concat(parameters('namePrefix'),'-sip')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "createStorageAccount": {
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
+                    },
+                    "deployOnVnet": {
+                        "value": true
+                    },
+                    "existingVnet": {
+                        "value": true
+                    },
+                    "networkResourceGroup": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('scriptSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('scriptSubnetCidr')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('scriptStorageAccountName')]"
+                    },
+                    "createManagedIdentity": {
+                        "value": "[if(parameters('deployPrereqs'),bool('false'),bool('true'))]"
+                    },
+                    "managedIdName": {
+                        "value": "[parameters('managedIdName')]"
+                    },
+                    "aksClusterName": {
+                        "value": "[parameters('aksClusterName')]"
+                    },
+                    "acrName": {
+                        "value": "[parameters('registryName')]"
+                    },
+                    "ibmEntitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "trustStorePassword": {
+                        "value": "[parameters('trustStorePassword')]"
+                    },
+                    "domainName": {
+                        "value": "[parameters('domainName')]"      
+                    },
+                    "storageClass": {
+                        "value": "azurefile"
+                    },
+                    "omsGatewayOperatorCatalog": {
+                        "value": "[parameters('omsGatewayOperatorCatalog')]"     
+                    },
+                    "sipOperatorCatalog": {
+                        "value": "[parameters('sipOperatorCatalog')]"     
+                    },
+                    "operatorNamespace": {
+                        "value": "[parameters('operatorNamespace')]"
+                    },
+                    "instanceNamespace": {
+                        "value": "[parameters('instanceNamespace')]"
+                    },
+                    "jwtPublicKey": {
+                        "value": "[if(equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['publicKey'].value,parameters('jwtPublicKey'))]"
+                    },
+                    "sipTag": {
+                        "value": "[parameters('sipTag')]"
+                    },
+                    "pvcName": {
+                        "value": "[parameters('pvcName')]"
+                    },
+                    "pvcSize": {
+                        "value": "[parameters('pvcSize')]"
+                    },
+                    "license": {
+                        "value": "[parameters('license')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/azuredeploy.json'))]"
+                }
+            } 
+        }
+    ]
+}

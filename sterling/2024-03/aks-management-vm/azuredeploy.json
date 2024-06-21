@@ -1,0 +1,683 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Virtual network name"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Subnet name to attach to VM"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "description": "CIDR for the developer subnet"
+            }
+        },
+        "ngwName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-ngw')]",
+            "metadata": {
+                "description": "Name of the NAT Gateway"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VM"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Default admin password for VM"
+            }
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-id')]",
+            "metadata": {
+                "description": "Name of the managed identity for the resource group that will be assigned to the VM"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group containing the virtual network if existing VNet"
+            }
+        },
+        "outboundRouting": {
+            "type": "string",
+            "defaultValue": "NAT Gateway",
+            "allowedValues": [
+                "Azure Default",
+                "NAT Gateway",
+                "User Defined"
+            ],
+            "metadata": {
+                "description": "Routing method for outbound traffic"
+            }
+        },
+        "createNatGateway": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new or use an existing NAT Gateway (specify the existing NAT gateway if using)"
+            }
+        },
+        "publicIPPrefixName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-ngw-pip')]",
+            "metadata": {
+                "description": "Name of the public IP prefix if using NAT Gateway routing"
+            }
+        },
+        "publicIPPrefixLength": {
+            "type": "int",
+            "defaultValue": 28,
+            "allowedValues": [
+                28,
+                29,
+                30,
+                31
+            ],
+            "metadata": {
+                "description": "Specifies the length of the public IP prefix."
+            }
+        },
+        "virtualNetworkNewOrExisting":{
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to indicate whether a new virtual network should be created (true), or use an existing one (false)."
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network if being created otherwise ignored"
+            }
+        },
+        "authType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "securityType": {
+            "type": "string",
+            "defaultValue": "TrustedLaunch",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "encryptionAtHost": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to enable encryption at host on virtual machine. Note that the feature needs to be enabled in the subscription."
+            }
+        },
+        "vmNsgSecurityRules": {
+            "type": "array",
+            "defaultValue": [
+                {
+                    "name": "SSH",
+                    "properties": {
+                        "priority": 300,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "22"
+                    }
+                }
+            ]
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2ms",
+            "metadata": {
+                "description": "Size of Dev VM"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the Management VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "Ubuntu 20.04 LTS",
+            "allowedValues": [
+                "Ubuntu 18.04 LTS",
+                "Ubuntu 20.04 LTS",
+                "Ubuntu 22.04 LTS"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "createPublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "publicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace"
+            }
+        },
+        "logAnalyticsSku": {
+            "type": "string",
+            "defaultValue": "PerGB2018",
+            "allowedValues": [
+                "Free",
+                "Standalone",
+                "PerNode",
+                "PerGB2018"
+            ],
+            "metadata": {
+                "description": "SKU for the log analytics service if setting up a new workspace."
+            }
+        },
+        "createAnalyticsWorkspace": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new workspace"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Log Analytics"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
+        }
+    },
+    "variables": {
+        "vmName": "[concat(parameters('namePrefix'),'-vm')]",
+        "nsgName": "[concat(parameters('namePrefix'), '-nsg')]",
+        "nicName": "[concat(parameters('namePrefix'),'-nic')]",
+        "linuxConfigSSH": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                        "keyData": "[parameters('adminPassword')]"
+                    }
+                ]
+            }
+        },
+        "linuxConfigPWD": {
+            "disablePasswordAuthentication": false
+        },
+        "imageReference": {
+            "Ubuntu 20.04 LTS": {
+                "publisher": "Canonical",
+                "offer": "0001-com-ubuntu-server-focal",
+                "sku": "20_04-lts-gen2",
+                "version": "latest"
+            },
+            "Ubuntu 22.04 LTS": {
+                "publisher": "Canonical",
+                "offer": "0001-com-ubuntu-server-jammy",
+                "sku": "22_04-lts-gen2",
+                "version": "latest"
+            }
+        },
+        "securityProfile": {
+            "uefiSettings": {
+                "secureBootEnabled": true,
+                "vTpmEnabled": true
+            },
+            "securityType": "[parameters('securityType')]",
+            "encryptionAtHost": "[parameters('encryptionAtHost')]"
+        },
+        "baseSecurityProfile": {
+            "encryptionAtHost": "[parameters('encryptionAtHost')]"
+        },
+        "vmBootstrap": "[concat('#cloud-config\n runcmd:\n - echo adminuser=',parameters('adminUserName'),' >> /root/script-parameters.txt\n - echo resourcegroup=',resourceGroup().name,' >> /root/script-parameters.txt\n')]",
+        "publicIP": {
+            "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+        },
+        "vnetId": {
+            "new": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
+            "existing": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]"
+        },
+        "subnetId": "[concat(variables('vnetId')[parameters('virtualNetworkNewOrExisting')],'/subnets/',parameters('subnetName'))]",
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "name": "[parameters('managedIdName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "dependsOn": [
+                "[parameters('managedIdName')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPPrefixes",
+            "apiVersion": "2022-05-01",
+            "name": "[parameters('publicIPPrefixName')]",
+            "comments": "Creates a public IP prefix for the NAT Gateway if NAT GW is being created",
+            "condition": "[and(equals(parameters('outboundRouting'),'NAT Gateway'),parameters('createNatGateway'))]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPPrefixes'), parameters('tagsByResource')['Microsoft.Network/publicIPPrefixes'], json('{}')) ]",
+            "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+            },
+            "properties": {
+                "prefixLength": "[parameters('publicIPPrefixLength')]",
+                "publicIPAddressVersion": "IPv4"
+            }
+        },
+        {
+            "type": "Microsoft.Network/natGateways",
+            "apiVersion": "2022-05-01",
+            "name": "[parameters('ngwName')]",
+            "location": "[parameters('location')]",
+            "comments": "Create a NAT Gateway if requested and using NAT gateway for outbound routing",
+            "condition": "[and(equals(parameters('outboundRouting'),'NAT Gateway'),parameters('createNatGateway'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/natGateways'), parameters('tagsByResource')['Microsoft.Network/natGateways'], json('{}')) ]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "idleTimeoutInMinutes": 4,
+                "publicIpPrefixes": [
+                    {
+                    "id": "[resourceId('Microsoft.Network/publicIPPrefixes', parameters('publicIPPrefixName'))]"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPPrefixes', parameters('publicIPPrefixName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-11-01",
+            "condition": "[equals(parameters('virtualNetworkNewOrExisting'),'new')]",
+            "comments": "Create a new virtual network if requested.",
+            "name": "[parameters('vnetName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "configureSubnet",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/natGateways', parameters('ngwName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('subnetCIDR')]"
+                    },
+                    "ngwName": {
+                        "value": "[parameters('ngwName')]"
+                    },
+                    "configureNatGateway": {
+                        "value": "[if(equals(parameters('outboundRouting'),'NAT Gateway'),'yes','no')]"
+                    },
+                    "ngwResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetCIDR": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "ngwName": {
+                            "type": "string"
+                        },
+                        "configureNatGateway": {
+                            "type": "string"
+                        },
+                        "ngwResourceGroup": {
+                            "type": "string"
+                        }
+                    },
+                    "variables": {
+                        "ngwId": {
+                            "yes": { 
+                                "id": "[resourceId(parameters('ngwResourceGroup'),'Microsoft.Network/natGateways', parameters('ngwName'))]"
+                            },
+                            "no": "[json('null')]"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2020-11-01",
+                            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCIDR')]",
+                                "natGateway": "[variables('ngwId')[parameters('configureNatGateway')]]"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-07-01",
+            "condition": "[parameters('createPublicIP')]",
+            "name": "[parameters('publicIPName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
+            "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+            },
+            "zones": [
+                "[parameters('vmZone')]"
+            ],
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "deleteOption": "Delete",
+                "publicIPAddressVersion": "IPv4",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('domainName')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2022-07-01",
+            "name": "[variables('nicName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkInterfaces'), parameters('tagsByResource')['Microsoft.Network/networkInterfaces'], json('{}')) ]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetId')]"
+                            },
+                            "publicIPAddress": "[if(parameters('createPublicIP'),variables('publicIP'),json('null'))]",
+                            "privateIPAllocationMethod": "Dynamic"
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnet')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2022-07-01",
+            "name": "[variables('nsgName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": "[parameters('vmNsgSecurityRules')]"
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "condition": "[and(parameters('createAnalyticsWorkspace'), parameters('deployLogAnalytics'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.OperationalInsights/workspaces'), parameters('tagsByResource')['Microsoft.OperationalInsights/workspaces'], json('{}')) ]",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "[parameters('logAnalyticsSku')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('vmName')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "userAssigned",
+                "userAssignedIdentities": {
+                    "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/',parameters('managedIdName'))]": {}
+                }
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('vmDiskType')]"
+                        }
+                    },
+                    "imageReference": "[variables('imageReference')[parameters('vmOSVersion')]]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmName')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "customData": "[base64(variables('vmBootstrap'))]",
+                    "linuxConfiguration": "[if(equals(parameters('authType'), 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
+                },
+                "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'),variables('securityProfile'),variables('baseSecurityProfile'))]",
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            },
+            "zones": [
+                "[parameters('vmZone')]"
+            ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "scope": "[format('Microsoft.Network/networkSecurityGroups/{0}', variables('nsgName'))]",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "name": "default",
+                "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+                "logs": [
+                    {
+                        "category": "NetworkSecurityGroupEvent",
+                        "enabled": true,
+                        "retentionPolicy": {
+                            "enabled": false,
+                            "days": 0
+                        }
+                    },
+                    {
+                        "category": "NetworkSecurityGroupRuleCounter",
+                        "enabled": true,
+                        "retentionPolicy": {
+                            "enabled": false,
+                            "days": 0
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2022-03-01",
+            "condition": "[if(equals(variables('imageReference')[parameters('vmOSVersion')].publisher, 'Canonical'), bool('true'), bool('false'))]",
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('vmName'),'/','setup-script')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "script": "H4sIAPb722UCA61UTXPiRhC961d0tFRAhzGb5JYUB2KzDhUwLmSSg8tFDVJLmmLQKPNhzH789/SMxAJrJ4dUdACNpqffe92v5913w42ohxtuqugd/MqNyMBkWjQWrALX5Nwi2AphkQKvczBoXeO3drzmJdI3GP+eQiadsaivKMdDJcwxhXa1AW5AK2Uj2kvRQo4Fd9JG9+PleL7+MJ1NRvHQBwzbQ6zhmu+Qspkr+2Jjf+5PLiwUShOOcjmIWgR6Bb0Q730lJMLjI/QGjYEXx+EzlBqbNpqF6O4Lew7/CTw9/QK5ioAezCoFsYcQdXlCYZcocYg1EinLT++jXNXomd2SIl+eTNWFKJ3GHHi+EzU4gxoG1hcjUzs0UGi1C6Eb0mqs5k1XpSQShWfPCuidihIYUngdcMc38+ndepVOlqPeIOP2IvIoLgAH3M/A91tgH/qjPvQ/NVrUdOLHL/0kQmnQJ6Q+8S21D0qHxsDmAJZvvX7PsBDa2E6BqZSTOWxaF6haHugHk8DK81nPpunDaEC1lwZYBcOK1CaQvKYd6tz79PXQ4/unL0lUCF/G1bnRIuNyBZz80/rvtGYHyIWxzDWl5nlowLQ2lksZjvKPcD2bRpnTEpiZQWVtY34eDvmWX+3MsAsdf6Q2UdwNbqhQIXewPyWbqZLMRT332f6Yw6DzbhJRaqlK6itjIsfaCnvwByY130g8Fg33lL5l64o90ELtIVYN1mn6W3zawHDqnP3WbTCzEr4Pby2SVUoaD8y3hliFQJZJcUE0iPGq/ZidnEdYwKB3qj+wDPpviOhTtvBQr24gfZjcw8MCZovb6R1M7+jVT/f1bEU7yzDcJFR5Xd4r3Bjnrc3B0JLq8CyM8PU4uxLAK6FTGo1yOkOyqnLNP4zOZdD/Nz7LSbpYLa8n69vlYnX/LyN0JNDi/5cxkkqFOSKAYzXeoJCGiaF+tECSTA2MbBfcdLqr4vn1Oj6uU5dliDmVqeX1ldEPxKgbuFdCu6H7Bv189HxLfV3Pe1bTBRzRh3XX+fXdeD4ZBcLejC3dEnqXaclWfznUB+hT/iufox9Emefk6Nmzu7G17wn0TcvGHWKJlmXkEG9a7i8aduwUayv4morHp3TfiKAN9Yx6r4VFhi8khJoV/w3UFzIABgcAAA=="
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "vmName": {
+            "type": "string",
+            "value": "[variables('vmName')]"
+        },
+        "vmNIC": {
+            "type": "object",
+            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces',variables('nicName')))]"
+        }
+    }
+}

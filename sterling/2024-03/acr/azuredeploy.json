@@ -1,0 +1,480 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "registryName": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),'r',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name of the container registry"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group containing the virtual network if existing VNet"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-vnet')]",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network if being created otherwise ignored"
+            }
+        },
+        "acrLoginServer": {
+            "type": "string",
+            "defaultValue": "azurecr.io",
+            "metadata": {
+                "description": "Azure Container Registry Suffix"
+            }
+        },
+        "registrySku": {
+            "type": "string",
+            "defaultValue": "Premium",
+            "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+            ],
+            "metadata": {
+                "description": "Container Registry SKU"
+            }
+        },
+        "zoneRedundancy": {
+            "type": "string",
+            "defaultValue": "Disabled",
+            "allowedValues": [
+                "Disabled",
+                "Enabled"
+            ],
+            "metadata": {
+                "description": "Enable zone redundancy"
+            }
+        },
+        "networkRuleBypassOptions": {
+            "type": "string",
+            "defaultValue": "AzureServices",
+            "allowedValues": [
+                "AzureServices",
+                "None"
+            ],
+            "metadata": {
+                "description": "Allow trusted Azure services to access a network restricted registry"
+            }
+        },
+        "registryPolicies": {
+            "type": "object",
+            "defaultValue": {
+                "quarantinePolicy": {
+                    "status": "disabled"
+                },
+                "trustPolicy": {
+                    "type": "Notary",
+                    "status": "disabled"
+                },
+                "retentionPolicy": {
+                    "days": 15,
+                    "status": "enabled"
+                }
+            },
+            "metadata": {
+                "description": "Policies for the registry including quarantune, trust and retention."
+            }
+        },
+        "publicNetworkAccess": {
+            "type": "string",
+            "defaultValue": "Disabled",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "metadata": {
+                "description": "Flag to enable or disable internet access to the registry"
+            }
+        },
+        "virtualNetworkNewOrExisting":{
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to indicate whether a new virtual network should be created (true), or use an existing one (false)."
+            }
+        },
+        "enableAdminUser": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to enable admin user for the registry with push/pull authority"
+            }
+        },
+        "networkRuleDefaultAction": {
+            "type": "string",
+            "defaultValue": "Deny",
+            "allowedValues": [
+                "Allow",
+                "Deny"
+            ],
+            "metadata": {
+                "description": "Default network action when no other rules match"
+            }
+        },
+        "deployLogAnalytics": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Log Analytics"
+            }
+        },
+        "createAnalyticsWorkspace": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an analytics workspace"
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-log-analytics-workspace')]",
+            "metadata": {
+                "description": "Name for the analytics workspace. Specify if not creating new one."
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new subnet for the private endpoint"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-endpoint-subnet')]",
+            "metadata": {
+                "description": "Name of the subnet to connect private endpoint onto"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/24",
+            "metadata": {
+                "description": "CIDR for the subnet if creating"
+            }
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-id')]",
+            "metadata": {
+                "description": "Name of the managed identity for the resource group that will be assigned to the VM"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }   
+        }
+    },
+    "variables": {
+        "privateEndpointName": "[concat(parameters('namePrefix'),'-acr-endpoint')]",
+        "privateEndpointGroupName": "registry",
+        "privateDnsZoneGroupName": "[concat(variables('privateEndpointGroupName'),'PrivateDnsZoneGroup')]",
+        "publicDnsZoneForwarder": "[if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')]",
+        "privateDnsZoneName": "[format('privatelink.{0}', variables('publicDnsZoneForwarder'))]",
+        "networkRuleSet": {
+                    "defaultAction": "[parameters('networkRuleDefaultAction')]"
+                },
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-11-01",
+            "condition": "[and(equals(parameters('virtualNetworkNewOrExisting'),'new'),equals(parameters('publicNetworkAccess'),'Disabled'),equals(parameters('registrySku'),'Premium'))]",
+            "comments": "Create a new virtual network if requested.",
+            "name": "[parameters('vnetName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "configureSubnet",
+            "condition": "[and(equals(parameters('publicNetworkAccess'),'Disabled'),equals(parameters('registrySku'),'Premium'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('subnetCIDR')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetCIDR": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2020-11-01",
+                            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCIDR')]",
+                                "serviceEndpoints": [
+                                    {
+                                        "service": "Microsoft.ContainerRegistry"
+                                    }
+                                ],
+                                "privateLinkServiceNetworkPolicies": "Enabled",
+                                "privateEndpointNetworkPolicies": "Disabled"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "name": "[parameters('managedIdName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "dependsOn": [
+                "[parameters('managedIdName')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.ContainerRegistry/registries",
+            "apiVersion": "2021-09-01",
+            "name": "[parameters('registryName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnet')]"
+            ],
+            "identity": {
+                "type": "userAssigned",
+                "userAssignedIdentities": {
+                    "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/',parameters('managedIdName'))]": {}
+                }
+            },
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ContainerRegistry/registries'), parameters('tagsByResource')['Microsoft.ContainerRegistry/registries'], json('{}')) ]",
+            "sku": {
+                "name": "[parameters('registrySku')]"
+            },
+            "properties": {
+                "publicNetworkAccess": "[if(equals(parameters('registrySku'),'Premium'),parameters('publicNetworkAccess'),json('null'))]",
+                "adminUserEnabled": "[parameters('enableAdminUser')]",
+                "networkRuleSet": "[if(equals(parameters('registrySku'),'Premium'),variables('networkRuleSet'),json('null'))]",
+                "networkRuleBypassOptions": "[parameters('networkRuleBypassOptions')]",
+                "zoneRedundancy": "[parameters('zoneRedundancy')]",
+                "policies": "[if(equals(parameters('registrySku'),'Premium'),parameters('registryPolicies'),json('null'))]"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('privateDnsZoneName')]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnet')]"
+            ],
+            "location": "global",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/privateDnsZones'), parameters('tagsByResource')['Microsoft.Network/privateDnsZones'], json('{}')) ]",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name": "[concat(variables('privateDnsZoneName'),'/',parameters('vnetName'),'-link')]",
+            "location": "global",
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnet')]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('privateEndpointName')]",
+            "location": "[parameters('location')]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+                            "groupIds": [
+                                "[variables('privateEndpointGroupName')]"
+                            ]
+                        },
+                        "name": "[variables('privateEndpointName')]"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureSubnet')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2022-07-01",
+            "name": "[format('{0}/{1}', variables('privateEndpointName'), variables('privateDnsZoneGroupName'))]",
+            "condition": "[and(equals(parameters('registrySku'),'Premium'),equals(parameters('publicNetworkAccess'),'Disabled'))]",
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "registry",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones',variables('privateDnsZoneName'))]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "condition": "[and(parameters('createAnalyticsWorkspace'), parameters('deployLogAnalytics'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.OperationalInsights/workspaces'), parameters('tagsByResource')['Microsoft.OperationalInsights/workspaces'], json('{}')) ]",
+            "name": "[parameters('workspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "condition": "[parameters('deployLogAnalytics')]",
+            "name": "[parameters('registryName')]",
+            "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+            "properties": {
+                "logAnalyticsDestinationType": "AzureDiagnostics",
+                "logs": [
+                    {
+                        "category": "ContainerRegistryRepositoryEvents",
+                        "enabled": true
+                    },
+                    {
+                        "category": "ContainerRegistryLoginEvents",
+                        "enabled": true
+                    }
+                ],
+                "metrics": [
+                    {
+                        "category": "AllMetrics",
+                        "enabled": true
+                    }
+                ],
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "acrName": {
+            "type": "string",
+            "value": "[parameters('registryName')]"
+        },
+        "arcLoginServer": {
+            "type": "string",
+            "value": "[parameters('acrLoginServer')]"
+        },
+        "subnetName": {
+            "condition": "[parameters('createSubnet')]",
+            "type": "string",
+            "value": "[parameters('subnetName')]"
+        },
+        "workspaceName": {
+            "condition": "[parameters('createAnalyticsWorkspace')]",
+            "type": "string",
+            "value": "[parameters('workspaceName')]"
+        }
+    }
+}

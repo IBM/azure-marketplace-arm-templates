@@ -1,0 +1,516 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for deployment container"
+            }
+        },
+        "rgRoleGuid": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "forceUpdateTag property, used to force the execution of the script resource when no other properties have changed."
+            }
+        },
+        "createStorageAccount": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new storage account"
+            }
+        },
+        "deployOnVnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy with a private VNet connection."
+            }
+        },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a new virtual network (false) or use existing (true)"
+            }
+        },
+        "vnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "The address prefix for the new VNet if being created."
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "The name of the new or existing VNet"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "script-subnet",
+            "metadata": {
+                "description": "Name of the subnet the script will attach to"
+            }
+        },
+        "subnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/27",
+            "metadata": {
+                "description": "Address prefix for the script subnet"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), 'deployscript', substring( uniqueString(resourceGroup().id), 0, 7 ))]",
+            "metadata": {
+                "description": "Name for the storage account for the script execution"
+            }            
+        },
+        "createManagedIdentity": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new managed identity for script execution"
+            }
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-script-sp')]",
+            "metadata": {
+                "description": "Name of the managed identity used for deployment scripts"
+            }
+        },
+        "aksClusterName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the AKS cluster to install SIP onto"
+            }
+        },
+        "acrName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Azure Container Registry for the images"
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "IBM Container Regisry (icr.io) entitlement key"
+            }
+        },
+        "trustStorePassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password to be used for the trust store"
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "metadata": {
+                "description": "FQDN of the suffix for the ingress"
+            }
+        },
+        "imageListRHUrl": {
+            "type": "string",
+            "defaultValue": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/image-list-rh'))]",
+            "metadata": {
+                "description": "URL to the file containing the list of Red Hat images to pull"
+            }
+        },
+        "imageListSIPUrl": {
+            "type": "string",
+            "defaultValue": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/image-list-sip'))]",
+            "metadata": {
+                "description": "URL to the file containing the list of SIP images to pull"
+            }
+        },
+        "storageClass": {
+            "type": "string",
+            "defaultValue": "azurefile",
+            "metadata": {
+                "description": "Name of the storage class in AKS to store the SIP persistent data"
+            }
+        },
+        "omsGatewayOperatorCatalog": {
+            "type": "string",
+            "defaultValue": "cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0",
+            "metadata": {
+                "description": "IBM Order Management System gateway operator catalog image"
+            }
+        },
+        "sipOperatorCatalog": {
+            "type": "string",
+            "defaultValue": "cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0",
+            "metadata": {
+                "description": "IBM Sterling Intelligent Promising operator catalog image"
+            }
+        },
+        "sipTag": {
+            "type": "string",
+            "defaultValue": "10.0.2403.1-amd64",
+            "metadata": {
+                "description": "Application image tag"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-operators",
+            "metadata": {
+                "description": "Namespace in AKS for the operators"
+            }
+        },
+        "instanceNamespace": {
+            "type": "string",
+            "defaultValue": "sip",
+            "metadata": {
+                "description": "Namespace in AKS for the created instances"
+            }
+        },
+        "pvcName": {
+            "type": "string",
+            "defaultValue": "sip-pvc",
+            "metadata": {
+                "description": "Persistent Volume Claim (PVC) name for the SIP persistent volume"
+            }
+        },
+        "pvcSize": {
+            "type": "string",
+            "defaultValue": "10Gi",
+            "metadata": {
+                "description": "Size of the PVC for the SIP persistent volume"
+            }
+        },
+        "license": {
+            "type": "string",
+            "allowedValues": [
+                "accept",
+                "decline"
+            ],
+            "defaultValue": "decline",
+            "metadata": {
+                "description": "Accept the license terms. Required to create an instance."
+            }
+        },
+        "jwtPublicKey": {
+            "type": "string",
+            "metadata": {
+                "description": "The base64 encoded JWT public key"
+            }
+        },
+        "certManagerVersion": {
+            "type": "string",
+            "defaultValue": "v1.14.3",
+            "metadata": {
+                "description": "Version for the kubernetes certificate manager"
+            }
+        },
+        "cloudPakBaseRepo": {
+            "type": "string",
+            "defaultValue": "cp/ibm-oms-enterprise",
+            "metadata": {
+                "description": "Base image repository for the IBM Cloud Pak images"
+            }
+        },
+        "azureCliVersion": {
+            "type": "string",
+            "defaultValue": "2.48.0",
+            "metadata": {
+                "description": "Container image version to pull. Refer https://mcr.microsoft.com/v2/azure-cli/tags/list for list of available versions."
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "GitHub branch for linked deployments."
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-03",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
+        }
+        
+    },
+    "variables": {
+      "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+      "containerGroupName": "[concat(parameters('namePrefix'), '-cg')]",
+      "scriptName": "[concat(parameters('namePrefix'),'-script')]",
+      "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+      "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+      "subnetIds": [
+        {
+            "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+        }
+      ]
+    },
+    "resources": [
+        {  
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-07-01",
+            "name": "[parameters('vnetName')]",
+            "condition": "[and(not(parameters('existingVnet')),parameters('deployOnVnet'))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "scriptSubnet",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[parameters('deployOnVnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCidr')]",
+                                "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
+                                ],
+                                "delegations": [
+                                    {
+                                        "name": "Microsoft.ContainerInstance.containerGroups",
+                                        "properties": {
+                                            "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "comments": "Deploys Sterling Intelligent Promising onto Azure Kubernetes Service",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
+            "name": "[variables('scriptName')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
+                }
+            },
+            "kind": "AzureCLI",
+            "properties": {
+                "forceUpdateTag": "[parameters('rgRoleGuid')]",
+                "containerSettings": {
+                    "containerGroupName": "[variables('containerGroupName')]",
+                    "subnetIds": "[if(parameters('deployOnVnet'),variables('subnetIds'),json('null'))]"
+                },
+                "storageAccountSettings": {
+                    "storageAccountName": "[parameters('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                },
+                "azCliVersion": "[parameters('azureCliVersion')]",  
+                "environmentVariables": [
+                    {
+                        "name": "RESOURCE_GROUP",
+                        "value": "[resourceGroup().name]"
+                    },
+                    {
+                        "name": "AKS_CLUSTER",
+                        "value": "[parameters('aksClusterName')]"
+                    },
+                    {
+                        "name": "ACR_NAME",
+                        "value": "[parameters('acrName')]"
+                    },
+                    {
+                        "name": "IBM_ENTITLEMENT_KEY",
+                        "secureValue": "[parameters('ibmEntitlementKey')]"
+                    },
+                    {
+                        "name": "TRUSTSTORE_PASSWORD",
+                        "secureValue": "[parameters('trustStorePassword')]"
+                    },
+                    {
+                        "name": "DOMAIN_NAME",
+                        "value": "[parameters('domainName')]"
+                    },
+                    {
+                        "name": "IMAGE_LIST_RH_URL",
+                        "value": "[parameters('imageListRHUrl')]"
+                    },
+                    {
+                        "name": "IMAGE_LIST_SIP_URL",
+                        "value": "[parameters('imageListSIPUrl')]"
+                    },
+                    {
+                        "name": "SC_NAME",
+                        "value": "[parameters('storageClass')]"
+                    },
+                    {
+                        "name": "OMS_GW_OPERATOR",
+                        "value": "[parameters('omsGatewayOperatorCatalog')]"
+                    },
+                    {
+                        "name": "SIP_OPERATOR",
+                        "value": "[parameters('sipOperatorCatalog')]"
+                    },
+                    {
+                        "name": "SIP_TAG",
+                        "value": "[parameters('sipTag')]"
+                    },
+                    {
+                        "name": "OPERATOR_NAMESPACE",
+                        "value": "[parameters('operatorNamespace')]"
+                    },
+                    {
+                        "name": "SIP_NAMESPACE",
+                        "value": "[parameters('instanceNamespace')]"
+                    },
+                    {
+                        "name": "PVC_NAME",
+                        "value": "[parameters('pvcName')]"
+                    },
+                    {
+                        "name": "LICENSE",
+                        "value": "[parameters('license')]"
+                    },
+                    {
+                        "name": "CERT_MANAGER_VERSION",
+                        "value": "[parameters('certManagerVersion')]"
+                    },
+                    {
+                        "name": "PVC_SIZE",
+                        "value": "[parameters('pvcSize')]"
+                    },
+                    {
+                        "name": "JWT_KEY",
+                        "value": "[parameters('jwtPublicKey')]"
+                    },
+                    {
+                        "name": "CP_REPO_BASE",
+                        "value": "[parameters('cloudPakBaseRepo')]"
+                    }
+                ],
+                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/deploy-sip-aks.sh'))]",
+                "supportingScriptUris": [
+                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/common.sh'))]"
+                ],
+                "timeout": "PT120M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            },
+            "dependsOn": [
+                "[variables('roleDefinitionName')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'scriptSubnet')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-01-01",
+            "condition": "[parameters('createStorageAccount')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "name": "[parameters('managedIdName')]",
+            "condition": "[parameters('createManagedIdentity')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]",
+            "location": "[parameters('location')]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "condition": "[parameters('createManagedIdentity')]",
+            "dependsOn": [
+                "[parameters('managedIdName')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        }
+    ]
+}
