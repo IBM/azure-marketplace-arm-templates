@@ -1071,7 +1071,7 @@
         { 
             "apiVersion": "2022-09-01",
             "comments": "This is the deployment identifier for BYOL SIP",
-            "name": "pid-5d9caee0-1d1b-4247-a73e-b639318236bb", 
+            "name": "pid-b31512fe-f20c-4c07-8425-ab895dfa6db9-partnercenter", 
             "type": "Microsoft.Resources/deployments",
             "properties": {
                 "mode": "Incremental",
