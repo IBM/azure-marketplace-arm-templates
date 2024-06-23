@@ -503,7 +503,7 @@
                 "required": true,
                 "validations": [
                   {
-                    "regex": "^(?!kube-)[a-z][a-z0-9-]{3,61}[a-z]$",
+                    "regex": "^(?!kube-)[a-z][a-z0-9-]{1,59}[a-z]$",
                     "message": "Must not start with kube and must start and end with a letter, be between 3 and 61 characters in length and contain only alphanumeric and '-' characters."
                   }
                 ]
