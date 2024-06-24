@@ -144,11 +144,11 @@
 						  "allowedValues": [
 							{
 								"label": "IBM Cloud Pak for Integration LTS 16.1.0 (L-JTPV-KYG8TF)",
-								"value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-JTPV-KYG8TF\"}')]"
+								"value": "[parse('{\"version\":\"16.1.0\",\"license\":\"L-JTPV-KYG8TF\"}')]"
 							},
 							{
 								"label": "IBM Cloud Pak for Integration Reserved 16.1.0 (L-BMSF-5YDSLR)",
-								"value": "[parse('{\"version\":\"2023.4.1\",\"license\":\"L-BMSF-5YDSLR\"}')]"
+								"value": "[parse('{\"version\":\"16.1.0\",\"license\":\"L-BMSF-5YDSLR\"}')]"
 							}
 						  ],
 						  "required": true
@@ -177,29 +177,11 @@
 						"visible": true
 					},
 					{
-						"name": "operatorNamespace",
-						"type": "Microsoft.Common.TextBox",
-						"label": "Operator namespace",
-						"defaultValue": "[basics('namePrefix')]",
-						"toolTip": "Namespace where you want to install the operators.",
-						"multiLine": false,
-						"constraints": {
-						  "required": true,
-						  "validations": [
-							{
-							  "regex": "^[a-z0-9A-Z-]{3,63}$",
-							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
-							}
-						  ]
-						},
-						"visible": true
-					},
-					{
 						"name": "nameSpace",
 						"type": "Microsoft.Common.TextBox",
-						"label": "Platform UI namespace",
-						"defaultValue": "[basics('namePrefix')]",
-						"toolTip": "Namespace where you want to install the operators and Platform Navigator instance",
+						"label": "Namespace for the operators and instance",
+						"defaultValue": "ibmint",
+						"toolTip": "Namespace where you want to install the Platform UI.",
 						"multiLine": false,
 						"constraints": {
 						  "required": true,
@@ -228,7 +210,7 @@
 							}
 						  ]
 						},
-						"visible": true
+						"visible": "[equals(steps('cp4i').acceptLicense,'accept')]"
 					},
 					{
 						"name": "storageClass",
@@ -544,7 +526,7 @@
 			"cp4iVersion": "[steps('cp4i').cp4iEdition.version ]",
 			"cp4iLicense": "[steps('cp4i').cp4iEdition.license ]",
 			"operatorScope": "namespace",
-			"operatorNamespace": "[steps('cp4i').operatorNamespace]",
+			"operatorNamespace": "[steps('cp4i').nameSpace]",
 			"instanceNamespace": "[steps('cp4i').nameSpace]",
 			"instanceName": "[steps('cp4i').instanceName]",
             "storageClass": "[steps('cp4i').storageClass]",
