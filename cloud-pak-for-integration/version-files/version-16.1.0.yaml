@@ -1,0 +1,40 @@
+- name: IBM Cloud Pak for Integration Platform Navigator
+  operatorPackageName: ibm-integration-platform-navigator
+  operatorVersion: 7.3.0
+  operatorChannel: v7.3
+- name: IBM Automation foundation assets
+  operatorPackageName: ibm-integration-asset-repository
+  operatorVersion: 1.7.0
+  operatorChannel: v1.7
+- name: IBM API Connect
+  operatorPackageName: ibm-apiconnect
+  operatorVersion: 5.2.0
+  operatorChannel: v5.2
+- name: IBM App Connect
+  operatorPackageName: ibm-appconnect
+  operatorVersion: 12.0.0
+  operatorChannel: v12.0
+- name: IBM MQ
+  operatorPackageName: ibm-mq
+  operatorVersion: 3.2.1
+  operatorChannel: v3.2
+- name: IBM Event Streams
+  operatorPackageName: ibm-eventstreams
+  operatorVersion: 3.4.0
+  operatorChannel: v3.4
+- name: IBM Event Endpoint Management
+  operatorPackageName: ibm-eventendpointmanagement
+  operatorVersion: 11.2.0+20240603.010000
+  operatorChannel: v11.2
+- name: IBM DataPower Gateway
+  operatorPackageName: ibm-datapower-operator
+  operatorVersion: 1.11.0
+  operatorChannel: v1.11
+- name: IBM Aspera HSTS
+  operatorPackageName: ibm-aspera-hsts-operator
+  operatorVersion: 1.5.13
+  operatorChannel: v1.5
+- name: IBM Cloud Pak foundational services
+  operatorPackageName: ibm-cp-common-services
+  operatorVersion: 4.6.3
+  operatorChannel: v4.6
