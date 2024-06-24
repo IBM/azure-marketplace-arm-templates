@@ -147,6 +147,18 @@
   ],
   "subscriptions": [
     {
+      "name": "Red Hat Certificate Manager",
+      "metadata": {
+        "name": "openshift-cert-manager-operator"
+      },
+      "spec": {
+        "name": "openshift-cert-manager-operator",
+        "channel": "stable-v1",
+        "source": "redhat-operators",
+        "installPlanApproval": "Automatic"
+      }
+    },
+    {
       "name": "IBM Cloud Pak for Integration Platform Navigator",
       "metadata": {
         "name": "ibm-integration-platform-navigator-catalog-openshift-marketplace"
@@ -179,18 +191,6 @@
         "name": "ibm-apiconnect",
         "channel": "v5.2",
         "source": "ibm-apiconnect-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "ibm-datapower-operator-1.11.0",
-      "metadata": {
-        "name": "ibm-datapower-operator-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-datapower-operator",
-        "channel": "v1.11",
-        "source": "ibm-datapower-operator-catalog",
         "installPlanApproval": "Automatic"
       }
     },
@@ -243,18 +243,6 @@
       }
     },
     {
-      "name": "IBM DataPower Gateway",
-      "metadata": {
-        "name": "ibm-datapower-operator-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-datapower-operator",
-        "channel": "v1.11",
-        "source": "ibm-datapower-operator-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
       "name": "IBM Aspera HSTS",
       "metadata": {
         "name": "aspera-operators-openshift-marketplace"
@@ -267,18 +255,6 @@
       }
     },
     {
-      "name": "ibm-cloud-databases-redis-1.6.11",
-      "metadata": {
-        "name": "ibm-cloud-databases-redis-operator-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cloud-databases-redis",
-        "channel": "v1.6",
-        "source": "ibm-cloud-databases-redis-operator-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
       "name": "IBM Cloud Pak foundational services",
       "metadata": {
         "name": "cloud-native-postgresql-catalog-openshift-marketplace"
@@ -287,66 +263,6 @@
         "name": "ibm-cp-common-services",
         "channel": "v4.6",
         "source": "cloud-native-postgresql-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "ibm-cs-iam-4.5.2",
-      "metadata": {
-        "name": "ibm-cs-iam-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cloud-native-postgresql",
-        "channel": "v4.25",
-        "source": "ibm-cs-iam-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "ibm-cs-install-4.6.3",
-      "metadata": {
-        "name": "ibm-cs-install-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cs-iam",
-        "channel": "v4.5",
-        "source": "ibm-cs-install-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "ibm-events-operator-5.0.1",
-      "metadata": {
-        "name": "ibm-events-operator-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-cs-install",
-        "channel": "v4.6",
-        "source": "ibm-events-operator-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "ibm-zen-3.1.5",
-      "metadata": {
-        "name": "ibm-zen-operator-catalog-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-events-operator",
-        "channel": "v5.0",
-        "source": "ibm-zen-operator-catalog",
-        "installPlanApproval": "Automatic"
-      }
-    },
-    {
-      "name": "ibm-cp-common-services-4.6.3",
-      "metadata": {
-        "name": "opencloud-operators-openshift-marketplace"
-      },
-      "spec": {
-        "name": "ibm-zen",
-        "channel": "v3.1",
-        "source": "opencloud-operators",
         "installPlanApproval": "Automatic"
       }
     }
