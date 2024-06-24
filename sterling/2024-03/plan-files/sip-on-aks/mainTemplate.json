@@ -1108,7 +1108,8 @@
             "name": "virtualNetwork",
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]"
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]"
             ],
             "condition": "[if(parameters('existingVnet'),bool('false'),bool('true'))]",
             "properties": {
@@ -1130,7 +1131,7 @@
                         "value": "[parameters('existingVnet')]"
                     },
                     "managedId": {
-                        "value": "[reference(parameters('managedIdName'), '2018-11-30').principalId]"
+                        "value": "[reference(parameters('managedIdName'), '2023-01-31').principalId]"
                     },
                     "tagsByResource": {
                         "value": "[parameters('tagsByResource')]"
@@ -1966,7 +1967,8 @@
                 "[resourceId('Microsoft.Resources/deployments', 'deployNatGateway')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployAks')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deploySip')]"
             ],
             "properties": {
                 "mode": "Incremental",

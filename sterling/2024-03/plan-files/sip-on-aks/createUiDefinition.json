@@ -1310,10 +1310,19 @@
               }
             },
             {
+              "name": "overLappingAddressesNotice",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": true,
+              "options": {
+                "icon": "Warning",
+                "text": "Addresses and address ranges below must not overlap with the virtual network"
+              }
+            },
+            {
               "name": "aksServiceCidr",
               "type": "Microsoft.Common.TextBox",
               "label": "Service Address Prefix",
-              "defaultValue": "172.16.0.0/16",
+              "defaultValue": "10.16.0.0/16",
               "toolTip": "IP address prefix for the internal AKS services.  Must not overlap with any other internal networks or the VNet.",
               "constraints": {
                 "required": true,
@@ -1337,7 +1346,7 @@
               "name": "aksDnsServiceIp",
               "type": "Microsoft.Common.TextBox",
               "label": "Internal DNS Service IP",
-              "defaultValue": "172.16.0.10",
+              "defaultValue": "10.16.0.10",
               "toolTip": "IP address for the internal DNS service. Must be within the Internal Service address prefix range above",
               "constraints": {
                 "required": true,
@@ -1353,7 +1362,7 @@
               "name": "aksDockerBridgeCidr",
               "type": "Microsoft.Common.TextBox",
               "label": "Docker Bridge Address Prefix",
-              "defaultValue": "172.17.0.1/16",
+              "defaultValue": "10.17.0.1/16",
               "toolTip": "IP address prefix for the docker bridge network.  Must not overlap with any other internal networks or the VNet.",
               "constraints": {
                 "required": true,
