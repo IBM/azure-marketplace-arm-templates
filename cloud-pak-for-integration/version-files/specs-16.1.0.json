@@ -73,14 +73,6 @@
       "registryUpdate": "30m0s"
     },
     {
-      "name": "ibm-datapower-operator-catalog",
-      "displayName": "ibm-datapower-operator-1.11.0",
-      "image": "icr.io/cpopen/datapower-operator-catalog@sha256:3de18318c9e65e9ceaaedba95bc69a84393e88f1b57cc533ebbeba213dc5a1fd",
-      "publisher": "IBM",
-      "sourceType": "grpc",
-      "registryUpdate": "30m0s"
-    },
-    {
       "name": "aspera-operators",
       "displayName": "ibm-aspera-hsts-operator-1.5.13",
       "image": "icr.io/cpopen/aspera-hsts-catalog@sha256:8f75ef2c31ee0d7cb39ae0e5efacbc315483e659bdc024957490a7974de49427",
@@ -165,7 +157,7 @@
       },
       "spec": {
         "name": "ibm-integration-platform-navigator",
-        "channel": "v7.3",
+        "channel": "v7.3-sc2",
         "source": "ibm-integration-platform-navigator-catalog",
         "installPlanApproval": "Automatic"
       }
@@ -177,7 +169,7 @@
       },
       "spec": {
         "name": "ibm-integration-asset-repository",
-        "channel": "v1.7",
+        "channel": "v1.7-sc2",
         "source": "ibm-integration-asset-repository-catalog",
         "installPlanApproval": "Automatic"
       }
@@ -189,7 +181,7 @@
       },
       "spec": {
         "name": "ibm-apiconnect",
-        "channel": "v5.2",
+        "channel": "v5.2-sc2",
         "source": "ibm-apiconnect-catalog",
         "installPlanApproval": "Automatic"
       }
@@ -201,7 +193,7 @@
       },
       "spec": {
         "name": "ibm-appconnect",
-        "channel": "v12.0",
+        "channel": "v12.0-sc2",
         "source": "appconnect-operator-catalogsource",
         "installPlanApproval": "Automatic"
       }
@@ -213,7 +205,7 @@
       },
       "spec": {
         "name": "ibm-mq",
-        "channel": "v3.2",
+        "channel": "v3.2-sc2",
         "source": "ibmmq-operator-catalogsource",
         "installPlanApproval": "Automatic"
       }
@@ -248,7 +240,7 @@
         "name": "aspera-operators-openshift-marketplace"
       },
       "spec": {
-        "name": "ibm-aspera-hsts-operator",
+        "name": "aspera-hsts-operator",
         "channel": "v1.5",
         "source": "aspera-operators",
         "installPlanApproval": "Automatic"
@@ -257,12 +249,12 @@
     {
       "name": "IBM Cloud Pak foundational services",
       "metadata": {
-        "name": "cloud-native-postgresql-catalog-openshift-marketplace"
+        "name": "ibm-common-service-operator-marketplace"
       },
       "spec": {
-        "name": "ibm-cp-common-services",
+        "name": "ibm-common-service-operator",
         "channel": "v4.6",
-        "source": "cloud-native-postgresql-catalog",
+        "source": "opencloud-operators",
         "installPlanApproval": "Automatic"
       }
     }
