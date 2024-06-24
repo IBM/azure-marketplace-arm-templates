@@ -1676,59 +1676,40 @@
               }
             },
             {
-              "name": "vmPublicIPName",
-              "type": "Microsoft.Common.TextBox",
-              "label": "VM Public IP Name",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
-              "defaultValue": "[concat(basics('namePrefix'),'-mgmt-vm-pip')]",
-              "toolTip": "Name for the public IP address if created",
+              "name": "vmPublicIP",
+              "type": "Microsoft.Network.PublicIpAddressCombo",
+              "label": {
+                "publicIpAddress": "Public IP address for VM",
+                "domainNameLabel": "Domain name label for the VM's public IP"
+              },
+              "toolTip": {
+                "publicIpAddress": "Name of the public IP for the VM",
+                "domainNameLabel": "Domain name label for the public IP of the VM"
+              },
+              "defaultValue": {
+                "publicIpAddressName": "[concat(basics('namePrefix'),'-mgmt-pip')]",
+                "domainNameLabel": "[toLower( concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)) )]"
+              },
               "constraints": {
-                "required": "[steps('managementVM').vmCreatePublicIP]",
-                "validations": [
-                  {
-                    "regex": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{1,78}[a-zA-Z0-9_]$",
-                    "message": "Must be between 3 and 80 characters. Alphanumeric, underscores, periods and hyphens allowed. Must start with alphanumeric and end with alphanumeric or underscore"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "checkDomainName",
-              "type": "Microsoft.Solutions.ArmApiControl",
-              "request": {
-                "method": "GET",
-                "path": "[concat(subscription().id, '/providers/Microsoft.Network/locations/',location(),'/CheckDnsNameAvailability?domainNameLabel=',steps('managementVM').vmDomainName,'&api-version=2022-11-01')]"
-              }
-            },
-            {
-              "name": "vmDomainName",
-              "type": "Microsoft.Common.TextBox",
-              "label": "VM Domain Name",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]",
-              "defaultValue": "",
-              "toolTip": "Enter a domain name to give the public IP address. Must be unique.",
-              "placeholder": "mypublicprefix",
-              "constraints": {
-                  "required": "[ steps('managementVM').vmCreatePublicIP ]",
-                  "validations": [
-                    {
-                      "isValid": "[steps('managementVM').checkDomainName.available]",
-                      "message": "Domain name is not available"
-                    },
-                    {
-                      "regex": "^[a-z][a-z0-9-]{3,61}[a-z]$",
-                      "message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only."
-                    }
-                  ]
-              }
+                "required": {
+                  "domainNameLabel": false
+                }
+              },
+              "options": {
+                "hideNone": true,
+                "hideDomainNameLabel": false,
+                "hideExisting": true,
+                "zone": "[steps('managementVM').vmZone]"
+              },
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP)]"
             },
             {
               "name": "domainInfo",
               "type": "Microsoft.Common.InfoBox",
-              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP,not(equals(steps('managementVM').vmDomainName, '')))]",
+              "visible": "[and(steps('managementVM').deployManagementVm,steps('managementVM').vmCreatePublicIP,not(equals(steps('managementVM').vmPublicIP.domainNameLabel, '')))]",
               "options": {
                 "icon": "Info",
-                "text": "[concat('The VM public IP will be available at ',steps('managementVM').vmDomainName,'.',location(),'.cloudapp.azure.com')]"
+                "text": "[concat('The VM public IP will be available at ',steps('managementVM').vmPublicIP.domainNameLabel,'.',location(),'.cloudapp.azure.com')]"
               }
             }
           ]
@@ -1905,13 +1886,13 @@
         "vmDiskType": "[steps('managementVM').vmDiskType]",
         "vmZone": "[steps('managementVM').vmZone]",
         "vmCreatePublicIP": "[steps('managementVM').vmCreatePublicIP]",
-        "vmPublicIPName": "[steps('managementVM').vmPublicIPName]",
-        "vmDomainName": "[steps('managementVM').vmDomainName]",
+        "vmPublicIPName": "[steps('managementVM').vmPublicIP.name]",
+        "vmDomainName": "[steps('managementVM').vmPublicIP.domainNameLabel]",
         "privateDeployment": "[basics('privateDeployment')]",
         "ibmEntitlementKey": "[steps('SIP').ibmEntitlementKey]",
         "trustStorePassword": "[steps('SIP').trustStorePassword]",
         "sipTag": "[steps('SIP').sipTag]",
-        "jwtPublicKey": "[encodeBase64(steps('SIP').jwtKey)]",
+        "jwtPublicKey": "[if(equals(steps('SIP').jwtKey, ''),'',encodeBase64(steps('SIP').jwtKey))]",
         "operatorNamespace": "[steps('SIP').operatorNamespace]",
         "instanceNamespace": "[steps('SIP').instanceNamespace]",
         "pvcName": "[steps('SIP').pvcName]",
