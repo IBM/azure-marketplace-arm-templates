@@ -1,0 +1,830 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "clusterName": {
+            "type": "string",
+            "defaultValue": "[tolower(concat(substring(parameters('namePrefix'),1,3), substring(uniqueString(resourceGroup().id),1,5)))]",
+            "metadata": {
+                "description": "Optional name of the cluster. If not provided, will be a random name. Must be in lowercase and less than 8 characters."
+            }
+        },
+        "rgRoleGuid": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "forceUpdateTag property, used to force the execution of the script resource when no other properties have changed."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for deployment container"
+            }
+        },
+        "createStorageAccount": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new storage account"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), 'script',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name for the storage account for the script execution"
+            }            
+        },
+        "createManagedIdentity": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new managed identity for script execution"
+            }
+        },
+        "managedIdName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-script-sp')]",
+            "metadata": {
+                "description": "Name of the managed identity used for deployment scripts"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network (if using a private vnet)"
+            }
+        },
+        "clientId": {
+            "type": "string",
+            "metadata": {
+                "description": "Service principal id"
+            }
+        },
+        "clientSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Service principal secret"
+            }
+        },
+        "clientObjectId": {
+            "type": "string",
+            "metadata": {
+                "description": "Object id for the service principal. Use \"az ad sp list --display-name <service_principal_name> --query '[0].id' -o tsv\""
+            }
+        },
+        "baseDomain": {
+            "type": "string",
+            "metadata": {
+                "description": "Base domain suffix for OpenShift cluster."
+            }
+        },
+        "ocpVersion": {
+            "type": "string",
+            "defaultValue": "4.12",
+            "metadata": {
+                "description": "Openshift version to install"
+            }
+        },
+        "masterNodeSize": {
+            "type": "string",
+            "defaultValue": "Standard_D8s_v3",
+            "metadata": {
+                "description": "VM size for the master nodes"
+            }
+        },
+        "masterNodeQty": {
+            "type": "int",
+            "defaultValue": 3,
+            "metadata": {
+                "description": "Number of master nodes to provision"
+            }
+        },
+        "masterNodeDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "StandardSSD_LRS"
+            ],
+            "metadata": {
+                "description": "Type of master node OS disk"
+            }
+        },
+        "masterNodeDiskSize": {
+            "type": "int",
+            "defaultValue": 1024,
+            "minValue": 100,
+            "maxValue": 32767,
+            "metadata": {
+                "description": "Size of the master node OS disk"
+            }
+        },
+        "masterNodeHyperthreading": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Use hyperthreading with master nodes"
+            }
+        },
+        "masterNodeArchitecture": {
+            "type": "string",
+            "defaultValue": "amd64",
+            "allowedValues": [
+                "amd64",
+                "arm64"
+            ],
+            "metadata": {
+                "description": "Master node architecture. Dependent upon master node size selected."
+            }
+        },
+        "masterNodeZone1": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether master nodes should be deployed in Azure Availability Zone 1"
+            }
+        },
+        "masterNodeZone2": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether master nodes should be deployed in Azure Availability Zone 2"
+            }
+        },
+        "masterNodeZone3": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether master nodes should be deployed in Azure Availability Zone 3"
+            }
+        },
+        "masterNodeUltraSSD": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Set to allow the use of UltraSSD disks for the control plane persistent volumes"
+            }
+        },
+        "masterNodeNetworkingType": {
+            "type": "string",
+            "defaultValue": "Accelerated",
+            "allowedValues": [
+                "Accelerated",
+                "Basic"
+            ],
+            "metadata": {
+                "description": "Enables accelerated networking with single root I/O virtualization (SR_IOV) to node VM."
+            }
+        },
+        "workerNodeSize": {
+            "type": "string",
+            "defaultValue": "Standard_D16s_v3",
+            "metadata": {
+                "description": "VM size for the worker nodes"
+            }
+        },
+        "workerNodeQty": {
+            "type": "int",
+            "defaultValue": 3,
+            "metadata": {
+                "description": "Number of worker nodes to deploy"
+            }
+        },
+        "workerNodeDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Standard_LRS",
+                "StandardSSD_LRS"
+            ]
+        },
+        "workerNodeDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "minValue": 120,
+            "maxValue": 32767,
+            "metadata": {
+                "description": "Size of the OS disk for each worker node"
+            }
+        },
+        "workerNodeHyperthreading": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Use hyperthreading with worker nodes"
+            }
+        },
+        "workerNodeArchitecture": {
+            "type": "string",
+            "defaultValue": "amd64",
+            "allowedValues": [
+                "amd64",
+                "arm64"
+            ],
+            "metadata": {
+
+            }
+        },
+        "workerNodeZone1": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the compute nodes will be deployed into Azure Availability Zone 1"
+            }
+        },
+        "workerNodeZone2": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the compute nodes will be deployed into Azure Availability Zone 2"
+            }
+        },
+        "workerNodeZone3": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the compute nodes will be deployed into Azure Availability Zone 3"
+            }
+        },   
+        "workerNodeUltraSSD": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Set to allow the use of UltraSSD disks for the compute plane persistent volumes"
+            }
+        },
+        "workerNodeNetworkingType": {
+            "type": "string",
+            "defaultValue": "Accelerated",
+            "allowedValues": [
+                "Accelerated",
+                "Basic"
+            ],
+            "metadata": {
+                "description": "Enables accelerated networking with single root I/O virtualization (SR_IOV) to node VM."
+            }
+        },
+        "baseDomainRG": {
+            "type": "string",
+            "metadata": {
+                "description": "Resource group that contains the DNS zone for the base domain"
+            }
+        },
+        "pullSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Red Hat OpenShift Pull Secret"
+            }
+        },
+        "publicSshKey": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Public SSH Key for the OpenShift nodes"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "The name of the new or existing VNet (if using a private vnet)"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network to be used to create nodes"
+            }
+        },
+        "clusterCIDR": {
+            "type": "string",
+            "defaultValue": "10.128.0.0/14",
+            "metadata": {
+                "description": "CIDR for the PODs within the cluster. Must not overlap with any external CIDR"
+            }
+        },
+        "clusterHostPrefix": {
+            "type": "int",
+            "defaultValue": 23,
+            "maxValue": 32,
+            "minValue": 1,
+            "metadata": {
+                "description": "Splits the clusterCIDR subnet into this size subnets on each node."
+            }
+        },
+        "serviceNetworkCIDR": {
+            "type": "string",
+            "defaultValue": "172.30.0.0/16",
+            "metadata": {
+                "description": "Subnet for the internal services"
+            }
+        },
+        "outboundNetworkType": {
+            "type": "string",
+            "defaultValue": "Loadbalancer",
+            "allowedValues": [
+                "Loadbalancer",
+                "UserDefinedRouting"
+            ]
+        },
+        "ocpNetworkType": {
+            "type": "string",
+            "defaultValue": "OVNKubernetes",
+            "allowedValues": [
+                "OpenShiftSDN",
+                "OVNKubernetes"
+            ],
+            "metadata": {
+                "description": "The OpenShift internal network plugin to be used"
+            }
+        },
+        "controlSubnetName": {
+            "type": "string",
+            "defaultValue": "control-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift control subnet"
+            }
+        },
+        "workerSubnetName": {
+            "type": "string",
+            "defaultValue": "worker-subnet",
+            "metadata": {
+                "description": "Name of the OpenShift worker subnet"
+            }
+        },
+        "deployOnVnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy with a private VNet connection."
+            }
+        },
+        "createSubnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create the script subnet"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "script-subnet",
+            "metadata": {
+                "description": "Name of the subnet the script will attach to (if using a private vnet)"
+            }
+        },
+        "subnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.2.0/27",
+            "metadata": {
+                "description": "Address prefix for the script subnet (if using a private vnet)"
+            }
+        },
+        "hostEncryption": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether hosts should have host-level encryption enabled, \"Encryption At Host\" (requires activation for Azure subscription)"
+            }
+        },
+        "clusterResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the empty resource group into which the cluster resources will be built."
+            }
+        },
+        "existingClusterResourceGroup": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a new cluster resource group or use existing"
+            }
+        },
+        "useVault": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to upload password to keyvault or return value"
+            }
+        },
+        "vaultName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of the key vault to store credentials"
+            }
+        },
+        "clusterPasswordSecretName": {
+            "type": "string",
+            "defaultValue" :"",
+            "metadata": {
+                "description": "The keyvault secret in which to store the cluster password"
+            }
+        },
+        "logLevel": {
+            "type": "string",
+            "allowedValues": [
+                "Default",
+                "Debug"
+            ],
+            "defaultValue": "Default",
+            "metadata": {
+                "description": "Flag to determine level of logging and post deployment clean up"
+            }
+        },
+        "publish": {
+            "type": "string",
+            "allowedValues": [
+                "Internal",
+                "External"
+            ]
+        },
+        "baseUrl": {
+            "type": "string"
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
+        }
+    },
+    "variables": {
+        "azureCliVersion": "2.45.0",
+        "scriptName": "[ concat(parameters('namePrefix'), '-ocp-deploy-script') ]",
+        "containergroupName": "[ concat( parameters('namePrefix'), '-ocp-deploy-cg') ]",
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clientObjectId')), variables('roleDefinitionId'), resourceGroup().id)]",
+        "subnetIds": [
+            {
+                "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+            }
+        ],
+        "emptyArray": [],
+        "masterNodeZones": "[concat(if(parameters('masterNodeZone1'),array(1),variables('emptyArray')),if(parameters('masterNodeZone2'),array(2),variables('emptyArray')),if(parameters('masterNodeZone3'),array(3),variables('emptyArray')))]",
+        "workerNodeZones": "[concat(if(parameters('workerNodeZone1'),array(1),variables('emptyArray')),if(parameters('workerNodeZone2'),array(2),variables('emptyArray')),if(parameters('workerNodeZone3'),array(3),variables('emptyArray')))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-01-01",
+            "condition": "[parameters('createStorageAccount')]",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2018-11-30",
+            "name": "[parameters('managedIdName')]",
+            "condition": "[parameters('createManagedIdentity')]",
+            "location": "[parameters('location')]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[variables('roleDefinitionName')]",
+            "condition": "[parameters('createManagedIdentity')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roleDefinitionId')]",
+                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "scriptSubnet",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[and(parameters('deployOnVnet'),parameters('createSubnet'))]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCidr')]",
+                                "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
+                                ],
+                                "delegations": [
+                                    {
+                                        "name": "Microsoft.ContainerInstance.containerGroups",
+                                        "properties": {
+                                            "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "comments": "Deploys OpenShift IPI cluster on an existing Azure VNet",
+            "name": "[ variables('scriptName') ]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'scriptSubnet')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ],
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName'))]": {}
+                }
+            },
+            "kind": "AzureCLI",
+            "properties": {
+                "forceUpdateTag": "[parameters('rgRoleGuid')]",
+                "containerSettings": {
+                    "containerGroupName": "[variables('containerGroupName')]",
+                    "subnetIds": "[if(parameters('deployOnVnet'),variables('subnetIds'),json('null'))]"
+                },
+                "storageAccountSettings": {
+                    "storageAccountName": "[parameters('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                },
+                "azCliVersion": "[variables('azureCliVersion')]",  
+                "environmentVariables": [
+                    {
+                        "name": "CLUSTER_NAME",
+                        "value": "[parameters('clusterName')]"
+                    },
+                    {
+                        "name": "LOCATION",
+                        "value": "[parameters('location')]"
+                    },
+                    {
+                        "name": "CLIENT_ID",
+                        "value": "[parameters('clientId')]"
+                    },
+                    {
+                        "name": "CLIENT_SECRET",
+                        "secureValue": "[parameters('clientSecret')]"
+                    },
+                    {
+                        "name": "BASE_DOMAIN",
+                        "value": "[parameters('baseDomain')]"
+                    },
+                    {
+                        "name": "BASE_DOMAIN_RESOURCE_GROUP",
+                        "value": "[parameters('baseDomainRG')]"
+                    },
+                    {
+                        "name": "PULL_SECRET",
+                        "secureValue": "[parameters('pullSecret')]"
+                    },
+                    {
+                        "name": "PUBLIC_SSH_KEY",
+                        "secureValue": "[parameters('publicSshKey')]"
+                    },
+                    {
+                        "name": "MASTER_NODE_TYPE",
+                        "value": "[parameters('masterNodeSize')]"
+                    },
+                    {
+                        "name": "MASTER_NODE_DISK_SIZE",
+                        "value": "[parameters('masterNodeDiskSize')]"
+                    },
+                    {
+                        "name": "MASTER_NODE_DISK_TYPE",
+                        "value": "[parameters('masterNodeDiskType')]"
+                    },
+                    {
+                        "name": "MASTER_NODE_QTY",
+                        "value": "[parameters('masterNodeQty')]"
+                    },
+                    {
+                        "name": "MASTER_HYPERTHREADING",
+                        "value": "[if(parameters('masterNodeHyperthreading'),'Enabled', 'Disabled')]"
+                    },
+                    {
+                        "name": "MASTER_ARCHITECTURE",
+                        "value": "[parameters('masterNodeArchitecture')]"
+                    },
+                    {
+                        "name": "MASTER_ZONES",
+                        "value": "[string(variables('masterNodeZones'))]"
+                    },
+                    {
+                        "name": "ENABLE_MASTER_ULTRADISK",
+                        "value": "[if(parameters('masterNodeUltraSSD'),'Enabled','Disabled')]"
+                    },
+                    {
+                        "name": "MASTER_VM_NETWORKING_TYPE",
+                        "value": "[parameters('masterNodeNetworkingType')]"
+                    },
+                    {
+                        "name": "WORKER_NODE_TYPE",
+                        "value": "[parameters('workerNodeSize')]"
+                    },
+                    {
+                        "name": "WORKER_NODE_DISK_SIZE",
+                        "value": "[parameters('workerNodeDiskSize')]"
+                    },
+                    {
+                        "name": "WORKER_NODE_DISK_TYPE",
+                        "value": "[parameters('workerNodeDiskType')]"
+                    },
+                    {
+                        "name": "WORKER_NODE_QTY",
+                        "value": "[parameters('workerNodeQty')]"
+                    },
+                    {
+                        "name": "WORKER_HYPERTHREADING",
+                        "value": "[if(parameters('workerNodeHyperthreading'),'Enabled', 'Disabled')]"
+                    },
+                    {
+                        "name": "WORKER_ARCHITECTURE",
+                        "value": "[parameters('workerNodeArchitecture')]"
+                    },
+                    {
+                        "name": "WORKER_ZONES",
+                        "value": "[string(variables('workerNodeZones'))]"
+                    },
+                    {
+                        "name": "ENABLE_WORKER_ULTRADISK",
+                        "value": "[if(parameters('workerNodeUltraSSD'),'Enabled','Disabled')]"
+                    },
+                    {
+                        "name": "WORKER_VM_NETWORKING_TYPE",
+                        "value": "[parameters('workerNodeNetworkingType')]"
+                    },
+                    {
+                        "name": "OCP_NETWORK_TYPE",
+                        "value": "[parameters('ocpNetworkType')]"
+                    },
+                    {
+                        "name": "VNET_NAME",
+                        "value": "[parameters('vnetName')]"
+                    },
+                    {
+                        "name": "MACHINE_CIDR",
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    {
+                        "name": "CLUSTER_CIDR",
+                        "value": "[parameters('clusterCIDR')]"
+                    },
+                    {
+                        "name": "CLUSTER_HOST_PREFIX",
+                        "value": "[parameters('clusterHostPrefix')]"
+                    },
+                    {
+                        "name": "SERVICE_NETWORK_CIDR",
+                        "value": "[parameters('serviceNetworkCIDR')]"
+                    },
+                    {
+                        "name": "OCP_OUTBOUND_TYPE",
+                        "value": "[parameters('outboundNetworkType')]"
+                    },
+                    {
+                        "name": "WORKER_SUBNET_NAME",
+                        "value": "[parameters('workerSubnetName')]"
+                    },
+                    {
+                        "name": "CONTROL_SUBNET_NAME",
+                        "value": "[parameters('controlSubnetName')]"
+                    },
+                    {
+                        "name": "HOST_ENCRYPTION",
+                        "value": "[if(parameters('hostEncryption'),'true','false')]"
+                    },
+                    {
+                        "name": "CLUSTER_RESOURCE_GROUP",
+                        "value": "[parameters('clusterResourceGroup')]"
+                    },
+                    {
+                        "name": "NEW_CLUSTER_RESOURCE_GROUP",
+                        "value": "[if(parameters('existingClusterResourceGroup'),'false','true')]"
+                    },
+                    {
+                        "name": "VAULT_NAME",
+                        "value": "[if(parameters('useVault'),parameters('vaultName'),'')]"
+                    },
+                    {
+                        "name": "SECRET_NAME",
+                        "value": "[parameters('clusterPasswordSecretName')]"
+                    },
+                    {
+                        "name": "NETWORK_RESOURCE_GROUP",
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    {
+                        "name": "CLUSTER_ACCESS",
+                        "value": "[parameters('publish')]"
+                    },
+                    {
+                        "name": "BIN_DIR",
+                        "value": "/usr/bin"
+                    },
+                    {
+                        "name": "VERSION",
+                        "value": "[parameters('ocpVersion')]"
+                    },
+                    {
+                        "name": "DEBUG",
+                        "value": "[if(equals(parameters('logLevel'),'Debug'),'true','false')]"
+                    }
+                ],
+                    "primaryScriptUri": "[uri(parameters('baseUrl'),'scripts/deploy-ocp.sh')]",
+                    "supportingScriptUris": [
+                        "[uri(parameters('baseUrl'),'scripts/common.sh')]"
+                ],
+                "timeout": "PT120M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            }
+        }            
+    ],
+    "outputs": {
+        "consoleURL": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.consoleURL ]"
+        },
+        "apiServer": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.apiServer ]"
+        },
+        "adminUser": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.adminUser ]"
+        },
+        "clusterName": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.clusterName ]"
+        },
+        "clusterId": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.clusterId ]"
+        },
+        "infraId": {
+            "type": "string",
+            "value": "[ reference( resourceId('Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.clusterDetails.infraId ]"
+        }
+    }
+}

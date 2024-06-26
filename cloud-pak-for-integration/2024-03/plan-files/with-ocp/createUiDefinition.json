@@ -1,0 +1,876 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+		"config": {
+			"isWizard": false,
+			"basics": {
+				"resourceGroup": {
+					"constraints": {
+						"validations": [
+							{
+								"permission": "Microsoft.ManagedIdentity/userAssignedIdentities/create",
+								"message": "Must be able to create a user assigned identity in the resource group"
+							}
+						]
+					},
+					"allowExisting": true
+				},
+				"location": {
+					"visible": true,
+					"resourceTypes": [
+						"Microsoft.Resources/deploymentScripts",
+						"Microsoft.ManagedIdentity/userAssignedIdentities",
+						"Microsoft.Storage/storageAccounts"
+					],
+					"allowedValues": [
+						"eastus",
+						"eastus2",
+						"southcentralus",
+						"westus2",
+						"westus3",
+						"australiaeast",
+						"southeastasia",
+						"northeurope",
+						"swedencentral",
+						"uksouth",
+						"westeurope",
+						"centralus",
+						"southafricanorth",
+						"centralindia",
+						"eastasia",
+						"japaneast",
+						"koreacentral",
+						"canadacentral",
+						"francecentral",
+						"germanywestcentral",
+						"italynorth",
+						"norwayeast",
+						"polandcentral",
+						"switzerlandnorth",
+						"uaenorth",
+						"brazilsouth",
+						"centraluseuap",
+						"israelcentral",
+						"qatarcentral",
+						"northcentralus",
+						"westus",
+						"eastus2euap"
+					]
+				}
+			}
+		},
+        "basics": [
+            {
+                "name": "namePrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Azure resource prefix",
+                "defaultValue": "ibmint",
+                "toolTip": "Prefix for Azure installation resources.",
+				"constraints":{
+					"required": true,
+					"validations": [
+						{
+							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+						}
+					]
+				}
+            }
+        ],
+        "steps": [
+			{
+				"name": "networking",
+				"label": "Network Settings",
+				"elements": [
+					{
+						"name": "vnet",
+						"type": "Microsoft.Network.VirtualNetworkCombo",
+						"label": {
+							"virtualNetwork": "Virtual Network",
+							"subnets": "OpenShift Subnets"
+						},
+						"toolTip": {
+							"virtualNetwork": "Selecting an existing VNet or enter the name of a new one",
+							"subnets": "The name and CIDR for the subnet. Existing subnets must not have any NSGs or delegations."
+						},
+						"defaultValue": {
+							"name": "[concat(basics('namePrefix'),'-vnet')]",
+							"addressPrefixSize": "/20"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/22"
+						},
+						"options": {
+							"hideExisting": false
+						},
+						"subnets": {
+							"controlSubnet": {
+								"label": "Control Subnet",
+								"defaultValue": {
+									"name": "control-subnet",
+									"addressPrefixSize": "/24"
+								},
+								"constraints": {
+									"minAddressPrefixSize": "/26",
+									"minAddressCount": 3,
+									"requireContiguousAddresses": true
+								}
+							},
+							"workerSubnet": {
+								"label": "Worker Subnet",
+								"defaultValue": {
+									"name": "worker-subnet",
+									"addressPrefixSize": "/24"
+								},
+								"constraints": {
+									"minAddressPrefixSize": "/24",
+									"minAddressCount": 50,
+									"requireContiguousAddresses": true
+								}
+							},
+							"vmSubnet": {
+								"label": "Deployment VM Subnet",
+								"defaultValue": {
+									"name": "vm-subnet",
+									"addressPrefixSize": "/27"
+								},
+								"constraints": {
+									"minAddressCount": 1,
+									"minAddressPrefixSize": "/30",
+									"requireContiguousAddresses": false
+								}
+							},
+							"scriptSubnet": {
+								"label": "Deploy container Subnet",
+								"defaultValue": {
+									"name": "script-subnet",
+									"addressPrefixSize": "/27"
+								},
+								"constraints": {
+									"minAddressCount": 1,
+									"minAddressPrefixSize": "/30",
+									"requireContiguousAddresses": false
+								}
+							}
+						},
+						"visible": true
+					}
+				]
+			},
+            {
+				"name": "openshift",
+				"label": "OpenShift Cluster",
+				"elements": [
+					{
+						"name": "ocpVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OpenShift version",
+						"toolTip": "Select the version of Red Hat OpenShift to install",
+						"defaultValue": "4.14",
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "4.12",
+									"value": "4.12"
+								},
+								{
+									"label": "4.14",
+									"value": "4.14"
+								}
+							]
+						}
+					},
+					{
+						"name": "domainName",
+						"type": "Microsoft.Solutions.ResourceSelector",
+						"label": "DNS Zone for Cluster",
+						"toolTip": "DNS Zone with base domain name for the cluster",
+						"resourceType": "Microsoft.Network/dnsZones",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"filter": {
+								"subscription": "onBasics"
+							}
+						}
+					},
+					{
+						"name": "newClusterResourceGroup",
+						"type": "Microsoft.Common.OptionsGroup",
+						"label": "New or existing cluster resource group",
+						"toolTip": "This group will hold all the OpenShift cluster Azure resources",
+						"visible": true,
+						"defaultValue": "New",
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "New",
+									"value": "new"
+								},
+								{
+									"label": "Existing",
+									"value": "existing"
+								}
+							],
+							"required": true
+						}
+					},
+					{
+						"name": "resourceGroups",
+						"type": "Microsoft.Solutions.ArmApiControl",
+						"request": {
+							"method": "GET",
+							"path": "[concat(subscription().id, '/resourceGroups?api-version=2022-09-01')]"
+						}
+					},
+					{
+						"name": "newClusterResourceGroupName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Resource Group Name",
+						"toolTip": "This group will hold all the OpenShift cluster Azure resources",
+						"visible": "[equals(steps('openshift').newClusterResourceGroup, 'new')]",
+						"defaultValue": "[concat(basics('namePrefix'),'-openshift-rg')]",
+						"constraints": {
+							"validations": [
+								{
+									"regex": "^[a-zA-Z0-9.()_-]{1,90}$",
+									"message": "Must be 1 to 90 characters and contain only letters, numbers, periods, paranthesis, underscores or hypens."
+								},
+								{
+									"isValid": "[not(endsWith(steps('openshift').newClusterResourceGroupName,'.'))]",
+									"message": "Must not end with a period"
+								},
+								{
+									"isValid": "[if(equals(steps('openshift').newClusterResourceGroupName, ''),true,empty(filter( steps('openshift').resourceGroups.value, (item) => contains(item.name, steps('openshift').newClusterResourceGroupName ))))]",
+									"message": "Resource group already exists"
+								}
+							]
+						}
+					},
+                    {
+						"name": "existingClusterResourceGroupName",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Select Resource Group",
+						"toolTip": "Select the resource group to use. Must be empty.",
+						"constraints": {
+							"allowedValues": "[map(filter( steps('openshift').resourceGroups.value, (item) => contains(item.location, location())), (item) => parse(concat('{\"label\":\"',item.name,'\",\"value\":\"', item.name, '\"}')))]",
+							"required": true
+						},
+						"visible": "[equals(steps('openshift').newClusterResourceGroup, 'existing')]"
+					},
+					{
+						"name": "masterNodes",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "Control VM Size",
+						"toolTip": "The size of the control nodes",
+						"recommendedSizes": [
+							"Standard_D8s_v3",
+							"Standard_D16s_v3",
+							"Standard_D32s_v3"
+						],
+						"constraints": {
+							"allowedSizes": [
+								"Standard_D8s_v3",
+								"Standard_D16s_v3",
+								"Standard_D32s_v3",
+								"Standard_E64i_v3",
+								"Standard_E64is_v3",
+								"Standard_E80is_v4",
+								"Standard_E80ids_v4",
+								"Standard_E104i_v5",
+								"Standard_E104is_v5",
+								"Standard_E104id_v5",
+								"Standard_E104ids_v5",
+								"Standard_F72s_v2",
+								"Standard_G5",
+								"Standard_GS5",
+								"Standard_M128ms"
+							]
+						},
+						"options": {
+							"hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"imageReference": {
+							"publisher": "MicrosoftWindowsServer",
+							"offer": "WindowsServer",
+							"sku": "2012-R2-Datacenter"
+						},
+						"count": 3,
+						"visible": true
+					},
+					{
+						"name": "workerNodes",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "Worker VM Size",
+						"toolTip": "The size of the worker nodes",
+						"defaultValue": "Standard_D8s_v3",
+						"recommendedSizes": [
+							"Standard_D4s_v3",
+							"Standard_D8s_v3"
+						],
+						"constraints": {
+							"allowedSizes": [
+								"Standard_D4s_v3",
+								"Standard_D8s_v3",
+								"Standard_D16s_v3",
+								"Standard_D32s_v3",
+								"Standard_D16as_v4",
+								"Standard_D32as_v4",
+								"Standard_E16s_v3",
+								"Standard_E32s_v3",
+								"Standard_E64is_v3",
+								"Standard_E80is_v4",
+								"Standard_E80ids_v4",
+								"Standard_E104is_v5",
+								"Standard_E104id_v5",
+								"Standard_E104ids_v5",
+								"Standard_F16s_v2",
+								"Standard_F32s_v2",
+								"Standard_F72s_v2",
+								"Standard_M128ms",
+								"Standard_L16s",
+								"Standard_L32s",
+								"Standard_L16s_v2",
+								"Standard_L32s_v2",
+								"Standard_L48s_v2",
+								"Standard_L48s_v2",
+								"Standard_NC16as_T4_v3",
+								"Standard_NC24s_v3",
+								"Standard_NC24rs_v3",
+								"Standard_NC64as_T4_v3",
+								"Standard_GS5"
+							]
+						},
+						"options": {
+							"hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"count": "[steps('openshift').workerCount]",
+						"visible": true
+					},
+					{
+							"name": "workerCount",
+							"type": "Microsoft.Common.Slider",
+							"min": 3,
+							"max": 64,
+							"label": "Worker Node Quantity",
+							"defaultValue": 3,
+							"showStepMarkers": false,
+							"toolTip": "The number of worker nodes",
+							"constraints": {
+								"required": false
+							},
+							"visible": true
+					},
+					{
+						"name": "encryption",
+						"type": "Microsoft.Common.CheckBox",
+						"label": "Enable encryption at host",
+						"toolTip": "Encryption at host must be enabled for the subscription"
+					},
+					{
+						"name": "servicePrincipal",
+						"type": "Microsoft.Common.ServicePrincipalSelector",
+						"label": {
+						  "password": "Password",
+						  "certificateThumbprint": "Certificate thumbprint",
+						  "authenticationType": "Authentication Type",
+						  "sectionHeader": "Service Principal"
+						},
+						"toolTip": {
+						  "password": "Password",
+						  "certificateThumbprint": "Certificate thumbprint",
+						  "authenticationType": "Authentication Type"
+						},
+						"defaultValue": {
+						  "principalId": "<default guid>",
+						  "name": "(New) default App Id"
+						},
+						"constraints": {
+						  "required": true,
+						  "regex": "^[a-zA-Z0-9~._-]{8,}$",
+						  "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
+						},
+						"options": {
+						  "hideCertificate": false
+						},
+						"visible": true
+					},
+					{
+						"name": "pullSecret",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Red Hat Pull Secret",
+						"toolTip": "Refer to https://console.redhat.com/openshift/install/pull-secret",
+						"multiLine": true,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+								"regex": "{.*:{.*:.*}}",
+								"message": "Pull secret must be valid"
+							},
+							{
+								"isValid": "[startsWith( steps('openshift').pullSecret, '{\"auths\":' )]",
+								"message": "Pull secret must start with \"auths\""
+							}
+						  ]
+						},
+						"visible": true
+					},
+                    {
+                        "name": "odfNodeSize",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "ODF Size per Node",
+						"visible": "[equals(steps('cp4i').cp4iEdition.version,'2022.2.1')]",
+                        "toolTip": "ODF Cluster Size will be three times this size",
+                        "defaultValue": "2 TiB",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "1 TiB",
+                                    "value": "1Ti"
+                                },
+                                {
+                                    "label": "2 TiB",
+                                    "value": "2Ti"
+                                },
+                                {
+                                    "label": "3 TiB",
+                                    "value": "3Ti"
+                                }
+                            ]
+                        }
+                    }
+				]
+			},
+			{
+                "name": "cp4i",
+                "label": "Cloud Pak for Integration",
+                "elements": [
+                    {
+						"name": "ibmEntitlementKey",
+						"type": "Microsoft.Common.PasswordBox",	
+						"toolTip": "Entitlement key for the IBM Entitled Registry, used to pull the software images",					
+						"label": {
+							"password": "Entitlement key",
+                            "confirmPassword": "Confirm Entitlement key"
+						},
+						"constraints": {
+							"required": true,
+							"regex": "^[a-zA-Z0-9._-]{100,}$",
+							"validationMessage": "Key must be at least 100 characters long, contain only numbers, letters, underscores, dots and dashes"
+                		},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": true
+					},
+					{
+						"name": "licenseInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
+						  "uri": "https://ibm.biz/int-licenses"
+						}
+					},
+					{
+						"name": "cp4iEdition",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Cloud Pak for Integration version",
+						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
+						"constraints": {
+						  "allowedValues": [
+							{
+								"label": "IBM Cloud Pak for Integration LTS 16.1.0 (L-JTPV-KYG8TF)",
+								"value": "[parse('{\"version\":\"16.1.0\",\"license\":\"L-JTPV-KYG8TF\"}')]"
+							},
+							{
+								"label": "IBM Cloud Pak for Integration Reserved 16.1.0 (L-BMSF-5YDSLR)",
+								"value": "[parse('{\"version\":\"16.1.0\",\"license\":\"L-BMSF-5YDSLR\"}')]"
+							}
+						  ],
+						  "required": true
+						},
+						"visible": true
+					},
+					{
+						"name": "acceptLicense",
+						"type": "Microsoft.Common.OptionsGroup",
+						"label": "License agreement",
+						"toolTip": "Acceptance of license terms is required to continue with installation.  Refer to the information box for details.",
+						"defaultValue": "Decline",
+						"constraints": {
+							"required": true,
+							"allowedValues": [
+								{
+									"label": "Decline",
+									"value": "decline"
+								},
+								{
+									"label": "Accept",
+									"value": "accept"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "nameSpace",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Namespace for the operators and instance",
+						"defaultValue": "ibmint",
+						"toolTip": "Namespace where you want to install the Platform UI.",
+						"multiLine": false,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+							  "regex": "^[a-z0-9A-Z-]{3,63}$",
+							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+							}
+						  ]
+						},
+						"visible": true
+					},
+					{
+						"name": "instanceName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Platform Navigator Instance Name",
+						"defaultValue": "quickstart-integration",
+						"toolTip": "Name for the platform navigator instance",
+						"multiLine": false,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+							  "regex": "^[a-z0-9A-Z-]{3,63}$",
+							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+							}
+						  ]
+						},
+						"visible": "[equals(steps('cp4i').acceptLicense,'accept')]"
+					}
+                ]
+            },
+			{
+				"name": "deployVm",
+				"label": "Deployment VM",
+				"elements": [	
+					{
+						"name": "deployVmInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+							"icon": "Info",
+							"text": "The deployment VM is used to run the deployment scripts and may be removed post implementation." 
+						}
+					},
+					{
+						"name": "vmName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "VM Hostname",
+						"toolTip": "Name of the virtual machine",
+						"visible": true,
+						"defaultValue": "[concat(basics('namePrefix'),'-vm')]",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z-_]{5,64}$",
+									"message": "Alphanumeric, underscores and dashes only between 5 and 64 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Administrator username for virtual machine",
+						"toolTip": "Username for the virtual machine",
+						"visible": true,
+						"defaultValue": "azureuser",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^(?!administrator|admin|user|user1|test|user2|test1|user3|admin1|actuser|admin2|aspnet|backup|console|david|guest|john|owner|server|support|support_388945a0|test2|test3|user4|user5|root)[a-z0-9A-Z]{5,64}$",
+									"message": "Alphanumeric only between 5 and 64 characters. Must not contain disallowed values"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmPassword",
+						"type": "Microsoft.Compute.CredentialsCombo",
+						"label": {
+						  "authenticationType": "Authentication type",
+						  "password": "Password",
+						  "confirmPassword": "Confirm password",
+						  "sshPublicKey": "SSH public key"
+						},
+						"toolTip": {
+						  "authenticationType": "SSH key or password. SSH key is recommended.",
+						  "password": "Password for the administrator user",
+						  "sshPublicKey": "Public SSH key for the administrator user. Private key required for access."
+						},
+						"constraints": {
+						  "required": true,
+						  "customPasswordRegex": "^(?!abc@123|P@$$w0rd|P@ssw0rd|P@ssword123|Pa$$word|pass@word1|Password!|Password1|Password22|iloveyou!)(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,72}$",
+						  "customValidationMessage": "The password must have a lowercase character, an uppercase character, a digit and a special character and contain at least 6 characters, up to 72 characters."
+						},
+						"options": {
+						  "hideConfirmation": false,
+						  "hidePassword": false
+						},
+						"osPlatform": "Linux",
+						"visible": true
+					},
+					{
+						"name": "vmSize",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "VM Size",
+						"toolTip": "Azure VM Size",
+						"recommendedSizes": [
+						  "Standard_B2s"
+						],
+						"constraints": {
+						  "allowedSizes": [
+							"Standard_B2s",
+							"Standard_D2s_v3",
+							"Standard_D4s_v3"
+						  ],
+						  "numAvailabilityZonesRequired": 1,
+						  "zone": "3"
+						},
+						"options": {
+						  "hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"imageReference": {
+						  "publisher": "RedHat",
+						  "offer": "RHEL",
+						  "sku": "9_2"
+						},
+						"count": 1,
+						"visible": true
+					},
+					{
+						"name": "vmZone",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Availability Zone for VM",
+						"defaultValue": ["1"],
+						"toolTip": "Zone must be present in selected region",
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "1",
+									"value": "1"
+								},
+								{
+									"label": "2",
+									"value": "2"
+								},
+								{
+									"label": "3",
+									"value": "3"
+								}
+							]
+						},
+						"required": true,
+						"visible": true
+					},
+					{
+						"name": "vmDiskType",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OS disk type for VM",
+						"toolTip": "Select the disk type for the deployment VM operating system disk",
+						"defaultValue": ["Standard SSD"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Premium SSD",
+									"value": "Premium_LRS"
+								},
+								{
+									"label": "Standard SSD",
+									"value": "Standard_LRS"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "vmOsVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "RHEL Version",
+						"toolTip": "Select the version of RHEL for the dpeloyment VM",
+						"defaultValue": ["RHEL 9.2"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "RHEL 8.6",
+									"value": "RHEL 8.6"
+								},
+								{
+									"label": "RHEL 8.7",
+									"value": "RHEL 8.7"
+								},
+								{
+									"label": "RHEL 9.2",
+									"value": "RHEL 9.2"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "networkInfoPrivate",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Private')]",
+						"options": {
+							"icon": "Warning",
+							"text": "With a private API for the ARO cluster, the network for the virtual machine must be the same as the internal API endpoint or at a minimum must be able to reach the internal API endpoint of the OpenShift cluster." 
+						}
+					},
+					{
+						"name": "networkInfoPublic",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Public')]",
+						"options": {
+							"icon": "Warning",
+							"text": "Ensure that the public API endpoint is accessible from the virtual network." 
+						}
+					},
+					{
+						"name": "vmPublicIPRequired",
+						"label": "VM Public IP",
+						"toolTip": "Create a public IP for the deployment VM?",
+						"type": "Microsoft.Common.CheckBox",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "vmPublicIP",
+						"type": "Microsoft.Network.PublicIpAddressCombo",
+						"label": {
+							"publicIpAddress": "Public IP address for VM",
+							"domainNameLabel": "Domain name label for the VM's public IP"
+						},
+						"toolTip": {
+							"publicIpAddress": "Name of the public IP for the VM",
+							"domainNameLabel": "Domain name label for the public IP of the VM"
+						},
+						"defaultValue": {
+							"publicIpAddressName": "[concat(basics('namePrefix'),'-pip')]",
+							"domainNameLabel": "[toLower( concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)) )]"
+						},
+						"constraints": {
+							"required": {
+								"domainNameLabel": false
+							}
+						},
+						"options": {
+							"hideNone": true,
+							"hideDomainNameLabel": false,
+							"hideExisting": false,
+							"zone": "[steps('deployVm').vmZone]"
+						},
+						"visible": "[steps('deployVm').vmPublicIPRequired]"
+					}
+				]
+			},
+            {
+                "name": "tags",
+                "label": "Tags",
+                "elements": [
+                    {
+                        "name": "tagsByResource",
+                        "type": "Microsoft.Common.TagsByResource",
+                        "toolTip": "Create one or more tags to associate with the created resources.",
+                        "resources": [
+                            "Microsoft.Network/networkSecurityGroups",
+                            "Microsoft.Network/virtualNetworks",
+							"Microsoft.Compute/virtualMachines",
+							"Microsoft.Network/publicIPAddresses",
+                            "Microsoft.KeyVault/vaults",
+							"Microsoft.ManagedIdentity/userAssignedIdentities",
+							"Microsoft.Storage/storageAccounts",
+							"Microsoft.Resources/deploymentScripts",
+							"Microsoft.Compute/sshPublicKeys"
+                        ]
+                    }
+                ]
+            }
+         ],
+        "outputs": {
+            "namePrefix": "[basics('namePrefix')]",
+			"deploymentApproach": "vm",
+			"vnetName": "[steps('networking').vnet.name]",
+			"existingVnet": "[if(equals(steps('networking').vnet.newOrExisting,'new'),false,true)]",
+			"networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
+			"vnetCIDR": "[first( steps('networking').vnet.addressPrefixes ) ]",
+			"controlSubnetCIDR": "[steps('networking').vnet.subnets.controlSubnet.addressPrefix]",
+			"controlSubnetName": "[steps('networking').vnet.subnets.controlSubnet.name]",
+			"workerSubnetCIDR": "[steps('networking').vnet.subnets.workerSubnet.addressPrefix]",
+			"workerSubnetName": "[steps('networking').vnet.subnets.workerSubnet.name]",
+			"scriptSubnetCidr": "[steps('networking').vnet.subnets.scriptSubnet.addressPrefix]",
+			"scriptSubnetName": "[steps('networking').vnet.subnets.scriptSubnet.name]",
+            "ocpVersion": "[steps('openshift').ocpVersion]",
+			"clientId": "[steps('openshift').servicePrincipal.appId]",
+			"clientSecret": "[steps('openshift').servicePrincipal.password]",
+			"clientObjectId": "[first(steps('openshift').servicePrincipal.objectId)]",
+			"clusterResourceGroup": "[if(equals(steps('openshift').newClusterResourceGroup, 'existing'),steps('openshift').existingClusterResourceGroupName,steps('openshift').newClusterResourceGroupName)]",
+			"existingClusterResourceGroup": "[if(equals(steps('openshift').newClusterResourceGroup, 'existing'),true,false)]",
+			"baseDomain": "[steps('openshift').domainName.name]",
+			"baseDomainRG": "[last(take(split(steps('openshift').domainName.id,'/'),5))]",
+			"masterNodeSize": "[steps('openshift').masterNodes]",
+			"workerNodeSize": "[steps('openshift').workerNodes]",
+			"workerNodeQty": "[steps('openshift').workerCount]",
+			"hostEncryption": "[steps('openshift').encryption]",
+			"pullSecret": "[steps('openshift').pullSecret]",
+			"storageSizePerNode": "[steps('openshift').odfNodeSize]",
+            "location": "[location()]",
+            "ibmEntitlementKey": "[steps('cp4i').ibmEntitlementKey]",
+            "acceptLicense": "[steps('cp4i').acceptLicense]",
+			"cp4iVersion": "[steps('cp4i').cp4iEdition.version ]",
+			"cp4iLicense": "[steps('cp4i').cp4iEdition.license ]",
+			"namespace": "[steps('cp4i').nameSpace]",
+			"instanceName": "[steps('cp4i').instanceName]",
+			"instanceNamespace": "[steps('cp4i').nameSpace]",
+			"operatorNamespace": "[steps('cp4i').nameSpace]",
+			"vmName": "[steps('deployVm').vmName]",
+			"vmAdminUserName": "[steps('deployVm').vmUsername]",
+			"vmAdminPassword": "[if(equals(steps('deployVm').vmPassword.authenticationType,'password'),steps('deployVm').vmPassword.password,steps('deployVm').vmPassword.sshPublicKey)]",
+			"vmAuthType": "[steps('deployVm').vmPassword.authenticationType]",
+			"vmSize": "[steps('deployVm').vmSize]",
+			"vmDiskType": "[steps('deployVm').vmDiskType]",
+			"vmZone": "[steps('deployVm').vmZone]",
+			"vmOSVersion": "[steps('deployVm').vmOsVersion]",
+			"vmSubnetName": "[steps('networking').vnet.subnets.vmSubnet.name]",
+			"vmSubnetCidr": "[steps('networking').vnet.subnets.vmSubnet.addressPrefix]",
+			"vmCreatePublicIP": "[steps('deployVm').vmPublicIPRequired]",
+			"vmPublicIPName": "[steps('deployVm').vmPublicIP.name]",
+			"vmPublicIpResourceGroup": "[steps('deployVm').vmPublicIP.resourceGroup]",
+			"vmPublicIpNewOrExisting": "[steps('deployVm').vmPublicIP.newOrExistingOrNone]",
+			"vmDomainName": "[steps('deployVm').vmPublicIP.domainNameLabel]",
+			"deploymentVersion": "2024-03",
+			"deployODF": false,
+			"tagsByResource": "[steps('tags').tagsByResource]"
+         }
+    }
+}

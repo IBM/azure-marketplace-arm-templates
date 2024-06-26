@@ -1,0 +1,16 @@
+apiVersion: integration.ibm.com/v1beta1
+kind: PlatformNavigator
+metadata:
+  name: ${INSTANCE_NAMESPACE}-navigator
+  namespace: ${INSTANCE_NAMESPACE}
+spec:
+  requestIbmServices:
+    licensing: true
+  license:
+    accept: true
+    license: ${LICENSE_ID}
+  mqDashboard: true
+  replicas: ${REPLICAS}
+  version: '${VERSION}'
+  storage:
+    class: ${STORAGE_CLASS}

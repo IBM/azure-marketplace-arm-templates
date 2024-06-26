@@ -1,0 +1,521 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "aroVersion": {
+            "type": "string",
+            "defaultValue": "4.10.54",
+            "metadata": {
+                "description": "OpenShift version to deploy. Format 4.x.x"
+            }
+        },
+        "clusterName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), '-aro')]",
+            "metadata": {
+                "description": "Name for the ARO cluster"
+            }
+        },
+        "spClientId" : {
+            "type": "string",
+            "metadata": {
+                "description" : "The app ID of the Service Principal (client id)"
+            }
+        },
+        "spClientSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The service principal secret key."
+            }
+        },
+        "spObjectId": {
+            "type": "String",
+            "metadata": {
+                "description": "The ObjectID of the Service Principal"
+            }
+        },
+        "rpObjectId": {
+            "type": "string",
+            "metadata": {
+                "description": "Red Hat OpenShift Resource Provider Object Id - obtain using (az ad sp list --display-name \"Azure Red Hat OpenShift RP\" --query \"[0].id\" -o tsv)"
+            }
+        },
+        "pullSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Red Hat OpenShift Pull Secret"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "createVnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new Virtual Network or use existing"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network"
+            }
+        },
+        "controlSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the control subnet"
+            }
+        },
+        "workerSubnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/24",
+            "metadata": {
+                "description": "CIDR for the worker subnet"
+            }
+        },
+        "controlSubnetName": {
+            "type": "string",
+            "defaultValue": "control-subnet",
+            "metadata": {
+                "description": "Name of the control / master subnet"
+            }
+        },
+        "workerSubnetName": {
+            "type": "string",
+            "defaultValue": "worker-subnet",
+            "metadata": {
+                "description": "Name of the worker subnet"
+            }
+        },
+        "domain": {
+            "type": "string",
+            "defaultValue": "[concat(toLower(first(parameters('namePrefix'))),substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Domain name prefix for the ARO cluster. Default is generated from resource group id."
+            }
+        },
+        "podCIDR": {
+            "type": "string",
+            "defaultValue": "10.128.0.0/14",
+            "metadata": {
+                "description": "CIDR for the POD virtual subnet within the cluster"
+            }
+        },
+        "serviceCIDR": {
+            "type": "string",
+            "defaultValue": "172.30.0.0/16",
+            "metadata": {
+                "description": "CIDR for the service virtual subnet within the cluster"
+            }
+        },
+        "masterSize": {
+            "type": "string",
+            "defaultValue": "Standard_D8s_v3",
+            "metadata": {
+                "description": "VM size for master/control nodes"
+            }
+        },
+        "workerSize": {
+            "type": "string",
+            "defaultValue": "Standard_D4s_v3",
+            "metadata": {
+                "description": "VM size for worker nodes"
+            }
+        },
+        "workerCount": {
+            "type": "int",
+            "defaultValue": 3,
+            "minValue": 3,
+            "maxValue": 2000,
+            "metadata": {
+                "description": "Number of compute nodes to deploy"
+            }
+        },
+        "encryption" : {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to encrypt storage at rest"
+            }
+        },
+        "fipsEnabled": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to enable FIPS for cluster"
+            }
+        },
+        "workerDiskSize": {
+            "type": "int",
+            "defaultValue": 128,
+            "minValue": 128,
+            "maxValue": 32767,
+            "metadata": {
+                "description": "Size of system disk on each worker node"
+            }
+        },
+        "apiVisibility": {
+            "type": "string",
+            "defaultValue": "Public",
+            "allowedValues": [
+                "Public",
+                "Private"
+            ],
+            "metadata": {
+                "description": "Visibility of cluster API - public or private"
+            }
+        },
+        "ingressVisibility": {
+            "type": "string",
+            "defaultValue": "Public",
+            "allowedValues": [
+                "Public",
+                "Private"
+            ],
+            "metadata": {
+                "description": "Visibility of cluster ingress portal - public or private"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for the resources"
+            }
+        }     
+    },
+    "variables": {
+        "aroRG": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('clusterName'))]",
+        "contribRole": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "userAccessAdminRole": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "virtualNetwork",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[parameters('createVnet')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2022-07-01",
+                            "name": "[parameters('vnetName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "aroSubnets",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "controlSubnetName": {
+                        "value": "[parameters('controlSubnetName')]"
+                    },
+                    "controlSubnetCidr": {
+                        "value": "[parameters('controlSubnetCIDR')]"
+                    },
+                    "workerSubnetName": {
+                        "value": "[parameters('workerSubnetName')]"
+                    },
+                    "workerSubnetCidr": {
+                        "value": "[parameters('workerSubnetCIDR')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "controlSubnetName": {
+                            "type": "string"
+                        },
+                        "controlSubnetCidr": {
+                            "type": "string"
+                        },
+                        "workerSubnetName": {
+                            "type": "string"
+                        },
+                        "workerSubnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('controlSubnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('controlSubnetCidr')]",
+                                "privateLinkServiceNetworkPolicies": "Disabled",
+                                "serviceEndpoints": [
+                                    {
+                                        "service": "Microsoft.ContainerRegistry"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('workerSubnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('workerSubnetCidr')]",
+                                "serviceEndpoints": [
+                                    {
+                                        "service": "Microsoft.ContainerRegistry"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[guid(concat(resourceGroup().id, 'contributor'))]",
+            "properties": {
+                "roleDefinitionId": "[variables('contribRole')]",
+                "principalId": "[parameters('spObjectId')]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[guid(concat(resourceGroup().id, 'userAccessAdministrator'))]",
+            "properties": {
+                "roleDefinitionId": "[variables('userAccessAdminRole')]",
+                "principalId": "[parameters('spObjectId')]",
+                "principalType": "ServicePrincipal"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "vnetRoleAssignments",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'aroSubnets')]"
+            ],
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "rpObjectId": {
+                        "value": "[parameters('rpObjectId')]"
+                    },
+                    "spObjectId": {
+                        "value": "[parameters('spObjectId')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "rpObjectId": {
+                            "type": "string"
+                        },
+                        "spObjectId": {
+                            "type": "string"
+                        }
+                    },
+                    "variables": {
+                        "contribRole": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+                    },
+                    "resources": [
+                       {
+                            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
+                            "apiVersion": "2018-09-01-preview",
+                            "name": "[concat(parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('rpObjectId')))]",
+                            "properties": {
+                                "roleDefinitionId": "[variables('contribRole')]",
+                                "principalId": "[parameters('rpObjectId')]"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/providers/roleAssignments",
+                            "apiVersion": "2018-09-01-preview",
+                            "name": "[concat(parameters('vnetName'), '/Microsoft.Authorization/', guid(resourceGroup().id, deployment().name, parameters('spObjectId')))]",
+                            "properties": {
+                                "roleDefinitionId": "[variables('contribRole')]",
+                                "principalId":"[parameters('spObjectId')]"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.RedHatOpenShift/OpenShiftClusters",
+            "apiVersion": "2022-04-01",
+            "name": "[parameters('clusterName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.RedHatOpenShift/OpenShiftClusters'), parameters('tagsByResource')['Microsoft.RedHatOpenShift/OpenShiftClusters'], json('{}')) ]",
+            "properties": {
+                "clusterProfile": {
+                    "domain": "[parameters('domain')]",
+                    "resourceGroupId": "[variables('aroRG')]",
+                    "fipsValidatedModules": "[if(parameters('fipsEnabled'), 'Enabled', 'Disabled')]",
+                    "pullSecret": "[parameters('pullSecret')]",
+                    "version": "[parameters('aroVersion')]"
+                },
+                "servicePrincipalProfile": {
+                    "clientId": "[parameters('spClientId')]",
+                    "clientSecret": "[parameters('spClientSecret')]"
+                },
+                "networkProfile": {
+                    "podCidr": "[parameters('podCIDR')]",
+                    "serviceCidr": "[parameters('serviceCIDR')]"
+                },
+                "masterProfile": {
+                    "vmSize": "[parameters('masterSize')]",
+                    "subnetId": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('controlSubnetName'))]",
+                    "encryptionAtHost": "[if(parameters('encryption'), 'Enabled', 'Disabled')]"
+                },
+                "workerProfiles": [
+                    {
+                        "name": "worker",
+                        "vmSize": "[parameters('workerSize')]",
+                        "subnetId": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('workerSubnetName'))]",
+                        "count": "[parameters('workerCount')]",
+                        "diskSizeGB": "[parameters('workerDiskSize')]",
+                        "encryptionAtHost": "[if(parameters('encryption'), 'Enabled', 'Disabled')]"
+                    }
+                ],
+                "apiserverProfile": {
+                    "visibility": "[parameters('apiVisibility')]"
+                },
+                "ingressProfiles": [
+                    {
+                        "name": "default",
+                        "visibility": "[parameters('ingressVisibility')]"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'aroSubnets')]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'contributor')))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', guid(concat(resourceGroup().id, 'userAccessAdministrator')))]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'vnetRoleAssignments')]"
+            ]
+        }
+    ],
+    "outputs": {
+        "clusterName": {
+            "type": "string",
+            "value": "[parameters('clusterName')]"
+        },
+        "aroVersion": {
+            "type": "string",
+            "value": "[parameters('aroVersion')]"
+        },
+        "clusterId": {
+            "type": "string",
+            "value": "[resourceId(parameters('clusterName'),'2022-04-01')]"
+        }
+    }
+}

@@ -1,0 +1,16 @@
+---
+ansible_python_interpreter: "/usr/bin/python3.11"
+log_level: "info"
+cloud_pak:
+  version: "2023.4.1"
+  license: "L-VTPK-22YZPK"
+  license_accepted: false
+  branch: "main"
+  version_uri: "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates"
+  version_path: "cloud-pak-for-integration/version-files"
+operator:
+  scope: "namespace"
+  namespace: "ibmint"
+instance:
+  name: "integration-quickstart"
+  namespace: "ibmint"

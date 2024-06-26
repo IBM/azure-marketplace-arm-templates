@@ -1,0 +1,44 @@
+- name: IBM Cloud Pak for Integration Platform Navigator
+  operatorPackageName: ibm-integration-platform-navigator
+  operatorVersion: 7.2.3
+  operatorChannel: v7.2
+- name: IBM Automation foundation assets
+  operatorPackageName: ibm-integration-asset-repository
+  operatorVersion: 1.6.1
+  operatorChannel: v1.6
+- name: IBM API Connect
+  operatorPackageName: ibm-apiconnect
+  operatorVersion: 5.1.0
+  operatorChannel: v5.1
+- name: IBM App Connect
+  operatorPackageName: ibm-appconnect
+  operatorVersion: 11.2.1
+  operatorChannel: v11.2
+- name: IBM MQ
+  operatorPackageName: ibm-mq
+  operatorVersion: 3.0.1
+  operatorChannel: v3.0
+- name: IBM Event Streams
+  operatorPackageName: ibm-eventstreams
+  operatorVersion: 3.3.0
+  operatorChannel: v3.3
+- name: IBM Event Endpoint Management
+  operatorPackageName: ibm-eventendpointmanagement
+  operatorVersion: 11.1.2
+  operatorChannel: v11.1
+- name: IBM DataPower Gateway
+  operatorPackageName: ibm-datapower-operator
+  operatorVersion: 1.9.0
+  operatorChannel: v1.9
+- name: IBM Aspera HSTS
+  operatorPackageName: ibm-aspera-hsts-operator
+  operatorVersion: 1.5.12
+  operatorChannel: v1.5
+- name: IBM Cloud Pak foundational services
+  operatorPackageName: ibm-cp-common-services
+  operatorVersion: 4.4.0
+  operatorChannel: v4.4
+- name: EDB Postgres for Kubernetes
+  operatorPackageName: ibm-cloud-native-postgresql
+  operatorVersion: 4.18.0
+  operatorChannel: v4.18

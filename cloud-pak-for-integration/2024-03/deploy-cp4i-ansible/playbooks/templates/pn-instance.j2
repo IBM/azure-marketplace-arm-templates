@@ -1,0 +1,13 @@
+apiVersion: integration.ibm.com/v1beta1
+kind: PlatformNavigator
+metadata:
+  name: {{ instance.name }}
+  namespace: {{ instance.namespace }}
+  labels:
+    backup.integration.ibm.com/component: platformnavigator 
+spec:
+  license:
+    accept: true
+    license: {{ cloud_pak.license }}
+  replicas: 1
+  version: '{{ cloud_pak.version }}'
