@@ -1340,7 +1340,7 @@
                         "value": "[if(equals(parameters('acceptLicense'),'accept'),bool('true'),bool('false'))]" 
                     },
                     "logLevel": {
-                        "value": "[parameters('logLevel')]" 
+                        "value": "[if(equals(parameters('logLevel'),'Debug'),'debug','info')]" 
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
