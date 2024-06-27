@@ -62,7 +62,7 @@
 
     - name: Check if version specification file exists
       ansible.builtin.stat:
-        path: "./specs-{{ mq.version }}.json"
+        path: "{{ directories.tmp_dir  }}/specs-{{ mq.version }}.json"
       register: spec_file
 
     - name: Download the spec file
@@ -74,7 +74,7 @@
 
     - name: Include spec file variables
       ansible.builtin.include_vars:
-        file: "./specs-{{ mq.version }}.json"
+        file: "{{ directories.tmp_dir  }}/specs-{{ mq.version }}.json"
         name: mq_inventory
 
     - name: Wait for cluster to be available
