@@ -508,12 +508,6 @@
                     "operatorNamespace": {
                         "value": "[parameters('operatorNamespace')]" 
                     },
-                    "instanceNamespace": {
-                        "value": "[parameters('instanceNamespace')]" 
-                    },
-                    "instanceName": {
-                        "value": "[parameters('instanceName')]" 
-                    },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
                     },
