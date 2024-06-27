@@ -26,31 +26,15 @@
         },
         "ibmEntitlementKey": {
             "type": "securestring",
+            "defaultValue": "",
             "metadata": {
                 "description": "Entitlement key for IBM container registry"
             }
         },
-        "cp4iVersion": {
+        "mqVersion": {
             "type": "string",
             "metadata": {
                 "description": "Version of CP4I to be installed"
-            }
-        },
-        "cp4iLicense": {
-            "type": "string",
-            "metadata": {
-                "description": "License to be used for CP4I installation"
-            }
-        },
-        "acceptLicense": {
-            "type": "string",
-            "defaultValue": "decline",
-            "allowedValues": [
-                "accept",
-                "decline"
-            ],
-            "metadata": {
-                "description": "Accept IBM License Terms to instantiate software."
             }
         },
         "openshiftApiUrl": {
@@ -512,11 +496,8 @@
                     "openShiftPassword": {
                         "value": "[parameters('openshiftAdminPassword')]"
                     },
-                    "cloudPakVersion": {
-                        "value": "[parameters('cp4iVersion')]"
-                    },
-                    "cloudPakLicense": {
-                        "value": "[parameters('cp4iLicense')]"
+                    "mqVersion": {
+                        "value": "[parameters('mqVersion')]"
                     },
                     "entitlementKey": {
                         "value": "[parameters('ibmEntitlementKey')]"

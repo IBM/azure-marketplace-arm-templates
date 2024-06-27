@@ -398,12 +398,11 @@
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
             "entitlementKey": "[if(equals(parameters('entitlementKey'),''),json('null'),parameters('entitlementKey'))]",
-            "cloud_pak": {
+            "mq": {
                 "version": "[parameters('mqVersion')]",
-                "license_accepted": "[parameters('licenseAccepted')]",
                 "branch": "[parameters('branch')]",
                 "version_uri": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates",
-                "version_path": "cloud-pak-for-integration/version-files"
+                "version_path": "ibm-mq/version-files"
             },
             "operator": {
                 "scope": "[parameters('operatorScope')]",

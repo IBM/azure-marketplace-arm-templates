@@ -32,7 +32,7 @@
                 "name": "namePrefix",
                 "type": "Microsoft.Common.TextBox",
                 "label": "Azure resource prefix",
-                "defaultValue": "ibmint",
+                "defaultValue": "ibmmq",
                 "toolTip": "Prefix for Azure installation resources.",
 				"constraints":{
 					"required": true,
@@ -96,7 +96,7 @@
 				"request": {
 					"method": "POST",
 					"body": {
-						"":""
+						"1":"1"
 					},
 					"path": "[concat(subscription().id, '/resourceGroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'/listCredentials?api-version=2023-09-04')]"
 				}
@@ -108,6 +108,15 @@
                 "label": "Cloud Pak for Integration",
                 "elements": [
                     {
+						"name": "includeEntitlementKey",
+						"label": "Include IBM Entitlement Key Secret",
+						"toolTip": "Create a secret with the IBM Entitlement Key (required to deploy MQ instances post installation)?",
+						"type": "Microsoft.Common.CheckBox",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
 						"name": "ibmEntitlementKey",
 						"type": "Microsoft.Common.PasswordBox",	
 						"toolTip": "Optional. Will create the entitlement key secret in the OpenShift cluster if provided",					
@@ -123,24 +132,14 @@
 						"options": {
 							"hideConfirmation": false
 						},
-						"visible": true
-					},
-					{
-						"name": "licenseInfo",
-						"type": "Microsoft.Common.InfoBox",
-						"visible": true,
-						"options": {
-						  "icon": "None",
-						  "text": "By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
-						  "uri": "https://ibm.biz/int-licenses"
-						}
+						"visible": "[steps('ibmmq').includeEntitlementKey]"
 					},
 					{
 						"name": "mqVersion",
 						"type": "Microsoft.Common.DropDown",
 						"label": "Cloud Pak for Integration version",
 						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
-                        "defaultValue": "9.4",
+                        "defaultValue": "IBM MQ version 9.4",
 						"constraints": {
 						  "allowedValues": [
 							{
@@ -160,7 +159,7 @@
 						"name": "nameSpace",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Namespace for the operators",
-						"defaultValue": "ibmint",
+						"defaultValue": "ibmmq",
 						"toolTip": "Namespace in OpenShift where you want to install the operators.",
 						"multiLine": false,
 						"constraints": {
@@ -465,8 +464,7 @@
 			"deploymentApproach": "vm",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('ibmmq').ibmEntitlementKey]",
-            "acceptLicense": "[steps('ibmmq').acceptLicense]",
-			"mqVersion": "[steps('ibmmq').ibmmqEdition.version ]",
+			"mqVersion": "[steps('ibmmq').mqVersion ]",
 			"operatorScope": "namespace",
 			"operatorNamespace": "[steps('ibmmq').nameSpace]",
 			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
