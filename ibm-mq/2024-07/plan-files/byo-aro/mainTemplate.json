@@ -304,9 +304,9 @@
     "resources": [
         { 
             "apiVersion": "2023-07-01",
-            "name": "pid-863f503a-9654-4ffe-9149-d0bd97ec7280-partnercenter", 
+            "name": "pid-future-mq-guid-partnercenter", 
             "condition": "[parameters('registerDeployment')]",
-            "comments": "Resource GUID for Cloud Pak for Integration BYOL marketplace entry",
+            "comments": "Resource GUID for IBM MQ marketplace entry",
             "type": "Microsoft.Resources/deployments",
             "properties": {
                 "mode": "Incremental",
@@ -413,7 +413,7 @@
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
-            "name": "cp4iDeploymentViaVm",
+            "name": "deploymentVM",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
