@@ -610,7 +610,7 @@
               "label": "registry Sku",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
-              "defaultValue": "Premium",
+              "defaultValue": "Standard",
               "toolTip": "Select Container registry SKU (must be premium for private deployment)",
               "constraints": {
                 "allowedValues": [
@@ -656,7 +656,7 @@
               "label": "AKS Sku Tier",
               "type": "Microsoft.Common.DropDown",
               "visible": true,
-              "defaultValue": "Premium",
+              "defaultValue": "Standard",
               "toolTip": "Select SKU tier for the aks cluster. ",
               "constraints": {
                 "allowedValues": [
@@ -943,7 +943,7 @@
             {
               "name": "aksSystemNodeSize",
               "type": "Microsoft.Compute.SizeSelector",
-              "label": "System Node Count",
+              "label": "System Node Size",
               "defaultValue": "Standard_D8s_v3",
               "osPlatform": "Linux",
               "toolTip": "Size of the system node VMs",
@@ -959,6 +959,16 @@
                     "Standard_D16s_v3"
                 ]
               }
+            },
+            {
+              "name": "aksSystemNodeCount",
+              "type": "Microsoft.Common.Slider",
+              "min": 1,
+              "max": 100,
+              "label": "System Node Count",
+              "defaultValue": 3,
+              "visible": true,
+              "toolTip": "Number of system nodes to deploy by default"
             },
             {
               "name": "aksSystemNodeOsSku",
@@ -979,16 +989,6 @@
                   }
                 ]
               }
-            },
-            {
-              "name": "aksSystemNodeCount",
-              "type": "Microsoft.Common.Slider",
-              "min": 1,
-              "max": 100,
-              "label": "System Node Count",
-              "defaultValue": 3,
-              "visible": true,
-              "toolTip": "Number of system nodes to deploy by default"
             },
             {
               "name": "aksSystemOsDiskSize",
@@ -1140,16 +1140,6 @@
               }
             },
             {
-              "name": "aksUserNodeCount",
-              "type": "Microsoft.Common.Slider",
-              "min": 3,
-              "max": 100,
-              "label": "User Node Count",
-              "defaultValue": 3,
-              "visible": true,
-              "toolTip": "Number of user nodes to create in the pool."
-            },
-            {
               "name": "aksUserNodeSize",
               "type": "Microsoft.Compute.SizeSelector",
               "label": "User Node Size",
@@ -1168,6 +1158,16 @@
               },
               "count": 1,
               "visible": true
+            },
+            {
+              "name": "aksUserNodeCount",
+              "type": "Microsoft.Common.Slider",
+              "min": 3,
+              "max": 100,
+              "label": "User Node Count",
+              "defaultValue": 3,
+              "visible": true,
+              "toolTip": "Number of user nodes to create in the pool."
             },
             {
               "name": "aksUserNodeOsSku",
@@ -1767,7 +1767,7 @@
               "name": "logRetentionPeriod",
               "type": "Microsoft.Common.Slider",
               "toolTip": "Days to retain logs.",
-              "min": 1,
+              "min": 30,
               "max": 730,
               "label": "Log Retention Period",
               "defaultValue": 60,
@@ -1840,7 +1840,7 @@
         "aksAutoScalerScaleDownUnneededTime": "[if(equals(string(steps('aks').aksAutoScalerScaleDownUnneededTime),'null'),steps('aks').aksAutoScalerScaleDownUnneededTime,concat(string(steps('aks').aksAutoScalerScaleDownUnneededTime),'m'))]",
         "aksAutoScalerScaleDownUnReadyTime": "[if(equals(string(steps('aks').aksAutoScalerScaleDownUnReadyTime),'null'),steps('aks').aksAutoScalerScaleDownUnReadyTime,concat(string(steps('aks').aksAutoScalerScaleDownUnReadyTime),'m'))]",
         "aksAutoScalerScaleDownUtilThreshold": "[if(equals(string(steps('aks').aksAutoScalerScaleDownUtilThreshold),'null'),steps('aks').aksAutoScalerScaleDownUtilThreshold,div(steps('aks').aksAutoScalerScaleDownUtilThreshold, 100))]",
-        "aksAutoScalerMaxGraceTerminationTime": "[if(equals(string(steps('aks').aksAutoScalerMaxGraceTerminationTime),'null'),steps('aks').aksAutoScalerMaxGraceTerminationTime,concat(string(steps('aks').aksAutoScalerMaxGraceTerminationTime),'s'))]",
+        "aksAutoScalerMaxGraceTerminationTime": "[if(equals(string(steps('aks').aksAutoScalerMaxGraceTerminationTime),'null'),steps('aks').aksAutoScalerMaxGraceTerminationTime,string(steps('aks').aksAutoScalerMaxGraceTerminationTime))]",
         "aksSystemNodePoolName": "[steps('aks').aksSystemNodePoolName]",
         "aksSystemNodeVmPoolType": "[steps('aks').aksSystemNodeVmPoolType]",
         "aksSystemNodeCount": "[steps('aks').aksSystemNodeCount]",
