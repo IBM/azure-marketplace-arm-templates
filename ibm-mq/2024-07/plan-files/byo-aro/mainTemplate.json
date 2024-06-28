@@ -74,20 +74,6 @@
                 "description": "Namespace to be utilized for the operators if namespace scoped"
             }
         },
-        "instanceNamespace": {
-            "type": "string",
-            "defaultValue": "ibmint",
-            "metadata": {
-                "description": "Namespace for the Platform Navigator instance"
-            }
-        },
-        "instanceName": {
-            "type": "string",
-            "defaultValue": "quickstart-integration",
-            "metadata": {
-                "description": "Name for the Platform Navigator instance"
-            }
-        },
         "networkResourceGroup": {
             "type": "string",
             "defaultValue": "[resourceGroup().name]",
