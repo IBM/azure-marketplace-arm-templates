@@ -1,0 +1,25 @@
+---
+- name: Install Instana standard on a RHEL virtual machine
+  hosts: localhost
+
+  vars:
+    instana:
+      download_key: ""
+      sales_key: ""
+      tenant_name: ""
+      env_name: ""
+      accept_license: false
+    vm:
+    dir:
+      tmp_dir: "/tmp"
+      bin_dir: "/usr/local/bin"
+
+
+  tasks: 
+  
+  # - name: Prepare additional disks
+
+  - name: Configure kernel parameters
+
+  - name: Add bin directory (for RHEL)
+
