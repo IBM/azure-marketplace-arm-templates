@@ -7,8 +7,12 @@
       download_key: ""
       sales_key: ""
       tenant_name: ""
-      env_name: ""
+      unit_name: ""
       accept_license: false
+      admin_password: ""
+    tls:
+      cert: ""
+      key: ""
     vm:
     dir:
       tmp_dir: "/tmp"
@@ -19,7 +23,13 @@
   
   # - name: Prepare additional disks
 
-  - name: Configure kernel parameters
+  # - name: Configure kernel parameters
 
-  - name: Add bin directory (for RHEL)
+  # - name: Add bin directory (for RHEL)
+
+  # - name: Add Instana repository
+
+  # - name: Install stanctl command-line tool
+
+  # - name: Install Instana
 
