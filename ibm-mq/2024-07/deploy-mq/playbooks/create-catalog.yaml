@@ -1,0 +1,32 @@
+---
+
+- name: Display catalog source to be created
+  debug:
+    msg: "Creating catalog source {{ item.name }}"
+
+- name: Create catalog source definitions
+  ansible.builtin.template:
+    src: "./templates/catalogsource.j2"
+    dest: "{{ directories.tmp_dir }}/{{ item.name }}-catalog.yaml"
+
+- name: Apply catalog source definitions
+  ansible.builtin.shell: 
+    cmd : "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/{{ item.name }}-catalog.yaml"
+  args:
+    executable: /bin/bash
+  register: result
+
+- name: Wait for catalog source to be available
+  ansible.builtin.shell:
+    cmd: "{{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ item.name }} -o jsonpath='{.status.connectionState.lastObservedState}'"
+  args:
+    executable: /bin/bash
+  register: response
+  until: response.stdout == "READY"
+  retries: "{{ default.retries }}"
+  delay: "{{ default.retry_delay }}"
+
+- name: Clean up temporary file
+  ansible.builtin.file:
+    state: absent
+    path: "{{ directories.tmp_dir }}/{{ item.name }}-catalog.yaml"

@@ -1,0 +1,39 @@
+{
+    "defaults": {
+      "namespace": "openshift-operators",
+      "clusterScoped": "false"
+    },
+    "catalogSources": [
+      {
+        "name": "opencloud-operators",
+        "displayName": "IBMCS Operators",
+        "image": "docker.io/ibmcom/ibm-common-service-catalog:latest",
+        "publisher": "IBM",
+        "sourceType": "grpc",
+        "registryUpdate": "45m"
+      },
+      {
+        "name": "ibm-operator-catalog",
+        "displayName": "ibm-operator-catalog",
+        "image": "docker.io/ibmcom/ibm-operator-catalog",
+        "publisher": "IBM Content",
+        "sourceType": "grpc",
+        "registryUpdate": "45m"
+      }
+    ],
+    "subscriptions": [
+      {
+        "name": "IBM MQ",
+        "metadata": {
+          "name": "ibm-mq"
+        },
+        "spec": {
+          "name": "ibm-mq",
+          "channel": "",
+          "source": "ibm-operator-catalog",
+          "installPlanApproval": "Automatic"
+        }
+      }
+    ]
+  }
+  
