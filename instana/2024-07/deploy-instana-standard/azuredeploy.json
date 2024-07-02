@@ -17,6 +17,36 @@
                 "description": "Azure location for resources"
             }
         },
+        "downloadKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Instana download key"
+            }
+        },
+        "salesKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Instana sales key"
+            }
+        },
+        "instanaPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Instana administrator password"
+            }
+        },
+        "tenantName": {
+            "type": "string",
+            "metadata": {
+                "description": "Tenant name for Instana"
+            }
+        },
+        "unitName": {
+            "type": "string",
+            "metadata": {
+                "description": "Unit name for Instana"
+            }
+        },
         "vmName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
@@ -184,6 +214,13 @@
             ],
             "metadata": {
                 "description": "OS Disk type for Dev VM"
+            }
+        },
+        "osDiskSize": {
+            "type": "int",
+            "defaultValue": 100,
+            "metadata": {
+               "description": "Size of the OS Disk (GB)" 
             }
         },
         "dataDiskSize": {
@@ -356,12 +393,18 @@
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
             "instana": {
-                "download_key": "",
-                "sales_key": "",
-                "tenant_name": "",
-                "unit_name": "",
+                "download_key": "[parameters('downloadKey')]",
+                "sales_key": "[parameters('salesKey')]",
+                "tenant_name": "[parameters('tenantName')]",
+                "unit_name": "[parameters('unitName')]",
                 "accept_license": false,
-                "admin_password": ""
+                "admin_password": "[parameters('instanaPassword')]"
+            },
+            "vm": {
+                "dataDiskSize": "[parameters('dataDiskSize')]",
+                "metricsDiskSize": "[parameters('metricsDiskSize')]",
+                "analyticsDiskSize": "[parameters('analyticsDiskSize')]",
+                "objectsDiskSize": "[parameters('objectsDiskSize')]"
             },
             "dir": {
                 "tmp_dir": "/tmp",
@@ -475,6 +518,7 @@
                 "storageProfile": {
                     "osDisk": {
                         "createOption": "FromImage",
+                        "diskSizeGB": "[parameters('osDiskSize')]",
                         "managedDisk": {
                             "storageAccountType": "[parameters('vmDiskType')]"
                         }
@@ -574,7 +618,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh','&& echo ',replace(string(variables('scriptParameters')), '\"', '\\\"'),'> ./parameter.json')]"
                 }
             }
         }
