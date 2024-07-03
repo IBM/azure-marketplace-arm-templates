@@ -96,7 +96,7 @@
 				"request": {
 					"method": "POST",
 					"body": {
-						"":""
+						"1":"1"
 					},
 					"path": "[concat(subscription().id, '/resourceGroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'/listCredentials?api-version=2023-09-04')]"
 				}
