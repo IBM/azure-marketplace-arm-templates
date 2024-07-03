@@ -530,7 +530,7 @@
 			"vmOSVersion": "[steps('deployVm').vmOsVersion]",
 			"networkResourceGroup": "[steps('deployVm').vmNetwork.resourceGroup]",
 			"vnetName": "[steps('deployVm').vmNetwork.name]",
-			"vnetCIDR": "[steps('deployVm').vmNetwork.adressPrefix]",
+			"vnetCIDR": "[steps('deployVm').vmNetwork.addressPrefix]",
 			"vnetNewOrExisting": "[steps('deployVm').vmNetwork.newOrExisting]",
 			"subnetName": "[steps('deployVm').vmNetwork.subnets.vmSubnet.name]",
 			"subnetCidr": "[steps('deployVm').vmNetwork.subnets.vmSubnet.addressPrefix]",
