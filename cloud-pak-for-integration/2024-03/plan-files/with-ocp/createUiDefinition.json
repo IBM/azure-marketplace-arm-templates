@@ -373,6 +373,25 @@
 						"toolTip": "Encryption at host must be enabled for the subscription"
 					},
 					{
+						"name": "endpointVisibility",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Ingress and API visibility",
+						"toolTip": "Select if the Ingress and API endpoints should be accessible from the internet (public) or not (private).",
+						"defaultValue": "Public",
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Public",
+									"value": "Public"
+								},
+								{
+									"label": "Private",
+									"value": "Private"
+								}
+							]
+						}
+					},
+					{
 						"name": "servicePrincipal",
 						"type": "Microsoft.Common.ServicePrincipalSelector",
 						"label": {
@@ -738,24 +757,6 @@
 						"visible": true
 					},
 					{
-						"name": "networkInfoPrivate",
-						"type": "Microsoft.Common.InfoBox",
-						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Private')]",
-						"options": {
-							"icon": "Warning",
-							"text": "With a private API for the ARO cluster, the network for the virtual machine must be the same as the internal API endpoint or at a minimum must be able to reach the internal API endpoint of the OpenShift cluster." 
-						}
-					},
-					{
-						"name": "networkInfoPublic",
-						"type": "Microsoft.Common.InfoBox",
-						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Public')]",
-						"options": {
-							"icon": "Warning",
-							"text": "Ensure that the public API endpoint is accessible from the virtual network." 
-						}
-					},
-					{
 						"name": "vmPublicIPRequired",
 						"label": "VM Public IP",
 						"toolTip": "Create a public IP for the deployment VM?",
@@ -842,6 +843,7 @@
 			"workerNodeSize": "[steps('openshift').workerNodes]",
 			"workerNodeQty": "[steps('openshift').workerCount]",
 			"hostEncryption": "[steps('openshift').encryption]",
+			"endpointVisibility": "[steps('openshift').endpointVisibility]",
 			"pullSecret": "[steps('openshift').pullSecret]",
 			"storageSizePerNode": "[steps('openshift').odfNodeSize]",
             "location": "[location()]",
