@@ -1,6 +1,7 @@
 ---
 - name: Install Instana standard on a RHEL virtual machine
   hosts: localhost
+  gather_facts: yes
 
   vars:
     instana:
@@ -14,14 +15,32 @@
       cert: ""
       key: ""
     vm:
+    disks:
+      - name: data
+        size: "150.00 GB"
+        mount_point: "/mnt/instana/stanctl/data"
+      - name: metrics
+        size: "300.00 GB"
+        mount_point: "/mnt/instana/stanctl/metrics"
+      - name: analytics
+        size: "500.00 GB"
+        mount_point: "/mnt/instana/stanctl/analytics"  
+      - name: objects
+        size: "500.00 GB"
+        mount_point: "/mnt/instana/stanctl/objects"           
     dir:
       tmp_dir: "/tmp"
       bin_dir: "/usr/local/bin"
 
 
   tasks: 
-  
-  # - name: Prepare additional disks
+
+  - name: Prepare additional disks
+    ansible.builtin.include_tasks:
+      file: ./prepare-disks.yaml
+    loop: "{{ disks }}"
+    loop_control:
+      loop_var: disk_item
 
   # - name: Configure kernel parameters
 

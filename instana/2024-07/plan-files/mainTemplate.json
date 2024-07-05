@@ -108,6 +108,21 @@
         }
     },
     "resources": [
+        { 
+            "apiVersion": "2021-04-01",
+            "comments": "This is the deployment identifier for Instana",
+            "condition": "[parameters('registerDeployment')]",
+            "name": "pid-1b34a8ac-b40e-4675-bbf8-621ebbc6ae0a", 
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",

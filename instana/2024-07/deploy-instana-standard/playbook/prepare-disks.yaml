@@ -1,0 +1,26 @@
+---
+
+- name: Output name of disk to be prepared
+  debug:
+    msg: "Preparing disk {{ disk_item }}.{{ name }} of size {{ disk_item }}.{{ size }}"
+
+- name: Create mount points
+  ansible.builtin.file:
+    path: "{{ item.mount_point }}"
+    state: directory
+
+- name: Get list of available devices
+  set_fact:
+    available_disks: "{{ available_disks | default({}) | combine({ item.key: { 'size': item.value.size, 'partitions': item.value.partitions} }) }}"
+  with_dict: "{{ ansible_facts.devices }}"
+  when: ( item.value.partitions | length == 0 ) && ( item.value.size == "{{ disk_item }}.{{ size }}" )
+
+- debug:
+    msg: "{{ available_disks }}"
+  when: available_disks is defined
+
+- fail:
+    msg: "No available disks found with size {{ disk_size }}"
+  when: available_disks is not defined
+
+#- name: Create disk partition
