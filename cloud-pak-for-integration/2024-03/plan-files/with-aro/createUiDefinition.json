@@ -750,24 +750,6 @@
 						"visible": true
 					},
 					{
-						"name": "networkInfoPrivate",
-						"type": "Microsoft.Common.InfoBox",
-						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Private')]",
-						"options": {
-							"icon": "Warning",
-							"text": "With a private API for the ARO cluster, the network for the virtual machine must be the same as the internal API endpoint or at a minimum must be able to reach the internal API endpoint of the OpenShift cluster." 
-						}
-					},
-					{
-						"name": "networkInfoPublic",
-						"type": "Microsoft.Common.InfoBox",
-						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Public')]",
-						"options": {
-							"icon": "Warning",
-							"text": "Ensure that the public API endpoint is accessible from the virtual network." 
-						}
-					},
-					{
 						"name": "vmPublicIPRequired",
 						"label": "VM Public IP",
 						"toolTip": "Create a public IP for the deployment VM?",
