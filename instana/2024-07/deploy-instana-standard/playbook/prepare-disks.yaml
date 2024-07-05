@@ -2,25 +2,53 @@
 
 - name: Output name of disk to be prepared
   debug:
-    msg: "Preparing disk {{ disk_item }}.{{ name }} of size {{ disk_item }}.{{ size }}"
+    msg: "Preparing disk {{ disk.name }} of size {{ disk.size }}"
+
+- name: Update host facts
+  ansible.builtin.gather_facts:
 
 - name: Create mount points
   ansible.builtin.file:
-    path: "{{ item.mount_point }}"
+    path: "{{ disk.mount_point }}"
     state: directory
+
+- set_fact:
+    available_disks: []
 
 - name: Get list of available devices
   set_fact:
-    available_disks: "{{ available_disks | default({}) | combine({ item.key: { 'size': item.value.size, 'partitions': item.value.partitions} }) }}"
+    available_disks: "{{ available_disks | default({}) | union([{ 'name': item.key, 'size': item.value.size} ]) }}"
   with_dict: "{{ ansible_facts.devices }}"
-  when: ( item.value.partitions | length == 0 ) && ( item.value.size == "{{ disk_item }}.{{ size }}" )
-
-- debug:
-    msg: "{{ available_disks }}"
-  when: available_disks is defined
+  when: 
+  - item.value.partitions | length == 0
+  - item.value.size == disk.size
 
 - fail:
-    msg: "No available disks found with size {{ disk_size }}"
-  when: available_disks is not defined
+    msg: "No available disks found with size {{ disk.size }}"
+  when: available_disks | length == 0
 
-#- name: Create disk partition
+- set_fact:
+    disk_device: "/dev/{{ available_disks[0].name }}"
+
+- debug:
+    msg: "Found disk {{ disk_device }}"
+
+- name: Create disk partition
+  community.general.parted:
+    device: "{{ disk_device }}"
+    number: 1
+    state: present
+    fs_type: xfs
+
+- name: Format the filesystem
+  community.general.filesystem:
+    fstype: xfs
+    dev: "{{ disk_device }}1" 
+
+- name: Mount the filesystem
+  ansible.posix.mount:
+    path: "{{ disk.mount_point }}"
+    src: "{{ disk_device }}1"
+    state: mounted
+    fstype: xfs
+

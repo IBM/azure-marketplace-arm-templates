@@ -2,6 +2,7 @@
 - name: Install Instana standard on a RHEL virtual machine
   hosts: localhost
   gather_facts: yes
+  become: true
 
   vars:
     instana:
@@ -40,15 +41,73 @@
       file: ./prepare-disks.yaml
     loop: "{{ disks }}"
     loop_control:
-      loop_var: disk_item
+      loop_var: disk
 
-  # - name: Configure kernel parameters
+  - name: Configure kernel parameters - vm.swappiness
+    ansible.builtin.shell: |
+      set timeout 300
+      sh -c 'echo vm.swappiness=0 >> /etc/sysctl.d/99-stanctl.conf'
+      sysctl -p /etc/sysctl.d/99-stanctl.conf
+      exit 0
+    args:
+      executable: /bin/bash
+    
+  - name: Configure kernel parameters - vm.swappiness
+    ansible.builtin.shell: |
+      set timeout 300
+      sh -c 'echo fs.inotify.max_user_instances=8192 >> /etc/sysctl.d/99-stanctl.conf'
+      sysctl -p /etc/sysctl.d/99-stanctl.conf
+      exit 0
+    args:
+      executable: /bin/bash 
 
-  # - name: Add bin directory (for RHEL)
+  - name: Configure kernel parameters - transparent hub pages
+    ansible.builtin.shell: |
+      set timeout 300
+      grubby --args="transparent_hugepage=never" --update-kernel ALL
+      exit 0
+    args:
+      executable: /bin/bash 
 
-  # - name: Add Instana repository
+  - name: Add bin directory (for RHEL)
+    ansible.builtin.shell: echo 'export PATH=$PATH:/usr/local/bin' >> ~root/.bashrc
+    args:
+      executable: /bin/bash
 
-  # - name: Install stanctl command-line tool
+  - name: Add firewall rules
+    ansible.builtin.shell: |
+      set timeout 300
+      firewall-cmd --permanent --add-port=22/tcp
+      firewall-cmd --permanent --add-port=80/tcp
+      firewall-cmd --permanent --add-port=443/tcp
+      firewall-cmd --permanent --add-port=6443/tcp
+      firewall-cmd --permanent --add-port=8443/tcp
+      firewall-cmd --permanent --add-port=10250/tcp
+      firewall-cmd --permanent --zone=trusted --add-source=10.42.0.0/16
+      firewall-cmd --permanent --zone=trusted --add-source=10.43.0.0/16
+      firewall-cmd --reload
+      exit 0
+    args:
+      executable: /bin/bash
+
+
+  - name: Add Instana repository
+    ansible.builtin.template:
+      src: "./instana-product.repo.j2"
+      dest: "/etc/yum.repos.d/Instana-Product.repo"
+
+  - name: Install stanctl command-line tool
+    ansible.builtin.package:
+      name: 
+        - stanctl
+      state: latest
 
   # - name: Install Instana
+  #   ansible.builtin.shell: |
+  #     set timeout 300
+  #     stanctl up --quiet
+  #     exit 0
+  #   args:
+  #     command: /bin/bash
+
 
