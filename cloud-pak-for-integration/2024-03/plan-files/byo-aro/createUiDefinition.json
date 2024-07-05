@@ -89,18 +89,7 @@
                     "method": "GET",
                     "path": "[concat(subscription().id, '/resourceGroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'?api-version=2023-09-04')]"
                 }
-            },
-			{
-				"name": "clusterCredentials",
-				"type": "Microsoft.Solutions.ArmApiControl",
-				"request": {
-					"method": "POST",
-					"body": {
-						"1":"1"
-					},
-					"path": "[concat(subscription().id, '/resourceGroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'/listCredentials?api-version=2023-09-04')]"
-				}
-			}
+            }
         ],
         "steps": [
             {
@@ -519,6 +508,7 @@
         "outputs": {
             "namePrefix": "[basics('namePrefix')]",
             "aroClusterName": "[basics('aroClusterDropDown')]",
+			"aroResourceGroup": "[basics('aroResourceGroup')]",
 			"deploymentApproach": "vm",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('cp4i').ibmEntitlementKey]",
@@ -531,8 +521,6 @@
 			"instanceName": "[steps('cp4i').instanceName]",
             "storageClass": "[steps('cp4i').storageClass]",
 			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
-			"openshiftAdminUsername": "[basics('clusterCredentials').kubeadminUsername]",
-			"openshiftAdminPassword": "[basics('clusterCredentials').kubeadminPassword]",
 			"tagsByResource": "[steps('deployVm').resourceTags]",
 			"vmName": "[steps('deployVm').vmName]",
 			"vmAdminUserName": "[steps('deployVm').vmUsername]",

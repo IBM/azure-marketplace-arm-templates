@@ -88,23 +88,16 @@
                 "description": "API endpoint for OpenShift cluster"
             }
         },
-        "openshiftAdminUsername": {
-            "type": "string",
-            "defaultValue": "kubeadmin",
-            "metadata": {
-                "description": "Administrator username for OpenShift"
-            }
-        },
-        "openshiftAdminPassword": {
-            "type": "securestring",
-            "metadata": {
-                "description": "Administrator password for OpenShift"
-            }
-        },
         "aroClusterName": {
             "type": "string",
             "metadata": {
                 "description": "Name of the ARO cluster"
+            }
+        },
+        "aroResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Resource group containing the ARO cluster"
             }
         },
         "operatorScope": {
@@ -674,13 +667,13 @@
                         "value": "[parameters('openshiftApiUrl')]" 
                     },
                     "openShiftUsername": {
-                        "value": "[parameters('openshiftAdminUsername')]" 
+                        "value": "[listCredentials(resourceId(parameters('aroResourceGroup'),'Microsoft.RedHatOpenShift/OpenShiftClusters',parameters('aroClusterName')),'2023-04-01').kubeadminUsername]" 
                     },
                     "openShiftAuthType": {
                         "value": "Password"
                     },
                     "openShiftPassword": {
-                        "value": "[parameters('openshiftAdminPassword')]"
+                        "value": "[listCredentials(resourceId(parameters('aroResourceGroup'),'Microsoft.RedHatOpenShift/OpenShiftClusters',parameters('aroClusterName')),'2023-04-01').kubeadminPassword]"
                     },
                     "cloudPakVersion": {
                         "value": "[parameters('cp4iVersion')]"
