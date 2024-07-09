@@ -35,6 +35,12 @@
 
 
   tasks: 
+  
+  - name: Install required packages if not already in place
+    ansible.builtin.package:
+      name: 
+        - parted
+      state: latest  
 
   - name: Prepare additional disks
     ansible.builtin.include_tasks:
