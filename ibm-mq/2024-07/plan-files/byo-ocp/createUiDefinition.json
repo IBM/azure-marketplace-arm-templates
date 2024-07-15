@@ -156,7 +156,7 @@
 			},
 			{
                 "name": "ibmmq",
-                "label": "Cloud Pak for Integration",
+                "label": "IBM MQ",
                 "elements": [
                     {
 						"name": "includeEntitlementKey",
@@ -188,18 +188,14 @@
 					{
 						"name": "mqVersion",
 						"type": "Microsoft.Common.DropDown",
-						"label": "Cloud Pak for Integration version",
+						"label": "Cloud Pak for Integration operator version",
 						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
-                        "defaultValue": "IBM MQ version 9.4",
+                        "defaultValue": "IBM MQ Operator version v3.2-sc2",
 						"constraints": {
 						  "allowedValues": [
 							{
-								"label": "IBM MQ version 9.2",
-								"value": "9.2"
-							},
-							{
-								"label": "IBM MQ version 9.4",
-								"value": "9.4"
+								"label": "IBM MQ Operator version v3.2-sc2",
+								"value": "v3.2-sc2"
 							}
 						  ],
 						  "required": true

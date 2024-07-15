@@ -301,7 +301,7 @@
     "resources": [
         { 
             "apiVersion": "2023-07-01",
-            "name": "pid-future-mq-guid-partnercenter", 
+            "name": "pid-4d60017d-bed7-4768-94ba-843339df40b3-partnercenter", 
             "condition": "[parameters('registerDeployment')]",
             "comments": "Resource GUID for IBM MQ marketplace entry",
             "type": "Microsoft.Resources/deployments",
