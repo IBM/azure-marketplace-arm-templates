@@ -43,16 +43,28 @@
                 "description": "API endpoint for OpenShift cluster"
             }
         },
-        "aroClusterName": {
+        "openshiftAdminUsername": {
             "type": "string",
+            "defaultValue": "kubeadmin",
             "metadata": {
-                "description": "Name of the ARO cluster"
+                "description": "Administrator username for OpenShift"
             }
         },
-        "aroResourceGroup": {
-            "type": "string",
+        "openshiftAdminPassword": {
+            "type": "securestring",
             "metadata": {
-                "description": "Resource group containing the ARO cluster"
+                "description": "Administrator password for OpenShift"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Token",
+                "Password"
+            ],
+            "metadata": {
+                "description": "Whether the supplied authentication variable is a token or password."
             }
         },
         "operatorScope": {
@@ -473,13 +485,13 @@
                         "value": "[parameters('openshiftApiUrl')]" 
                     },
                     "openShiftUsername": {
-                        "value": "[listCredentials(resourceId(parameters('aroResourceGroup'),'Microsoft.RedHatOpenShift/OpenShiftClusters',parameters('aroClusterName')),'2023-04-01').kubeadminUsername]" 
+                        "value": "[parameters('openshiftAdminUsername')]" 
                     },
                     "openShiftAuthType": {
-                        "value": "Password"
+                        "value": "[parameters('openShiftAuthType')]"
                     },
                     "openShiftPassword": {
-                        "value": "[listCredentials(resourceId(parameters('aroResourceGroup'),'Microsoft.RedHatOpenShift/OpenShiftClusters',parameters('aroClusterName')),'2023-04-01').kubeadminPassword]"
+                        "value": "[parameters('openshiftAdminPassword')]"
                     },
                     "mqVersion": {
                         "value": "[parameters('mqVersion')]"

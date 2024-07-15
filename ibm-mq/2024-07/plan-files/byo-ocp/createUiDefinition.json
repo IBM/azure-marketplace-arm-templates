@@ -42,48 +42,119 @@
 						}
 					]
 				}
-            },
-			{
-                "name": "clustersApi",
-                "type": "Microsoft.Solutions.ArmApiControl",
-                "request": {
-                    "method": "GET",
-                    "path": "[concat(subscription().id, '/resourcegroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters?api-version=2023-09-04')]"
-                }
-            },
-            {
-                "name": "resourceGroupsApi",
-                "type": "Microsoft.Solutions.ArmApiControl",
-                "request": {
-                    "method": "GET",
-                    "path": "[concat(subscription().id, '/resourceGroups?api-version=2021-04-01')]"
-                }
-            },
-            {
-                "name": "aroResourceGroup",
-                "type": "Microsoft.Common.DropDown",
-                "label": "ARO cluster resource group",
-                "toolTip": "Select the resource group containing the ARO cluster to use. This should be the resource group used to create the ARO cluster, not the one containing the ARO resources. The list of clusters depends upon the chosen resource group.",
-                "constraints": {
-                    "allowedValues": "[map(basics('resourceGroupsApi').value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
-                    "required": true    
-                },
-                "visible": true
-            },
-            {
-                "name": "aroClusterDropDown",
-                "type": "Microsoft.Common.DropDown",
-                "label": "ARO cluster",
-                "toolTip": "Select the ARO cluster to use. The list of clusters depends upon the chosen resource group.",
-                "constraints": {
-                    "allowedValues": "[map(basics('clustersApi').value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
-                    "required": true    
-                },
-                "visible": "[not( equals( basics('aroResourceGroup'), '' ))]"
             }
         ],
         "steps": [
             {
+				"name": "openshift",
+				"label": "OpenShift Cluster",
+				"elements": [
+					{
+						"name": "ocpApiServer",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster API URL",
+						"toolTip": "The API server URL for the cluster for the installation.",
+						"placeholder": "https://mycluster.mydomain.com:6443",
+						"multiLine": false,
+						"visible": true,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z://._-]{8,}$",
+									"message": "Can only contain valid characters for a URL"
+								},
+								{
+									"isValid": "[startsWith(steps('openshift').ocpApiServer, 'https://')]",
+									"message": "Must start with \"https://\""
+								},
+								{
+									"isValid": "[or(endsWith(steps('openshift').ocpApiServer, ':6443'), endsWith(steps('openshift').ocpApiServer, ':6443/'))]",
+									"message": "Must end with \":6443\" or \":6443/\""
+								}
+							]
+						}
+					},
+					{
+						"name": "ocpUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster administrator username",
+						"toolTip": "Administrator username for the cluster",
+						"defaultValue": "kubeadmin",
+						"multiLine": "false",
+						"visible": true,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z:_-]{3,50}$",
+									"message": "Must be alphanumeric only and be between 3 and 50 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "openShiftAuthType",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OpenShift Credential Type",
+						"defaultValue": ["Password"],
+						"toolTip": "Select the authentication type used for the OpenShift administrator.",
+						"multiselect": false,
+						"selectAll": false,
+						"filter": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+							{
+								"label": "Password",
+								"description": "Use a password credential for OpenShift",
+								"value": "Password"
+							},
+							{
+								"label": "Token",
+								"description": "Use a token credential for OpenShift",
+								"value": "Token"
+							}
+							],
+							"required": true
+						},
+						"visible": true
+					},
+					{
+						"name": "ocpPassword",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Cluster administrator password",
+							"confirmPassword": "Confirm administrator password"
+						},
+						"toolTip": "Administrator password for existing cluster",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": "[equals(steps('openshift').openShiftAuthType,'Password')]"
+					},
+					{
+						"name": "ocpToken",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Cluster administrator token",
+							"confirmPassword": "Confirm administrator token"
+						},
+						"toolTip": "Administrator token for existing cluster",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": "[equals(steps('openshift').openShiftAuthType,'Token')]"
+					}
+				]
+			},
+			{
                 "name": "ibmmq",
                 "label": "Cloud Pak for Integration",
                 "elements": [
@@ -447,8 +518,9 @@
 			"operatorScope": "namespace",
 			"operatorNamespace": "[steps('ibmmq').nameSpace]",
 			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
-			"aroResourceGroup": "[basics('aroResourceGroup')]",
-			"aroClusterName": "[basics('aroClusterDropDown')]",
+			"openshiftAdminUsername": "[steps('openshift').ocpUsername]",
+			"openshiftAdminPassword": "[if(equals(steps('openshift').openShiftAuthType,'Password'),steps('openshift').ocpPassword,steps('openshift').ocpToken)]",
+			"openShiftAuthType": "[steps('openshift').openShiftAuthType]",
 			"tagsByResource": "[steps('deployVm').resourceTags]",
 			"vmName": "[steps('deployVm').vmName]",
 			"vmAdminUserName": "[steps('deployVm').vmUsername]",
