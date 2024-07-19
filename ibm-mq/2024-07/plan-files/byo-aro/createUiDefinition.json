@@ -80,6 +80,14 @@
                     "required": true    
                 },
                 "visible": "[not( equals( basics('aroResourceGroup'), '' ))]"
+            },
+            {
+                "name": "clusterDetails",
+                "type": "Microsoft.Solutions.ArmApiControl",
+                "request": {
+                    "method": "GET",
+                    "path": "[concat(subscription().id, '/resourceGroups/',basics('aroResourceGroup'),'/providers/Microsoft.RedHatOpenShift/openShiftClusters/',basics('aroClusterDropDown'),'?api-version=2023-09-04')]"
+                }
             }
         ],
         "steps": [
