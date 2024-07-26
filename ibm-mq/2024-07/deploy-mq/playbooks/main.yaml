@@ -85,24 +85,6 @@
       args:
         executable: /bin/bash
 
-    - name: Check if operator namespace exists
-      ansible.builtin.shell: |
-        set timeout 60
-        {{ directories.bin_dir }}/oc get ns {{ operator.namespace }} 2> /dev/null
-        exit 0
-      register: query_returnedInfo
-
-    - name: Parse returned data to determine if operator namespace already exists
-      set_fact:
-        operatorNamespaceExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
-    
-    - name: Create operator namespace
-      ansible.builtin.shell: |
-        set timeout 300
-        {{ directories.bin_dir }}/oc create ns {{ operator.namespace }}
-        exit 0
-      when: not operatorNamespaceExists
-
     - name: Create IBM entitlement key secret
       ansible.builtin.include_tasks:
         file: ./create-secret.yaml
@@ -114,6 +96,28 @@
       ansible.builtin.include_tasks:
         file: ./create-catalog.yaml
       loop: "{{ mq_inventory.catalogSources }}"
+
+    - name: Check if operator namespace exists
+      ansible.builtin.shell: |
+        set timeout 60
+        {{ directories.bin_dir }}/oc get ns {{ operator.namespace }} 2> /dev/null
+        exit 0
+      register: query_returnedInfo
+      when: operator.scope == "namespace"
+
+    - name: Parse returned data to determine if operator namespace already exists
+      set_fact:
+        operatorNamespaceExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
+      when: operator.scope == "namespace"
+    
+    - name: Create operator namespace
+      ansible.builtin.shell: |
+        set timeout 300
+        {{ directories.bin_dir }}/oc create ns {{ operator.namespace }}
+        exit 0
+      when: 
+        - operator.scope == "namespace"
+        - not operatorNamespaceExists
 
     - name: Create the operator group definition
       ansible.builtin.include_tasks:

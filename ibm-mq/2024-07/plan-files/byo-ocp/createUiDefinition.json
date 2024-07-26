@@ -186,6 +186,28 @@
 						"visible": "[steps('ibmmq').includeEntitlementKey]"
 					},
 					{
+						"name": "operatorScope",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Operator Scope",
+						"defaultValue": ["All Namespaces"],
+						"toolTip": "Select whether the operator should manage a single namespace or all namespaces",
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Single Namespace",
+									"description": "The operator will manage a single namespace. Instances will only be created in that namespace.",
+									"value": "namespace"
+								},
+								{
+									"label": "All Namespaces",
+									"description": "The operator will manage a all namespace. Instances will can be created in any namespace.",
+									"value": "cluster"
+								}
+							]
+						},
+						"visible": true	
+					},
+					{
 						"name": "nameSpace",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Namespace for the operators",
@@ -201,7 +223,7 @@
 							}
 						  ]
 						},
-						"visible": true
+						"visible": "[equals(steps('ibmmq').operatorScope,'namespace')]"
 					}
                 ]
             },
@@ -493,7 +515,7 @@
             "namePrefix": "[basics('namePrefix')]",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('ibmmq').ibmEntitlementKey]",
-			"operatorScope": "namespace",
+			"operatorScope": "[steps('ibmmq').operatorScope]",
 			"operatorNamespace": "[steps('ibmmq').nameSpace]",
 			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
 			"openshiftAdminUsername": "[steps('openshift').ocpUsername]",
