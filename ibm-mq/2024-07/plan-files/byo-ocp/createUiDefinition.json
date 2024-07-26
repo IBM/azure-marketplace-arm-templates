@@ -186,23 +186,6 @@
 						"visible": "[steps('ibmmq').includeEntitlementKey]"
 					},
 					{
-						"name": "mqVersion",
-						"type": "Microsoft.Common.DropDown",
-						"label": "Cloud Pak for Integration operator version",
-						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
-                        "defaultValue": "IBM MQ Operator version v3.2-sc2",
-						"constraints": {
-						  "allowedValues": [
-							{
-								"label": "IBM MQ Operator version v3.2-sc2",
-								"value": "v3.2-sc2"
-							}
-						  ],
-						  "required": true
-						},
-						"visible": true
-					},
-					{
 						"name": "nameSpace",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Namespace for the operators",
@@ -510,7 +493,6 @@
             "namePrefix": "[basics('namePrefix')]",
             "location": "[location()]",
             "ibmEntitlementKey": "[steps('ibmmq').ibmEntitlementKey]",
-			"mqVersion": "[steps('ibmmq').mqVersion ]",
 			"operatorScope": "namespace",
 			"operatorNamespace": "[steps('ibmmq').nameSpace]",
 			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",

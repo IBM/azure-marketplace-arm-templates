@@ -251,7 +251,7 @@
         },
         "mqVersion": {
             "type": "string",
-            "defaultValue": "v3.2-sc2",
+            "defaultValue": "mq",
             "metadata": {
                 "description": "Version of IBM MQ operator to install"
             }

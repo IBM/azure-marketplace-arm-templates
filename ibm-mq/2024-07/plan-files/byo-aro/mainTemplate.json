@@ -33,6 +33,7 @@
         },
         "mqVersion": {
             "type": "string",
+            "defaultValue": "mq",
             "metadata": {
                 "description": "Version of CP4I to be installed"
             }

@@ -7,7 +7,7 @@
     log_level: "info"
     create_secret: false
     mq:
-      version: "9.4"
+      version: "mq"
       branch: "main"
       version_uri: "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates"
       version_path: "ibm-mq/version-files"

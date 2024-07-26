@@ -1,0 +1,31 @@
+{
+  "version": "v3.2-sc2",
+  "defaults": {
+    "namespace": "openshift-operators",
+    "clusterScoped": "false"
+  },
+  "catalogSources": [
+    {
+      "name": "ibmmq-operator-catalogsource",
+      "displayName": "IBM MQ Catalog",
+      "image": "icr.io/cpopen/ibm-mq-operator-catalog@sha256:eb987fedc6e0aa98436008e53eb9ef85fb134f3b758b45993670a4eeedc5aca3",
+      "publisher": "IBM",
+      "sourceType": "grpc",
+      "registryUpdate": "30m0s"
+    }
+  ],
+  "subscriptions": [
+    {
+      "name": "IBM MQ",
+      "metadata": {
+        "name": "ibm-mq"
+      },
+      "spec": {
+        "name": "ibm-mq",
+        "channel": "v3.2-sc2",
+        "source": "ibmmq-operator-catalogsource",
+        "installPlanApproval": "Automatic"
+      }
+    }
+  ]
+}
