@@ -539,7 +539,7 @@
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
-            "name": "[concat(parameters('vmName'),'/','installMQ')]",
+            "name": "[concat(parameters('vmName'),'/','installEventAutomation')]",
             "condition": "[parameters('deployMQ')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
