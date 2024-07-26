@@ -20,6 +20,22 @@
             "publisher": "IBM",
             "sourceType": "grpc",
             "registryUpdate": "30m0s"
+        },
+        {
+            "name": "ibm-eventstreams-catalog",
+            "displayName": "ibm-eventstreams-3.4.0",
+            "image": "icr.io/cpopen/ibm-eventstreams-catalog@sha256:786c707f975b9b0626f3626565ce6800acdbdda31b3170cce580ae4e4857df1d",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryUpdate": "30m0s"
+        },
+        {
+            "name": "ibm-eventendpointmanagement-catalog",
+            "displayName": "ibm-eventendpointmanagement-11.2.2",
+            "image": "icr.io/cpopen/ibm-eventendpointmanagement-operator-catalog@sha256:4bb2272bb4d136bb193df84b4f505a6c8a2088137c320f410bbaa3ace660ab1a",
+            "publisher": "IBM",
+            "sourceType": "grpc",
+            "registryUpdate": "30m0s"
         }
     ],
     "subscriptions": [
@@ -30,8 +46,44 @@
             },
             "spec": {
                 "name": "ibm-eventautomation-flink",
-                "channel": "1.1",
+                "channel": "v1.1",
                 "source": "ibm-eventautomation-flink-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Event Processing",
+            "metadata": {
+                "name": "ibm-eventprocessing"
+            },
+            "spec": {
+                "name": "ibm-eventprocessing",
+                "channel": "v1.1",
+                "source": "ibm-eventprocessing-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Event Streams",
+            "metadata": {
+                "name": "ibm-eventstreams"
+            },
+            "spec": {
+                "name": "ibm-eventstreams",
+                "channel": "v3.4",
+                "source": "ibm-eventstreams-catalog",
+                "installPlanApproval": "Automatic"
+            }
+        },
+        {
+            "name": "IBM Event Endpoint Management",
+            "metadata": {
+                "name": "ibm-eventendpointmanagement"
+            },
+            "spec": {
+                "name": "ibm-eventendpointmanagement",
+                "channel": "v11.2",
+                "source": "ibm-eventendpointmanagement-catalog",
                 "installPlanApproval": "Automatic"
             }
         }
