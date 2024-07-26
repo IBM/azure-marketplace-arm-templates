@@ -69,7 +69,7 @@
         },
         "operatorNamespace": {
             "type": "string",
-            "defaultValue": "ibmint",
+            "defaultValue": "ibmmq",
             "metadata": {
                 "description": "Namespace to be utilized for the operators if namespace scoped"
             }
