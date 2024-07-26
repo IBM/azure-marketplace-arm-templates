@@ -249,11 +249,11 @@
                 "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
             }
         },
-        "mqVersion": {
+        "eaVersion": {
             "type": "string",
-            "defaultValue": "v3.2-sc2",
+            "defaultValue": "1.1",
             "metadata": {
-                "description": "Version of IBM MQ operator to install"
+                "description": "Version of IBM Event Automation to install"
             }
         },
         "entitlementKey": {
@@ -377,11 +377,11 @@
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
             "entitlementKey": "[if(equals(parameters('entitlementKey'),''),json('null'),parameters('entitlementKey'))]",
-            "mq": {
-                "version": "[parameters('mqVersion')]",
+            "event_automation": {
+                "version": "[parameters('eaVersion')]",
                 "branch": "[parameters('branch')]",
                 "version_uri": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates",
-                "version_path": "ibm-mq/version-files"
+                "version_path": "event-automation/version-files"
             },
             "operator": {
                 "scope": "[parameters('operatorScope')]",

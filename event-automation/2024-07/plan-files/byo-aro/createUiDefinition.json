@@ -31,7 +31,7 @@
                 "name": "namePrefix",
                 "type": "Microsoft.Common.TextBox",
                 "label": "Azure resource prefix",
-                "defaultValue": "ibmmq",
+                "defaultValue": "ibmea",
                 "toolTip": "Prefix for Azure installation resources.",
 				"constraints":{
 					"required": true,
@@ -92,8 +92,8 @@
         ],
         "steps": [
             {
-                "name": "ibmmq",
-                "label": "IBM MQ",
+                "name": "ibmea",
+                "label": "IBM Event Automation",
                 "elements": [
                     {
 						"name": "includeEntitlementKey",
@@ -120,30 +120,35 @@
 						"options": {
 							"hideConfirmation": false
 						},
-						"visible": "[steps('ibmmq').includeEntitlementKey]"
+						"visible": "[steps('ibmea').includeEntitlementKey]"
 					},
 					{
-						"name": "mqVersion",
+						"name": "operatorScope",
 						"type": "Microsoft.Common.DropDown",
-						"label": "Cloud Pak for Integration operator version",
-						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
-                        "defaultValue": "IBM MQ Operator version v3.2-sc2",
+						"label": "Operator Scope",
+						"defaultValue": ["All Namespaces"],
+						"toolTip": "Select whether the operator should manage a single namespace or all namespaces",
 						"constraints": {
-						  "allowedValues": [
-							{
-								"label": "IBM MQ Operator version v3.2-sc2",
-								"value": "v3.2-sc2"
-							}
-						  ],
-						  "required": true
+							"allowedValues": [
+								{
+									"label": "Single Namespace",
+									"description": "The operator will manage a single namespace. Instances will only be created in that namespace.",
+									"value": "namespace"
+								},
+								{
+									"label": "All Namespaces",
+									"description": "The operator will manage a all namespace. Instances will can be created in any namespace.",
+									"value": "cluster"
+								}
+							]
 						},
-						"visible": true
+						"visible": true	
 					},
 					{
 						"name": "nameSpace",
 						"type": "Microsoft.Common.TextBox",
 						"label": "Namespace for the operators",
-						"defaultValue": "ibmmq",
+						"defaultValue": "eventautomation",
 						"toolTip": "Namespace in OpenShift where you want to install the operators.",
 						"multiLine": false,
 						"constraints": {
@@ -155,7 +160,7 @@
 							}
 						  ]
 						},
-						"visible": true
+						"visible": "[equals(steps('ibmea').operatorScope,'namespace')]"
 					}
                 ]
             },
@@ -446,10 +451,9 @@
         "outputs": {
             "namePrefix": "[basics('namePrefix')]",
             "location": "[location()]",
-            "ibmEntitlementKey": "[steps('ibmmq').ibmEntitlementKey]",
-			"mqVersion": "[steps('ibmmq').mqVersion ]",
-			"operatorScope": "namespace",
-			"operatorNamespace": "[steps('ibmmq').nameSpace]",
+            "ibmEntitlementKey": "[steps('ibmea').ibmEntitlementKey]",
+			"operatorScope": "[steps('ibmea').operatorScope]",
+			"operatorNamespace": "[steps('ibmea').nameSpace]",
 			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
 			"aroResourceGroup": "[basics('aroResourceGroup')]",
 			"aroClusterName": "[basics('aroClusterDropDown')]",

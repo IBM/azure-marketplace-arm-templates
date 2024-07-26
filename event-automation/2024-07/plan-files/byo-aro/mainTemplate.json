@@ -31,8 +31,9 @@
                 "description": "Entitlement key for IBM container registry"
             }
         },
-        "mqVersion": {
+        "eaVersion": {
             "type": "string",
+            "defaultValue": "1.1",
             "metadata": {
                 "description": "Version of CP4I to be installed"
             }
@@ -289,9 +290,9 @@
     "resources": [
         { 
             "apiVersion": "2023-07-01",
-            "name": "pid-4d60017d-bed7-4768-94ba-843339df40b3-partnercenter", 
+            "name": "pid-tba-partnercenter", 
             "condition": "[parameters('registerDeployment')]",
-            "comments": "Resource GUID for IBM MQ marketplace entry",
+            "comments": "Resource GUID for IBM Event Automation marketplace entry",
             "type": "Microsoft.Resources/deployments",
             "properties": {
                 "mode": "Incremental",
@@ -402,7 +403,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/event-automation/',parameters('deploymentVersion'),'/deploy-mq/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -481,8 +482,8 @@
                     "openShiftPassword": {
                         "value": "[listCredentials(resourceId(parameters('aroResourceGroup'),'Microsoft.RedHatOpenShift/OpenShiftClusters',parameters('aroClusterName')),'2023-04-01').kubeadminPassword]"
                     },
-                    "mqVersion": {
-                        "value": "[parameters('mqVersion')]"
+                    "eaVersion": {
+                        "value": "[parameters('eaVersion')]"
                     },
                     "entitlementKey": {
                         "value": "[parameters('ibmEntitlementKey')]"
