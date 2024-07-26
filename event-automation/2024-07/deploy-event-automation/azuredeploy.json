@@ -276,7 +276,7 @@
         },
         "operatorNamespace": {
             "type": "string",
-            "defaultValue": "ibmint",
+            "defaultValue": "eventautomation",
             "metadata": {
                 "description": "Namespace to be utilized for the operators if namespace scoped"
             }
@@ -377,6 +377,7 @@
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
             "entitlementKey": "[if(equals(parameters('entitlementKey'),''),json('null'),parameters('entitlementKey'))]",
+            "create_secret": "[not(equals(parameters('entitlementKey'),''))]",
             "event_automation": {
                 "version": "[parameters('eaVersion')]",
                 "branch": "[parameters('branch')]",
