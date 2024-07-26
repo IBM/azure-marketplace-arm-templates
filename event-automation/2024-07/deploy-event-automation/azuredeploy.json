@@ -551,17 +551,18 @@
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
                     "fileUris": [
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/templates/catalogsource.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/templates/operatorgroup.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/templates/subscription-cluster.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/templates/subscription-namespace.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/create-catalog.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/create-og.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/create-subscription.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/oc-login.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/install-oc.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/main.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/wait-for-cloud-init.sh'))]"
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/templates/catalogsource.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/templates/operatorgroup.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/templates/subscription-cluster.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/templates/subscription-namespace.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/create-catalog.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/create-og.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/create-subscription.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/create-secret.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/oc-login.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/install-oc.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/playbooks/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/wait-for-cloud-init.sh'))]"
                     ],
                     "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
