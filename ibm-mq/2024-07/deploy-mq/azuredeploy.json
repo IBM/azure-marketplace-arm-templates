@@ -377,6 +377,7 @@
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
             "entitlementKey": "[if(equals(parameters('entitlementKey'),''),json('null'),parameters('entitlementKey'))]",
+            "create_secret": "[not(equals(parameters('entitlementKey'),''))]",
             "mq": {
                 "version": "[parameters('mqVersion')]",
                 "branch": "[parameters('branch')]",
