@@ -559,6 +559,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/create-catalog.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/create-og.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/create-subscription.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/create-secret.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/oc-login.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/install-oc.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/ibm-mq/',parameters('deploymentVersion'),'/deploy-mq/playbooks/main.yaml'))]",
