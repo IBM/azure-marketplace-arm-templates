@@ -76,24 +76,6 @@
 						}
 					},
 					{
-						"name": "ocpUsername",
-						"type": "Microsoft.Common.TextBox",
-						"label": "Cluster administrator username",
-						"toolTip": "Administrator username for the cluster",
-						"defaultValue": "kubeadmin",
-						"multiLine": "false",
-						"visible": true,
-						"constraints": {
-							"required": true,
-							"validations": [
-								{
-									"regex": "^[a-z0-9A-Z:_-]{3,50}$",
-									"message": "Must be alphanumeric only and be between 3 and 50 characters"
-								}
-							]
-						}
-					},
-					{
 						"name": "openShiftAuthType",
 						"type": "Microsoft.Common.DropDown",
 						"label": "OpenShift Credential Type",
@@ -119,6 +101,24 @@
 							"required": true
 						},
 						"visible": true
+					},
+					{
+						"name": "ocpUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster administrator username",
+						"toolTip": "Administrator username for the cluster",
+						"defaultValue": "kubeadmin",
+						"multiLine": "false",
+						"visible": "[equals(steps('openshift').openShiftAuthType,'Password')]",
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z:_-]{3,50}$",
+									"message": "Must be alphanumeric only and be between 3 and 50 characters"
+								}
+							]
+						}
 					},
 					{
 						"name": "ocpPassword",
