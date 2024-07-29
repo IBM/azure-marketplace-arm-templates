@@ -47,7 +47,7 @@
 - name: Log into the OpenShift cluster with token
   ansible.builtin.shell: |
     set timeout 30
-    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --token={{ cluster_token }} 2> /dev/null 
+    {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster_token }} 2> /dev/null 
     exit 0
   args:
     executable: /bin/bash
