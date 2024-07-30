@@ -1,0 +1,130 @@
+---
+- name: Install MQ operator on OpenShift
+  hosts: localhost
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
+    create_secret: false
+    mq:
+      version: "mq"
+      branch: "main"
+      version_uri: "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates"
+      version_path: "ibm-mq/version-files"
+    operator:
+      scope: "namespace"
+      namespace: "mq"
+    directories:
+        bin_dir: "/usr/local/bin"
+        tmp_dir: "/tmp"
+    default:
+      retries: 60
+      retry_delay: 15
+
+  tasks:
+
+    - name: Check if oc client is already installed
+      ansible.builtin.stat:
+        path: "{{ directories.bin_dir }}/oc"
+      register: oc_file
+
+    - name: Install oc client if not already installed
+      ansible.builtin.include_tasks:
+        file: install-oc.yaml
+      when: not oc_file.stat.exists
+
+    - name: Check if already logged into cluster
+      ansible.builtin.shell: |
+        set timeout 30
+        {{ directories.bin_dir }}/oc status 2> /dev/null
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+
+    - name: Login to OpenShift cluster if not already logged in
+      ansible.builtin.include_tasks:
+        file: ./oc-login.yaml
+      when: response.stdout == ""
+
+    - name: Create template directory if not already in place
+      ansible.builtin.file:
+        path: ./templates
+        state: directory
+      
+    # Following is required as some implementations download templates and playbooks to a single directory
+    - name: Copy templates to template directory
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: ./templates/
+      with_fileglob:
+        - ./*.j2
+
+    - name: Check if version specification file exists
+      ansible.builtin.stat:
+        path: "{{ directories.tmp_dir  }}/specs-{{ mq.version }}.json"
+      register: spec_file
+
+    - name: Download the spec file
+      ansible.builtin.get_url:
+        url: "{{ mq.version_uri }}/{{ mq.branch }}/{{ mq.version_path }}/specs-{{ mq.version }}.json"
+        dest: "{{ directories.tmp_dir  }}"
+      register: downloaded_file
+      when: not spec_file.stat.exists
+
+    - name: Include spec file variables
+      ansible.builtin.include_vars:
+        file: "{{ directories.tmp_dir  }}/specs-{{ mq.version }}.json"
+        name: mq_inventory
+
+    - name: Wait for cluster to be available
+      ansible.builtin.shell: |
+        set timeout 900
+        {{ directories.bin_dir }}oc adm wait-for-stable-cluster
+        exit 0
+      args:
+        executable: /bin/bash
+
+    - name: Create IBM entitlement key secret
+      ansible.builtin.include_tasks:
+        file: ./create-secret.yaml
+      when: 
+        - entitlementKey is defined
+        - create_secret
+
+    - name: Create catalog source definitions
+      ansible.builtin.include_tasks:
+        file: ./create-catalog.yaml
+      loop: "{{ mq_inventory.catalogSources }}"
+
+    - name: Check if operator namespace exists
+      ansible.builtin.shell: |
+        set timeout 60
+        {{ directories.bin_dir }}/oc get ns {{ operator.namespace }} 2> /dev/null
+        exit 0
+      register: query_returnedInfo
+      when: operator.scope == "namespace"
+
+    - name: Parse returned data to determine if operator namespace already exists
+      set_fact:
+        operatorNamespaceExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
+      when: operator.scope == "namespace"
+    
+    - name: Create operator namespace
+      ansible.builtin.shell: |
+        set timeout 300
+        {{ directories.bin_dir }}/oc create ns {{ operator.namespace }}
+        exit 0
+      when: 
+        - operator.scope == "namespace"
+        - not operatorNamespaceExists
+
+    - name: Create the operator group definition
+      ansible.builtin.include_tasks:
+        file: ./create-og.yaml
+      when: operator.scope == "namespace"
+
+    - name: Create the subscriptions
+      ansible.builtin.include_tasks:
+        file: ./create-subscription.yaml
+      loop: "{{ mq_inventory.subscriptions }}"

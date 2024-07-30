@@ -1,0 +1,548 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+		"config": {
+			"isWizard": true,
+			"basics": {
+				"resourceGroup": {
+					"constraints": {
+						"validations": [
+							{
+								"permission": "Microsoft.Compute/virtualMachines/create",
+								"message": "Must be able to create a virtual machine in the resource group"
+							}
+						]
+					},
+					"allowExisting": true
+				},
+				"location": {
+					"visible": true,
+					"resourceTypes": [
+						"Microsoft.Compute/virtualMachines",
+						"Microsoft.Network/virtualNetworks"
+					]
+				}
+			}
+		},
+        "basics": [
+            {
+                "name": "namePrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Azure resource prefix",
+                "defaultValue": "ibmmq",
+                "toolTip": "Prefix for Azure installation resources.",
+				"constraints":{
+					"required": true,
+					"validations": [
+						{
+							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+						}
+					]
+				}
+            }
+        ],
+        "steps": [
+            {
+				"name": "openshift",
+				"label": "OpenShift Cluster",
+				"elements": [
+					{
+						"name": "ocpApiServer",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster API URL",
+						"toolTip": "The API server URL for the cluster for the installation.",
+						"placeholder": "https://mycluster.mydomain.com:6443",
+						"multiLine": false,
+						"visible": true,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z://._-]{8,}$",
+									"message": "Can only contain valid characters for a URL"
+								},
+								{
+									"isValid": "[startsWith(steps('openshift').ocpApiServer, 'https://')]",
+									"message": "Must start with \"https://\""
+								},
+								{
+									"isValid": "[or(endsWith(steps('openshift').ocpApiServer, ':6443'), endsWith(steps('openshift').ocpApiServer, ':6443/'))]",
+									"message": "Must end with \":6443\" or \":6443/\""
+								}
+							]
+						}
+					},
+					{
+						"name": "openShiftAuthType",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OpenShift Credential Type",
+						"defaultValue": ["Password"],
+						"toolTip": "Select the authentication type used for the OpenShift administrator.",
+						"multiselect": false,
+						"selectAll": false,
+						"filter": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+							{
+								"label": "Password",
+								"description": "Use a password credential for OpenShift",
+								"value": "Password"
+							},
+							{
+								"label": "Token",
+								"description": "Use a token credential for OpenShift",
+								"value": "Token"
+							}
+							],
+							"required": true
+						},
+						"visible": true
+					},
+					{
+						"name": "ocpUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster administrator username",
+						"toolTip": "Administrator username for the cluster",
+						"defaultValue": "kubeadmin",
+						"multiLine": "false",
+						"visible": "[equals(steps('openshift').openShiftAuthType,'Password')]",
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z:_-]{3,50}$",
+									"message": "Must be alphanumeric only and be between 3 and 50 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "ocpPassword",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Cluster administrator password",
+							"confirmPassword": "Confirm administrator password"
+						},
+						"toolTip": "Administrator password for existing cluster",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": "[equals(steps('openshift').openShiftAuthType,'Password')]"
+					},
+					{
+						"name": "ocpToken",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Cluster administrator token",
+							"confirmPassword": "Confirm administrator token"
+						},
+						"toolTip": "Administrator token for existing cluster",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": "[equals(steps('openshift').openShiftAuthType,'Token')]"
+					}
+				]
+			},
+			{
+                "name": "ibmmq",
+                "label": "IBM MQ",
+                "elements": [
+                    {
+						"name": "includeEntitlementKey",
+						"label": "Include IBM Entitlement Key Secret",
+						"toolTip": "Create a secret with the IBM Entitlement Key (required to deploy MQ instances post installation)?",
+						"type": "Microsoft.Common.CheckBox",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "ibmEntitlementKey",
+						"type": "Microsoft.Common.PasswordBox",	
+						"toolTip": "Optional. Will create the entitlement key secret in the OpenShift cluster if provided",					
+						"label": {
+							"password": "Entitlement key",
+                            "confirmPassword": "Confirm Entitlement key"
+						},
+						"constraints": {
+							"required": false,
+							"regex": "^[a-zA-Z0-9._-]{100,}$",
+							"validationMessage": "Key must be at least 100 characters long, contain only numbers, letters, underscores, dots and dashes"
+                		},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": "[steps('ibmmq').includeEntitlementKey]"
+					},
+					{
+						"name": "operatorScope",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Operator Scope",
+						"defaultValue": ["All Namespaces"],
+						"toolTip": "Select whether the operator should manage a single namespace or all namespaces",
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Single Namespace",
+									"description": "The operator will manage a single namespace. Instances will only be created in that namespace.",
+									"value": "namespace"
+								},
+								{
+									"label": "All Namespaces",
+									"description": "The operator will manage a all namespace. Instances will can be created in any namespace.",
+									"value": "cluster"
+								}
+							]
+						},
+						"visible": true	
+					},
+					{
+						"name": "nameSpace",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Namespace for the operators",
+						"defaultValue": "ibmmq",
+						"toolTip": "Namespace in OpenShift where you want to install the operators.",
+						"multiLine": false,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+							  "regex": "^[a-z0-9A-Z-]{3,63}$",
+							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+							}
+						  ]
+						},
+						"visible": "[equals(steps('ibmmq').operatorScope,'namespace')]"
+					}
+                ]
+            },
+			{
+				"name": "deployVm",
+				"label": "Deployment VM",
+				"elements": [	
+					{
+						"name": "deployVmInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+							"icon": "Info",
+							"text": "The deployment VM is used to run the deployment scripts and may be removed post implementation." 
+						}
+					},
+					{
+						"name": "vmName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "VM Hostname",
+						"toolTip": "Name of the virtual machine",
+						"visible": true,
+						"defaultValue": "[concat(basics('namePrefix'),'-vm')]",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z-_]{5,64}$",
+									"message": "Alphanumeric, underscores and dashes only between 5 and 64 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Administrator username for virtual machine",
+						"toolTip": "Username for the virtual machine",
+						"visible": true,
+						"defaultValue": "azureuser",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^(?!administrator|admin|user|user1|test|user2|test1|user3|admin1|actuser|admin2|aspnet|backup|console|david|guest|john|owner|server|support|support_388945a0|test2|test3|user4|user5|root)[a-z0-9A-Z]{5,64}$",
+									"message": "Alphanumeric only between 5 and 64 characters. Must not contain disallowed values"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmPassword",
+						"type": "Microsoft.Compute.CredentialsCombo",
+						"label": {
+						  "authenticationType": "Authentication type",
+						  "password": "Password",
+						  "confirmPassword": "Confirm password",
+						  "sshPublicKey": "SSH public key"
+						},
+						"toolTip": {
+						  "authenticationType": "SSH key or password. SSH key is recommended.",
+						  "password": "Password for the administrator user",
+						  "sshPublicKey": "Public SSH key for the administrator user. Private key required for access."
+						},
+						"constraints": {
+						  "required": true,
+						  "customPasswordRegex": "^(?!abc@123|P@$$w0rd|P@ssw0rd|P@ssword123|Pa$$word|pass@word1|Password!|Password1|Password22|iloveyou!)(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,72}$",
+						  "customValidationMessage": "The password must have a lowercase character, an uppercase character, a digit and a special character and contain at least 6 characters, up to 72 characters."
+						},
+						"options": {
+						  "hideConfirmation": false,
+						  "hidePassword": false
+						},
+						"osPlatform": "Linux",
+						"visible": true
+					},
+					{
+						"name": "vmSize",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "VM Size",
+						"toolTip": "Azure VM Size",
+						"recommendedSizes": [
+						  "Standard_B2s"
+						],
+						"constraints": {
+						  "allowedSizes": [
+							"Standard_B2s",
+							"Standard_D2s_v3",
+							"Standard_D4s_v3"
+						  ],
+						  "numAvailabilityZonesRequired": 1,
+						  "zone": "3"
+						},
+						"options": {
+						  "hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"imageReference": {
+						  "publisher": "RedHat",
+						  "offer": "RHEL",
+						  "sku": "9_2"
+						},
+						"count": 1,
+						"visible": true
+					},
+					{
+						"name": "vmZone",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Availability Zone for VM",
+						"defaultValue": ["1"],
+						"toolTip": "Zone must be present in selected region",
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "1",
+									"value": "1"
+								},
+								{
+									"label": "2",
+									"value": "2"
+								},
+								{
+									"label": "3",
+									"value": "3"
+								}
+							]
+						},
+						"required": true,
+						"visible": true
+					},
+					{
+						"name": "vmDiskType",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OS disk type for VM",
+						"toolTip": "Select the disk type for the deployment VM operating system disk",
+						"defaultValue": ["Standard SSD"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Premium SSD",
+									"value": "Premium_LRS"
+								},
+								{
+									"label": "Standard SSD",
+									"value": "Standard_LRS"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "vmOsVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "RHEL Version",
+						"toolTip": "Select the version of RHEL for the dpeloyment VM",
+						"defaultValue": ["RHEL 9.2"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "RHEL 8.6",
+									"value": "RHEL 8.6"
+								},
+								{
+									"label": "RHEL 8.7",
+									"value": "RHEL 8.7"
+								},
+								{
+									"label": "RHEL 9.2",
+									"value": "RHEL 9.2"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "networkInfoPrivate",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Private')]",
+						"options": {
+							"icon": "Warning",
+							"text": "With a private API for the ARO cluster, the network for the virtual machine must be the same as the internal API endpoint or at a minimum must be able to reach the internal API endpoint of the OpenShift cluster." 
+						}
+					},
+					{
+						"name": "networkInfoPublic",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[equals(basics('clusterDetails').properties.apiserverProfile.visibility,'Public')]",
+						"options": {
+							"icon": "Warning",
+							"text": "Ensure that the public API endpoint is accessible from the virtual network." 
+						}
+					},
+					{
+						"name": "vmNetwork",
+						"type": "Microsoft.Network.VirtualNetworkCombo",
+						"label": {
+							"virtualNetwork": "Virtual network",
+							"subnets": "VM Subnet"
+						},
+						"toolTip": {
+							"virtualNetwork": "Select the virtual network for the VM",
+							"subnets": "Select the subnet for the VM"
+						},
+						"defaultValue": {
+							"name": "[concat(basics('namePrefix'),'-',substring(guid(),0,8),'-vnet')]",
+							"addressPrefixSize": "/24"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/27"
+						},
+						"options": {
+							"hideExisting": false
+						},
+						"subnets": {
+							"vmSubnet": {
+								"label": "VM Subnet",
+								"defaultValue": {
+									"name": "vm-subnet",
+									"addressPrefixSize": "/27"
+								},
+								"constraints": {
+									"minAddressCount": 1,
+									"minAddressPrefixSize": "/30",
+									"requireContiguousAddresses": false
+								}
+							}
+						},
+						"visible": true
+					},
+					{
+						"name": "vmPublicIPRequired",
+						"label": "VM Public IP",
+						"toolTip": "Create a public IP for the deployment VM?",
+						"type": "Microsoft.Common.CheckBox",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "vmPublicIP",
+						"type": "Microsoft.Network.PublicIpAddressCombo",
+						"label": {
+							"publicIpAddress": "Public IP address for VM",
+							"domainNameLabel": "Domain name label for the VM's public IP"
+						},
+						"toolTip": {
+							"publicIpAddress": "Name of the public IP for the VM",
+							"domainNameLabel": "Domain name label for the public IP of the VM"
+						},
+						"defaultValue": {
+							"publicIpAddressName": "[concat(basics('namePrefix'),'-pip')]",
+							"domainNameLabel": "[toLower( concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)) )]"
+						},
+						"constraints": {
+							"required": {
+								"domainNameLabel": false
+							}
+						},
+						"options": {
+							"hideNone": true,
+							"hideDomainNameLabel": false,
+							"hideExisting": false,
+							"zone": "[steps('deployVm').vmZone]"
+						},
+						"visible": "[steps('deployVm').vmPublicIPRequired]"
+					},
+					{
+						"name": "resourceTags",
+						"type": "Microsoft.Common.TagsByResource",
+						"toolTip": "Adds tags for the created resources",
+						"resources": [
+							"Microsoft.Network.virtualNetworks",
+							"Microsoft.Compute/virtualMachines",
+							"Microsoft.Network/publicIPAddresses"
+						]
+					}
+				]
+			}
+         ],
+        "outputs": {
+            "namePrefix": "[basics('namePrefix')]",
+            "location": "[location()]",
+            "ibmEntitlementKey": "[steps('ibmmq').ibmEntitlementKey]",
+			"operatorScope": "[steps('ibmmq').operatorScope]",
+			"operatorNamespace": "[steps('ibmmq').nameSpace]",
+			"openshiftApiUrl": "[steps('openshift').ocpApiServer]",
+			"openshiftAdminUsername": "[steps('openshift').ocpUsername]",
+			"openshiftAdminPassword": "[if(equals(steps('openshift').openShiftAuthType,'Password'),steps('openshift').ocpPassword,steps('openshift').ocpToken)]",
+			"openShiftAuthType": "[steps('openshift').openShiftAuthType]",
+			"tagsByResource": "[steps('deployVm').resourceTags]",
+			"vmName": "[steps('deployVm').vmName]",
+			"vmAdminUserName": "[steps('deployVm').vmUsername]",
+			"vmAdminPassword": "[if(equals(steps('deployVm').vmPassword.authenticationType,'password'),steps('deployVm').vmPassword.password,steps('deployVm').vmPassword.sshPublicKey)]",
+			"vmAuthType": "[steps('deployVm').vmPassword.authenticationType]",
+			"vmSize": "[steps('deployVm').vmSize]",
+			"vmDiskType": "[steps('deployVm').vmDiskType]",
+			"vmZone": "[steps('deployVm').vmZone]",
+			"vmOSVersion": "[steps('deployVm').vmOsVersion]",
+			"networkResourceGroup": "[steps('deployVm').vmNetwork.resourceGroup]",
+			"vnetName": "[steps('deployVm').vmNetwork.name]",
+			"vnetCIDR": "[steps('deployVm').vmNetwork.addressPrefix]",
+			"vnetNewOrExisting": "[steps('deployVm').vmNetwork.newOrExisting]",
+			"subnetName": "[steps('deployVm').vmNetwork.subnets.vmSubnet.name]",
+			"subnetCidr": "[steps('deployVm').vmNetwork.subnets.vmSubnet.addressPrefix]",
+			"vmCreatePublicIP": "[steps('deployVm').vmPublicIPRequired]",
+			"vmPublicIPName": "[steps('deployVm').vmPublicIP.name]",
+			"vmPublicIpResourceGroup": "[steps('deployVm').vmPublicIP.resourceGroup]",
+			"vmPublicIpNewOrExisting": "[steps('deployVm').vmPublicIP.newOrExistingOrNone]",
+			"vmDomainName": "[steps('deployVm').vmPublicIP.domainNameLabel]",
+			"deploymentVersion": "2024-07",
+			"logLevel": "info"
+         }
+    }
+}
