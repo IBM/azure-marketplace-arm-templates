@@ -403,7 +403,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/event-automation/',parameters('deploymentVersion'),'/deploy-mq/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/event-automation/',parameters('deploymentVersion'),'/deploy-event-automation/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {

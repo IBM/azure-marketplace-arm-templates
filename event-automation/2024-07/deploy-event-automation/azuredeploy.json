@@ -211,7 +211,7 @@
                 "description": "Domain name prefix for the public IP address"
             }
         },
-        "deployMQ": {
+        "deployEventAutomation": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
@@ -541,7 +541,7 @@
             "apiVersion": "2023-09-01",
             "location": "[parameters('location')]",
             "name": "[concat(parameters('vmName'),'/','installEventAutomation')]",
-            "condition": "[parameters('deployMQ')]",
+            "condition": "[parameters('deployEventAutomation')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
             ],
