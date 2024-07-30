@@ -517,7 +517,7 @@
             "ibmEntitlementKey": "[steps('ibmea').ibmEntitlementKey]",
 			"operatorScope": "[steps('ibmea').operatorScope]",
 			"operatorNamespace": "[steps('ibmea').nameSpace]",
-			"openshiftApiUrl": "[basics('clusterDetails').properties.apiserverProfile.url]",
+			"openshiftApiUrl": "[steps('openshift').ocpApiServer]",
 			"openshiftAdminUsername": "[steps('openshift').ocpUsername]",
 			"openshiftAdminPassword": "[if(equals(steps('openshift').openShiftAuthType,'Password'),steps('openshift').ocpPassword,steps('openshift').ocpToken)]",
 			"openShiftAuthType": "[steps('openshift').openShiftAuthType]",
