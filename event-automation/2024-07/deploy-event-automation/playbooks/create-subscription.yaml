@@ -4,13 +4,13 @@
   debug:
     msg: "Creating subscription for {{ item.metadata.name }}"
 
-- name: Create operator group definition (namespace scoped)
+- name: Create the subscription definition (namespace scoped)
   ansible.builtin.template:
     src: "./templates/subscription-namespace.j2"
     dest: "{{ directories.tmp_dir }}/{{ item.metadata.name }}-subscription.yaml"
   when: operator.scope == "namespace"
 
-- name: Create operator group definition (cluster scoped)
+- name: Create subscription definition (cluster scoped)
   ansible.builtin.template:
     src: "./templates/subscription-cluster.j2"
     dest: "{{ directories.tmp_dir }}/{{ item.metadata.name }}-subscription.yaml"
@@ -49,11 +49,11 @@
 - name: Wait for subscription to be available (cluster scoped)
   ansible.builtin.shell: |
     set timeout 60
-    CSV=$({{ directories.bin_dir }}/oc get subscription {{ item.metadata.name }} -o jsonpath='{.status.currentCSV}')
+    CSV=$({{ directories.bin_dir }}/oc get subscription -n openshift-operators {{ item.metadata.name }} -o jsonpath='{.status.currentCSV}')
     if [[ "$CSV" == "null" ]]; then
       echo "PendingCSV"
     else
-      echo $({{ directories.bin_dir }}/oc get csv ${CSV} -o jsonpath='{.status.phase}')
+      echo $({{ directories.bin_dir }}/oc get csv -n openshift-operators ${CSV} -o jsonpath='{.status.phase}')
     fi
     exit 0
   args:
