@@ -116,8 +116,8 @@
         {{ directories.bin_dir }}/oc create ns {{ operator.namespace }}
         exit 0
       when: 
-        - not operatorNamespaceExists
         - operator.scope == "namespace"
+        - not operatorNamespaceExists
 
     - name: Create the operator group definition
       ansible.builtin.include_tasks:
