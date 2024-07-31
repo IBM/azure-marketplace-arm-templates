@@ -2,7 +2,7 @@
   "version": "v3.2-sc2",
   "defaults": {
     "namespace": "openshift-operators",
-    "clusterScoped": "false"
+    "clusterScoped": false
   },
   "catalogSources": [
     {
