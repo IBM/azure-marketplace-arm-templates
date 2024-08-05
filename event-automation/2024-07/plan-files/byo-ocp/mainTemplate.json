@@ -302,7 +302,7 @@
     "resources": [
         { 
             "apiVersion": "2023-07-01",
-            "name": "pid-tba-partnercenter", 
+            "name": "pid-4717d8b3-1f74-473c-845b-5f5b5f017cf2-partnercenter", 
             "condition": "[parameters('registerDeployment')]",
             "comments": "Resource GUID for IBM Event Automation marketplace entry",
             "type": "Microsoft.Resources/deployments",
