@@ -616,6 +616,7 @@
                 "protectedSettings": {
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbooks/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbooks/instana-product.repo.j2'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/wait-for-cloud-init.sh'))]"
                     ],
                     "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh','&& echo ',replace(string(variables('scriptParameters')), '\"', '\\\"'),'> ./parameter.json')]"
