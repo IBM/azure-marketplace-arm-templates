@@ -85,18 +85,6 @@
       args:
         executable: /bin/bash
 
-    - name: Create IBM entitlement key secret
-      ansible.builtin.include_tasks:
-        file: ./create-secret.yaml
-      when: 
-        - entitlementKey is defined
-        - create_secret
-
-    - name: Create catalog source definitions
-      ansible.builtin.include_tasks:
-        file: ./create-catalog.yaml
-      loop: "{{ mq_inventory.catalogSources }}"
-
     - name: Check if operator namespace exists
       ansible.builtin.shell: |
         set timeout 60
@@ -119,6 +107,18 @@
         - operator.scope == "namespace"
         - not operatorNamespaceExists
 
+    - name: Create IBM entitlement key secret
+      ansible.builtin.include_tasks:
+        file: ./create-secret.yaml
+      when: 
+        - entitlementKey is defined
+        - create_secret
+
+    - name: Create catalog source definitions
+      ansible.builtin.include_tasks:
+        file: ./create-catalog.yaml
+      loop: "{{ mq_inventory.catalogSources }}"
+      
     - name: Create the operator group definition
       ansible.builtin.include_tasks:
         file: ./create-og.yaml
