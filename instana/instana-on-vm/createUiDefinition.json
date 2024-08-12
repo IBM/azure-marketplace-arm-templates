@@ -226,6 +226,7 @@
                         "name": "adminUserName",
                         "type": "Microsoft.Compute.UserNameTextBox",
                         "label": "Administrator Username",
+                        "defaultValue": "azureuser",
                         "toolTip": "This will be the primary admin user and login on the created virtual machine",
                         "visible": true,
                         "constraints": {
