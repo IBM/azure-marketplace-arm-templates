@@ -218,7 +218,7 @@
         },
         "osDiskSize": {
             "type": "int",
-            "defaultValue": 100,
+            "defaultValue": 200,
             "metadata": {
                "description": "Size of the OS Disk (GB)" 
             }
@@ -226,6 +226,7 @@
         "dataDiskSize": {
             "type": "int",
             "defaultValue": 150,
+            "minValue": 150,
             "metadata": {
                 "description": "Size of the data directory (GB)"
             }
@@ -233,6 +234,7 @@
         "metricsDiskSize": {
             "type": "int",
             "defaultValue": 300,
+            "minValue": 300,
             "metadata": {
                 "description": "Size of the metrics directory (GB)"
             }
@@ -240,6 +242,7 @@
         "analyticsDiskSize": {
             "type": "int",
             "defaultValue": 500,
+            "minValue": 500,
             "metadata": {
                 "description": "Size of the analytics directory (GB)"
             }
@@ -247,6 +250,7 @@
         "objectsDiskSize": {
             "type": "int",
             "defaultValue": 500,
+            "minValue": 250,
             "metadata": {
                 "description": "Size of the objects directory (GB)"
             }
@@ -400,12 +404,32 @@
                 "accept_license": false,
                 "admin_password": "[parameters('instanaPassword')]"
             },
-            "vm": {
-                "dataDiskSize": "[concat(parameters('dataDiskSize'),'.00 GB')]",
-                "metricsDiskSize": "[concat(parameters('metricsDiskSize'),'.00 GB')]",
-                "analyticsDiskSize": "[concat(parameters('analyticsDiskSize'),'.00 GB')]",
-                "objectsDiskSize": "[concat(parameters('objectsDiskSize'),'.00 GB')]"
+            "tls": {
+                "cert": "",
+                "key": ""
             },
+            "disks": [
+                {
+                    "name": "data",
+                    "size": "[concat(parameters('dataDiskSize'),'.00 GB')]",
+                    "mount_point": "/mnt/instana/stanctl/data"
+                },
+                {
+                    "name": "metrics",
+                    "size": "[concat(parameters('metricsDiskSize'),'.00 GB')]",
+                    "mount_point": "/mnt/instana/stanctl/metrics"
+                },
+                {
+                    "name": "analytics",
+                    "size": "[concat(parameters('analyticsDiskSize'),'.00 GB')]",
+                    "mount_point": "/mnt/instana/stanctl/analytics"
+                },
+                {
+                    "name": "objects",
+                    "size": "[concat(parameters('objectsDiskSize'),'.00 GB')]",
+                    "mount_point": "/mnt/instana/stanctl/objects"
+                }
+            ],
             "dir": {
                 "tmp_dir": "/tmp",
                 "bin_dir": "/usr/local/bin"
