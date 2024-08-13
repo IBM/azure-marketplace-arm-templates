@@ -21,7 +21,7 @@
     disk_mounted: false
   when: response.stdout == ""
 
-- name: Create mount points
+- name: Create mount point
   ansible.builtin.file:
     path: "{{ disk.mount_point }}"
     state: directory
@@ -53,8 +53,15 @@
   when:
   - not disk_mounted
 
+- name: Label the partition
+  ansible.builtin.shell: parted -s {{ disk_device }} mklabel msdos
+  args:
+    executable: /bin/bash
+  register: response
+  when: not disk_mounted
+
 - name: Create disk partition
-  ansible.builtin.shell: parted -s -a optimal {{ disk_device }} "mkpart primary ext4 0% 100%"
+  ansible.builtin.shell: parted -s -a optimal {{ disk_device }} mkpart primary ext4 1 100%
   args:
     executable: /bin/bash
   register: response
