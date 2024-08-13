@@ -17,6 +17,16 @@
                 "description": "Azure location for resources"
             }
         },
+        "installType": {
+            "type": "string",
+            "allowedValues": [
+                "production",
+                "demo"
+            ],
+            "metadata": {
+                "description": "Type of Instana installation."
+            }
+        },
         "downloadKey": {
             "type": "secureString",
             "metadata": {
@@ -402,7 +412,8 @@
                 "tenant_name": "[parameters('tenantName')]",
                 "unit_name": "[parameters('unitName')]",
                 "accept_license": false,
-                "admin_password": "[parameters('instanaPassword')]"
+                "admin_password": "[parameters('instanaPassword')]",
+                "install_type": "[parameters('installType')]"
             },
             "tls": {
                 "cert": "",

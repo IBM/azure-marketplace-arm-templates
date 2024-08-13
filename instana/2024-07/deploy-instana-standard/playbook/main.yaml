@@ -12,22 +12,23 @@
       unit_name: ""
       accept_license: false
       admin_password: ""
+      install_type: "demo"
     tls:
       cert: ""
       key: ""
     vm:
     disks:
       - name: data
-        size: "500.00 GB"
+        size: "150.00 GB"
         mount_point: "/mnt/instana/stanctl/data"
       - name: metrics
-        size: "1000.00 GB"
+        size: "300.00 GB"
         mount_point: "/mnt/instana/stanctl/metrics"
       - name: analytics
-        size: "1200.00 GB"
+        size: "500.00 GB"
         mount_point: "/mnt/instana/stanctl/analytics"  
       - name: objects
-        size: "1000.00 GB"
+        size: "250.00 GB"
         mount_point: "/mnt/instana/stanctl/objects"           
     dir:
       tmp_dir: "/tmp"
