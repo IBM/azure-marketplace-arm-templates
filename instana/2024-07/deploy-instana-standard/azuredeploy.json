@@ -401,10 +401,10 @@
                 "admin_password": "[parameters('instanaPassword')]"
             },
             "vm": {
-                "dataDiskSize": "[parameters('dataDiskSize')]",
-                "metricsDiskSize": "[parameters('metricsDiskSize')]",
-                "analyticsDiskSize": "[parameters('analyticsDiskSize')]",
-                "objectsDiskSize": "[parameters('objectsDiskSize')]"
+                "dataDiskSize": "[concat(parameters('dataDiskSize'),'.00 GB')]",
+                "metricsDiskSize": "[concat(parameters('metricsDiskSize'),'.00 GB')]",
+                "analyticsDiskSize": "[concat(parameters('analyticsDiskSize'),'.00 GB')]",
+                "objectsDiskSize": "[concat(parameters('objectsDiskSize'),'.00 GB')]"
             },
             "dir": {
                 "tmp_dir": "/tmp",
@@ -615,8 +615,9 @@
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
                     "fileUris": [
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbooks/main.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbooks/instana-product.repo.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/prepare-disks.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/instana-product.repo.j2'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/wait-for-cloud-init.sh'))]"
                     ],
                     "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh','&& echo ',replace(string(variables('scriptParameters')), '\"', '\\\"'),'> ./parameter.json')]"
