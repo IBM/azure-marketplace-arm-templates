@@ -24,6 +24,13 @@
                 "description": "Excludes the deployment registration to the partner portal if set to false (debug only)"
             }
         },
+        "deployInstana": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the Instana VM and Instana application (debug only)"
+            }
+        },
         "networkResourceGroup": {
             "type": "string",
             "defaultValue": "[resourceGroup().name]",
@@ -56,6 +63,13 @@
                 "description": "Determines whether the VNet needs to be created or using an existing one"
             }
         },
+        "virtualNetworkResourceGroupName": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group for the existing virtual network"
+            }
+        },
         "subnetName": {
             "type": "string",
             "defaultValue": "script-subnet",
@@ -70,9 +84,246 @@
                 "description": "Network address of the subnet to attach the deployment script container to"
             }
         },
-        "vmNsgName": {
+        "installType": {
             "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'),'-vm-nic-nsg')]"
+            "allowedValues": [
+                "production",
+                "demo"
+            ],
+            "metadata": {
+                "description": "Type of Instana installation."
+            }
+        },
+        "downloadKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Instana download key"
+            }
+        },
+        "salesKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Instana sales key"
+            }
+        },
+        "instanaPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Instana administrator password"
+            }
+        },
+        "tenantName": {
+            "type": "string",
+            "metadata": {
+                "description": "Tenant name for Instana"
+            }
+        },
+        "unitName": {
+            "type": "string",
+            "metadata": {
+                "description": "Unit name for Instana"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine."
+            }
+        },
+        "authType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "securityType": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "vmNsgSecurityRules": {
+            "type": "array",
+            "defaultValue": [
+                {
+                    "name": "SSH",
+                    "properties": {
+                        "priority": 300,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "22"
+                    }
+                }
+            ]
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D16s_v3",
+            "allowedValues": [
+                "Standard_D16s_v3",
+                "Standard_D32s_v3"
+            ],
+            "metadata": {
+                "description": "Size of Virtual Machine"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 8.7",
+            "allowedValues": [
+                "RHEL 8.6",
+                "RHEL 8.7",
+                "RHEL 9.2"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "storageSKU": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "osDiskSize": {
+            "type": "int",
+            "defaultValue": 200,
+            "metadata": {
+               "description": "Size of the OS Disk (GB)" 
+            }
+        },
+        "dataDiskSize": {
+            "type": "int",
+            "defaultValue": 150,
+            "minValue": 150,
+            "metadata": {
+                "description": "Size of the data directory (GB)"
+            }
+        },
+        "metricsDiskSize": {
+            "type": "int",
+            "defaultValue": 300,
+            "minValue": 300,
+            "metadata": {
+                "description": "Size of the metrics directory (GB)"
+            }
+        },
+        "analyticsDiskSize": {
+            "type": "int",
+            "defaultValue": 500,
+            "minValue": 500,
+            "metadata": {
+                "description": "Size of the analytics directory (GB)"
+            }
+        },
+        "objectsDiskSize": {
+            "type": "int",
+            "defaultValue": 500,
+            "minValue": 250,
+            "metadata": {
+                "description": "Size of the objects directory (GB)"
+            }
+        },
+        "createPublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be used."
+            }
+        },
+        "publicIpNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to determine whether the public IP is existing or not"
+            }
+        },
+        "publicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group for public IP address if using an existing one"
+            }
+        },
+        "publicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
         },
         "tagsByResource": {
             "type": "object",
@@ -103,9 +354,12 @@
                 "debug"
             ],
             "metadata": {
-                "description": "Log level for Ansible playbook (VM Approach)"
+                "description": "Log level for Ansible playbook"
             }
         }
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
     },
     "resources": [
         { 
@@ -212,9 +466,135 @@
                     ]
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[equals(parameters('deployInstana'),'vm')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
+            "name": "instanaDeployment",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "installType": {
+                        "value": "[parameters('installType')]"
+                    },
+                    "downloadKey": {
+                        "value": "[parameters('downloadKey')]"
+                    },
+                    "salesKey": {
+                        "value": "[parameters('salesKey')]"
+                    },
+                    "instanaPassword": {
+                        "value": "[parameters('instanaPassword')]"
+                    },
+                    "tenantName": {
+                        "value": "[parameters('tenantName')]"
+                    },
+                    "unitName": {
+                        "value": "[parameters('unitName')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "virtualNetworkResourceGroupName": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('adminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "authType": {
+                        "value": "[parameters('authType')]"
+                    },
+                    "securityType": {
+                        "value": "[parameters('securityType')]"
+                    },
+                    "vmNsgSecurityRules": {
+                        "value": "[parameters('vmNsgSecurityRules')]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]"
+                    },
+                    "vmDiskType": {
+                        "value": "[parameters('vmDiskType')]"
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]"
+                    },
+                    "vmOSVersion": {
+                        "value": "[parameters('vmOSVersion')]"
+                    },
+                    "storageSKU": {
+                        "value": "[parameters('storageSKU')]"
+                    },
+                    "osDiskSize": {
+                        "value": "[parameters('osDiskSize')]"
+                    },
+                    "dataDiskSize": {
+                        "value": "[parameters('dataDiskSize')]"
+                    },
+                    "metricsDiskSize": {
+                        "value": "[parameters('metricsDiskSize')]"
+                    },
+                    "analyticsDiskSize": {
+                        "value": "[parameters('analyticsDiskSize')]"
+                    },
+                    "objectsDiskSize": {
+                        "value": "[parameters('objectsDiskSize')]"
+                    },
+                    "createPublicIP": {
+                        "value": "[parameters('createPublicIP')]"
+                    },
+                    "publicIpNewOrExisting": {
+                        "value": "[parameters('publicIpNewOrExisting')]"
+                    },
+                    "publicIpResourceGroup": {
+                        "value": "[parameters('publicIpResourceGroup')]"
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('publicIPName')]"
+                    },
+                    "domainName": {
+                        "value": "[parameters('domainName')]"
+                    },
+                    "deployInstana": {
+                        "value": true
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                }
+            }
         }
-        // Create VM and data disks
-        // Call VM extension to install and configure instana
-        // Update DNS settings
     ]
 }

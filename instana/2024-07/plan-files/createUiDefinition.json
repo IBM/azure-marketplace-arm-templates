@@ -680,6 +680,30 @@
 						}
 					},
                     {
+                        "name": "installType",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Installation Type",
+                        "toolTip": "Type of Instana installation, demonstration or production",
+                        "visible": true,
+                        "defaultValue": ["Production"],
+                        "multiselect": false,
+                        "filter": false,
+                        "multiLine": false,
+                        "constraints": {
+                            "required": true,
+                            "allowedValues": [
+                                {
+                                    "label": "Demonstration",
+                                    "value": "demo"
+                                },
+                                {
+                                    "label": "Production",
+                                    "value": "production"
+                                }
+                            ]
+                        }
+                    },
+                    {
                         "name": "downloadKey",
                         "type": "Microsoft.Common.TextBox",
                         "label": "Instana Download Key",
@@ -837,27 +861,6 @@
                                 }
                             ]
                         }
-                    },
-                    {
-                        "name": "agentMode",
-                        "type": "Microsoft.Common.DropDown",
-                        "label": "Agent Mode",
-                        "toolTip": "Instana agent mode for monitoring self",
-                        "defaultValue": "Infrastructure",
-                        "multiLine": false,
-                        "visible": false,
-                        "constraints": {
-                            "allowedValues": [
-                                {
-                                    "label": "Infrastructure",
-                                    "value": "INFRASTRUCTURE"
-                                },
-                                {
-                                    "label": "APM",
-                                    "value": "APM"
-                                }
-                            ]
-                        }
                     }
                 ]
             },
@@ -904,6 +907,7 @@
             "publicIpResourceGroup": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.resourceGroup)]",
             "vmDomainName": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.domainNameLabel)]",
             "encryption": "[steps('virtualMachine').hostEncryption]",
+            "installType": "[steps('instana').installType]",
             "instanaPassword": "[steps('instana').instanaPassword]",
             "dockerDiskSize": "[steps('instana').dockerDiskSize]",
             "dataDiskSize": "[steps('instana').dataDiskSize]",
@@ -913,8 +917,6 @@
             "salesKey": "[steps('instana').salesKey]",
             "tenantName": "[steps('instana').tenantName]",
             "envName": "[steps('instana').envName]",
-            "agentType": "[steps('instana').agentType]",
-            "agentMode": "[steps('instana').agentMode]",
             "acceptLicense": "[steps('instana').acceptLicense]",
             "tagsByResource": "[steps('tags').tagsByResource]"
         }
