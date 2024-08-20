@@ -6,7 +6,7 @@ The Event Automation Marketplace listing requires either an existing [Azure Red 
 
 ![Topology](./images/topology.png)
 
-Whilst this topology and this guide depict the minimum prerequisites, a more comprehensive one that includes firewalls is recommended for a production deployment. It is recommended to deploy CP4I prior to restricting internet access as the marketplace listing requires access from the internet to the ARO cluster for the installation.
+Whilst this topology and this guide depict the minimum prerequisites, a more comprehensive one that includes firewalls is recommended for a production deployment. 
 
 ## Azure Red Hat OpenShift (ARO)
 
