@@ -36,7 +36,8 @@
                 "enableRbacAuthorization": true,
                 "enabledForTemplateDeployment": true,
                 "tenantId": "[tenant().tenantId]",
-                "sku": "[variables('vaultSku')]"
+                "sku": "[variables('vaultSku')]",
+                "enableSoftDelete": false
             }
         },
         {
