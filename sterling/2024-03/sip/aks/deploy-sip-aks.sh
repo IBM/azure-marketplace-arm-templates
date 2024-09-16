@@ -545,6 +545,7 @@ fi
 
 
 # Deploy SIP instance
+# The below currently skips the instance creation due to changes in the definition between versions
 if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]]; then
     if [[ $LICENSE == "accept" ]]; then
 
@@ -713,125 +714,125 @@ EOF
             log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
         fi        
 
-        log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
-        # cat << EOF | kubectl apply -f -
-        cat << EOF > ${TMP_DIR}/sip-sipenvironment.yaml
-apiVersion: apps.sip.ibm.com/v1beta1
-kind: SIPEnvironment
-metadata:
-  name: ${SIP_INSTANCE_NAME}
-  namespace: ${SIP_NAMESPACE}
-  annotations:
-    apps.sip.ibm.com/skip-ibm-entitlement-key-check: 'yes'
-spec:
-  license:
-    accept: true
-  secret: ${SIP_SECRET_NAME}
-  serviceAccount: default
-  upgradeStrategy: RollingUpdate
-  # This networkPolicy is most open and hence least secure. You have been warned!
-  networkPolicy:
-    podSelector:
-      matchLabels:
-        none: none
-    policyTypes:
-      - Ingress
-  ivService:
-    serviceGroup: dev
-  promisingService:
-    serviceGroup: dev
-  utilityService:
-    serviceGroup: dev
-  apiDocsService: {}    
-  omsGateway:
-    issuerSecret: ${JWT_SECRET_NAME}
-    replicas: 1
-    cors:
-      allowedOrigins: '*'
-  externalServices:
-    cassandra:
-      createDevInstance:
-        resources:
-          limits:
-            cpu: '3'
-            memory: 8000Mi
-          requests:
-            cpu: '1'
-            memory: 5000Mi
-      iv_keyspace: inventory_visibility_ks
-    elasticSearch:
-      createDevInstance: {}
-    kafka:
-      createDevInstance: {}
-  common:
-    ingress:
-      host: $DOMAIN_NAME
-      ssl:
-       enabled: true
-       identitySecretName: ingress-cert
-  image:
-    imagePullSecrets:
-    - name: ibm-entitlement-key
-    - name: acr-secret
-    repository: ${ACR_NAME}.azurecr.io
-    tag: ${SIP_TAG}
-    promisingService:
-      imageName: sip-promising
-      tag: ${SIP_TAG}
-      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-    omsGateway:
-      tag: ${SIP_TAG}
-      imageName: oms-gateway
-      pullPolicy: IfNotPresent
-      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-    apiDocsService:
-      tag: ${SIP_TAG}
-      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-      imageName: sip-api-docs
-    ivService:
-      tag: ${SIP_TAG}
-      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-      appImageName: sip-iv-appserver
-      backendImageName: sip-iv-backend
-      onboardImageName: sip-iv-onboard
-    utilityService:
-      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-      catalog:
-        tag: ${SIP_TAG}
-        imageName: sip-catalog
-        onboardImageName: sip-catalog-onboard
-      rules:
-        tag: ${SIP_TAG}
-        imageName: sip-rules
-        onboardImageName: sip-rules-onboard
-      carrier:
-        tag: ${SIP_TAG}
-        onboardImageName: sip-carrier-onboard
-        imageName: sip-carrier
-      audit:
-        tag: ${SIP_TAG}
-        imageName: sip-iv-audit
-        onboardImageName: sip-iv-audit-onboard
-      search:
-        tag: ${SIP_TAG}
-        imageName: sip-search
-        onboardImageName: sip-search-onboard 
-      logstash:
-        tag: ${SIP_TAG}
-        imageName: sip-logstash
-  storage:
-    accessMode: ReadWriteMany
-    capacity: 10Gi
-    name: $PVC_NAME
-    storageClassName: $SC_NAME
-EOF
-        kubectl apply -f ${TMP_DIR}/sip-sipenvironment.yaml
-        if (( $? != 0 )); then
-            log-error "Unable to create SIP instance in namespace $SIP_NAMESPACE"
-            exit 1
-        else
-            log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
-        fi
+#         log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
+#         # cat << EOF | kubectl apply -f -
+#         cat << EOF > ${TMP_DIR}/sip-sipenvironment.yaml
+# apiVersion: apps.sip.ibm.com/v1beta1
+# kind: SIPEnvironment
+# metadata:
+#   name: ${SIP_INSTANCE_NAME}
+#   namespace: ${SIP_NAMESPACE}
+#   annotations:
+#     apps.sip.ibm.com/skip-ibm-entitlement-key-check: 'yes'
+# spec:
+#   license:
+#     accept: true
+#   secret: ${SIP_SECRET_NAME}
+#   serviceAccount: default
+#   upgradeStrategy: RollingUpdate
+#   # This networkPolicy is most open and hence least secure. You have been warned!
+#   networkPolicy:
+#     podSelector:
+#       matchLabels:
+#         none: none
+#     policyTypes:
+#       - Ingress
+#   ivService:
+#     serviceGroup: dev
+#   promisingService:
+#     serviceGroup: dev
+#   utilityService:
+#     serviceGroup: dev
+#   apiDocsService: {}    
+#   omsGateway:
+#     issuerSecret: ${JWT_SECRET_NAME}
+#     replicas: 1
+#     cors:
+#       allowedOrigins: '*'
+#   externalServices:
+#     cassandra:
+#       createDevInstance:
+#         resources:
+#           limits:
+#             cpu: '3'
+#             memory: 8000Mi
+#           requests:
+#             cpu: '1'
+#             memory: 5000Mi
+#       iv_keyspace: inventory_visibility_ks
+#     elasticSearch:
+#       createDevInstance: {}
+#     kafka:
+#       createDevInstance: {}
+#   common:
+#     ingress:
+#       host: $DOMAIN_NAME
+#       ssl:
+#        enabled: true
+#        identitySecretName: ingress-cert
+#   image:
+#     imagePullSecrets:
+#     - name: ibm-entitlement-key
+#     - name: acr-secret
+#     repository: ${ACR_NAME}.azurecr.io
+#     tag: ${SIP_TAG}
+#     promisingService:
+#       imageName: sip-promising
+#       tag: ${SIP_TAG}
+#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+#     omsGateway:
+#       tag: ${SIP_TAG}
+#       imageName: oms-gateway
+#       pullPolicy: IfNotPresent
+#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+#     apiDocsService:
+#       tag: ${SIP_TAG}
+#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+#       imageName: sip-api-docs
+#     ivService:
+#       tag: ${SIP_TAG}
+#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+#       appImageName: sip-iv-appserver
+#       backendImageName: sip-iv-backend
+#       onboardImageName: sip-iv-onboard
+#     utilityService:
+#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+#       catalog:
+#         tag: ${SIP_TAG}
+#         imageName: sip-catalog
+#         onboardImageName: sip-catalog-onboard
+#       rules:
+#         tag: ${SIP_TAG}
+#         imageName: sip-rules
+#         onboardImageName: sip-rules-onboard
+#       carrier:
+#         tag: ${SIP_TAG}
+#         onboardImageName: sip-carrier-onboard
+#         imageName: sip-carrier
+#       audit:
+#         tag: ${SIP_TAG}
+#         imageName: sip-iv-audit
+#         onboardImageName: sip-iv-audit-onboard
+#       search:
+#         tag: ${SIP_TAG}
+#         imageName: sip-search
+#         onboardImageName: sip-search-onboard 
+#       logstash:
+#         tag: ${SIP_TAG}
+#         imageName: sip-logstash
+#   storage:
+#     accessMode: ReadWriteMany
+#     capacity: 10Gi
+#     name: $PVC_NAME
+#     storageClassName: $SC_NAME
+# EOF
+#         kubectl apply -f ${TMP_DIR}/sip-sipenvironment.yaml
+#         if (( $? != 0 )); then
+#             log-error "Unable to create SIP instance in namespace $SIP_NAMESPACE"
+#             exit 1
+#         else
+#             log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
+#         fi
 
 #         # Create the IVServiceGroup instance
 #         log-info "Creating IVServiceGroup"
@@ -990,18 +991,18 @@ EOF
 #         fi
 
     # Wait for services to start
-    count=0;
-    while [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
-        && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
-        && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
-        log-info "Waiting for services to be available. Waited $count minutes. Will wait up to $MAX_READY_MINUTES"
-        count=$(( $count + 1 ))
-        sleep 60
-        if (( $count > $MAX_READY_MINUTES )); then
-            log-error "Timeout exceeded waiting for services to be available."
-            exit 1
-        fi
-    done
+    # count=0;
+    # while [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
+    #     && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
+    #     && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
+    #     log-info "Waiting for services to be available. Waited $count minutes. Will wait up to $MAX_READY_MINUTES"
+    #     count=$(( $count + 1 ))
+    #     sleep 60
+    #     if (( $count > $MAX_READY_MINUTES )); then
+    #         log-error "Timeout exceeded waiting for services to be available."
+    #         exit 1
+    #     fi
+    # done
 
     else
         log-info "License not accepted. Instance not created"
