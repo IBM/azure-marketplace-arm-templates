@@ -259,7 +259,7 @@
         },
         "objectsDiskSize": {
             "type": "int",
-            "defaultValue": 500,
+            "defaultValue": 250,
             "minValue": 250,
             "metadata": {
                 "description": "Size of the objects directory (GB)"
@@ -331,7 +331,7 @@
         },
         "deploymentVersion": {
             "type": "string",
-            "defaultValue": "2024-03",
+            "defaultValue": "2024-07",
             "metadata": {
                 "description": "Deployment version to use"
             }
@@ -652,10 +652,11 @@
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/prepare-disks.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/extend-os-disk.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/instana-product.repo.j2'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh','&& echo ',replace(string(variables('scriptParameters')), '\"', '\\\"'),'> ./parameter.json')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh','&& echo ',replace(string(variables('scriptParameters')), '\"', '\\\"'),'> ./parameters.json')]"
                 }
             }
         }

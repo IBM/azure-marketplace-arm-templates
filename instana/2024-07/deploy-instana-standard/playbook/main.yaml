@@ -16,7 +16,11 @@
     tls:
       cert: ""
       key: ""
-    vm:
+    osdisk:
+      var:
+        size: 60
+      home:
+        size: 40
     disks:
       - name: data
         size: "150.00 GB"
@@ -42,6 +46,10 @@
       name: 
         - parted
       state: latest  
+
+  - name: Prepare OS disk
+    ansible.builtin.include_tasks:
+      file: ./extend-os-disk.yaml
 
   - name: Prepare additional disks
     ansible.builtin.include_tasks:

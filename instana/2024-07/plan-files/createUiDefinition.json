@@ -55,7 +55,32 @@
                 }
             }
         },
-        "basics": [ ],
+        "basics": [
+            {
+                "name": "installType",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Installation Type",
+                "toolTip": "Type of Instana installation, demonstration or production",
+                "visible": true,
+                "defaultValue": ["Production"],
+                "multiselect": false,
+                "filter": false,
+                "multiLine": false,
+                "constraints": {
+                    "required": true,
+                    "allowedValues": [
+                        {
+                            "label": "Demonstration",
+                            "value": "demo"
+                        },
+                        {
+                            "label": "Production",
+                            "value": "production"
+                        }
+                    ]
+                }
+            }
+         ],
         "steps": [
             {
                 "name": "networking",
@@ -680,30 +705,6 @@
 						}
 					},
                     {
-                        "name": "installType",
-                        "type": "Microsoft.Common.DropDown",
-                        "label": "Installation Type",
-                        "toolTip": "Type of Instana installation, demonstration or production",
-                        "visible": true,
-                        "defaultValue": ["Production"],
-                        "multiselect": false,
-                        "filter": false,
-                        "multiLine": false,
-                        "constraints": {
-                            "required": true,
-                            "allowedValues": [
-                                {
-                                    "label": "Demonstration",
-                                    "value": "demo"
-                                },
-                                {
-                                    "label": "Production",
-                                    "value": "production"
-                                }
-                            ]
-                        }
-                    },
-                    {
                         "name": "downloadKey",
                         "type": "Microsoft.Common.TextBox",
                         "label": "Instana Download Key",
@@ -786,7 +787,7 @@
                         "visible": true
                     },
                     {
-                        "name": "dockerDiskSize",
+                        "name": "dockerDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
                         "min": 10,
                         "max": 30,
@@ -794,13 +795,13 @@
                         "label": "Docker Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The existing volume group will be extended to by this amount for the docker images",
-                        "visible": true,
+                        "visible": "[equals(basics('installType'),'demo')]",
                         "constraints": {
                             "required": true
                         }
                     },
                     {
-                        "name": "dataDiskSize",
+                        "name": "dataDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
                         "min": 5,
                         "max": 1024,
@@ -808,13 +809,13 @@
                         "label": "Data Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The size of the data disk that will be mounted",
-                        "visible": true,
+                        "visible": "[equals(basics('installType'),'demo')]",
                         "constraints": {
                             "required": true
                         }
                     },
                     {
-                        "name": "metricsDiskSize",
+                        "name": "metricsDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
                         "min": 5,
                         "max": 1024,
@@ -822,13 +823,13 @@
                         "label": "Metrics Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The size of the metrics disk that will be mounted",
-                        "visible": true,
+                        "visible": "[equals(basics('installType'),'demo')]",
                         "constraints": {
                             "required": true
                         }
                     },
                     {
-                        "name": "tracesDiskSize",
+                        "name": "tracesDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
                         "min": 5,
                         "max": 1024,
@@ -836,30 +837,65 @@
                         "label": "Traces Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The size of the traces disk that will be mounted",
-                        "visible": true,
+                        "visible": "[equals(basics('installType'),'demo')]",
                         "constraints": {
                             "required": true
                         }
                     },
                     {
-                        "name": "agentType",
-                        "type": "Microsoft.Common.DropDown",
-                        "label": "Agent Type",
-                        "toolTip": "Instana agent type for monitoring self",
-                        "defaultValue": "Docker",
-                        "multiLine": false,
-                        "visible": false,
+                        "name": "dockerDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 10,
+                        "max": 30,
+                        "defaultValue": 20,
+                        "label": "Docker Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The existing volume group will be extended to by this amount for the docker images",
+                        "visible": "[equals(basics('installType'),'production')]",
                         "constraints": {
-                            "allowedValues": [
-                                {
-                                    "label": "Docker",
-                                    "value": "docker"
-                                },
-                                {
-                                    "label": "Host",
-                                    "value": "host"
-                                }
-                            ]
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "dataDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 5,
+                        "max": 1024,
+                        "defaultValue": 100,
+                        "label": "Data Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the data disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "metricsDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 5,
+                        "max": 1024,
+                        "defaultValue": 100,
+                        "label": "Metrics Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the metrics disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "tracesDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 5,
+                        "max": 1024,
+                        "defaultValue": 100,
+                        "label": "Traces Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the traces disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
                         }
                     }
                 ]
@@ -907,12 +943,12 @@
             "publicIpResourceGroup": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.resourceGroup)]",
             "vmDomainName": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.domainNameLabel)]",
             "encryption": "[steps('virtualMachine').hostEncryption]",
-            "installType": "[steps('instana').installType]",
+            "installType": "[basics('installType')]",
             "instanaPassword": "[steps('instana').instanaPassword]",
-            "dockerDiskSize": "[steps('instana').dockerDiskSize]",
-            "dataDiskSize": "[steps('instana').dataDiskSize]",
-            "metricsDiskSize": "[steps('instana').metricsDiskSize]",
-            "tracesDiskSize": "[steps('instana').tracesDiskSize]",
+            "dockerDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').dockerDiskSizeProd,steps('instana').dockerDiskSizeProd)]",
+            "dataDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').dataDiskSizeProd,steps('instana').dataDiskSizeProd)]",
+            "metricsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').metricsDiskSizeProd,steps('instana').metricsDiskSizeProd)]",
+            "tracesDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').tracesDiskSizeProd,steps('instana').tracesDiskSizeProd)]",
             "downloadKey": "[steps('instana').downloadKey]",
             "salesKey": "[steps('instana').salesKey]",
             "tenantName": "[steps('instana').tenantName]",

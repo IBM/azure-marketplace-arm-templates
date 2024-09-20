@@ -1,0 +1,42 @@
+---
+
+  - name: Fix partitions
+    ansible.builtin.shell: parted /dev/sda -f -s print
+    args:
+      executable: /bin/bash
+
+  - name: Get the rootvg partition number
+    ansible.builtin.shell: parted /dev/sda print | grep lvm | awk '{print $1}'
+    args:
+      executable: /bin/bash
+    register: partition_number
+  
+  - name: Resize the rootvg
+    ansible.builtin.shell: parted /dev/sda -s resizepart {{ partition_number.stdout }} 100%
+    args:
+      executable: /bin/bash
+
+  - name: Resize the physical volume
+    ansible.builtin.shell: pvresize /dev/sda{{ partition_number.stdout }}
+    args:
+      executable: /bin/bash
+
+  - name: Extend the var logical volume
+    ansible.builtin.shell: lvextend -L +o{{ osdisk.var.size }}G /dev/rootvg/varlv
+    args:
+      executable: /bin/bash
+
+  - name: Extend the var filesystem
+    ansible.builtin.shell: xfs_growfs /dev/rootvg/varlv
+    args:
+      executable: /bin/bash
+
+  - name: Extend the home logical volume
+    ansible.builtin.shell: lvextend -L +{{ osdisk.home.size }}G /dev/rootvg/homelv
+    args:
+      executable: /bin/bash
+
+  - name: Extend the var filesystem
+    ansible.builtin.shell: xfs_growfs /dev/rootvg/homelv
+    args:
+      executable: /bin/bash
