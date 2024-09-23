@@ -98,7 +98,7 @@
                             "subnets": "The name and CIDR for the subnet"
                         },
                         "defaultValue": {
-                            "name": "vnet",
+                            "name": "instana-vnet",
                             "addressPrefixSize": "/24"
                         },
                         "constraints": {
@@ -111,11 +111,11 @@
                             "vmSubnet": {
                                 "label": "Virtual Machine Subnet",
                                 "defaultValue": {
-                                    "name": "vm-subnet",
+                                    "name": "instana-subnet",
                                     "addressPrefixSize": "/27"
                                 },
                                 "constraints": {
-                                    "minAddressPrefixSize": "/29",
+                                    "minAddressPrefixSize": "/30",
                                     "minAddressCount": 1,
                                     "requireContiguousAddresses": false
                                 }
@@ -140,11 +140,11 @@
                             "allowedValues": [
                                 {
                                     "label": "Existing DDoS Plan",
-                                    "value": false
+                                    "value": "existing"
                                 },
                                 {
                                     "label": "New DDoS Plan",
-                                    "value": true
+                                    "value": "new"
                                 }
                             ]
                         }
@@ -1133,11 +1133,12 @@
             "networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
             "vnetName": "[steps('networking').vnet.name]",
             "vnetCidr": "[first( steps('networking').vnet.addressPrefixes ) ]",
+            "vnetNewOrExisting": "[steps('networking').vnet.newOrExisting]",
             "enableDdosProtection": "[steps('networking').ddosPlan]",
+            "existingDdosPlan": "[equals(steps('networking').existingDdosPlan,'existing')]",
             "ddosProtectionPlanName": "[if(and(steps('networking').ddosPlan,equals(steps('networking').existingDdosPlan,'existing')),steps('networking').ddosPlanSelector,steps('networking').ddosPlanName)]",
             "vmSubnetName": "[steps('networking').vnet.subnets.vmSubnet.name]",
             "vmSubnetCidr": "[steps('networking').vnet.subnets.vmSubnet.addressPrefix]",
-            "createVnet": "[if(equals(steps('networking').vnet.newOrExisting,'new'),true,false)]",
             "nsgName": "[steps('networking').nsgName]",
             "vmName": "[steps('virtualMachine').vmName]",
             "adminUserName": "[steps('virtualMachine').adminUserName]",

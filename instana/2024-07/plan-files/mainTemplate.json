@@ -35,14 +35,14 @@
             "type": "string",
             "defaultValue": "[resourceGroup().name]",
             "metadata": {
-                "description": "Resource group holding the VNet. Used for private vnet."
+                "description": "Resource group holding the VNet."
             }
         },
         "vnetName": {
             "type": "string",
             "defaultValue": "vnet",
             "metadata": {
-                "description": "Name of the virtual network containing the subnet to attach to. Used for private vnet."
+                "description": "Name of the virtual network containing the subnet to attach to."
             }
         },
         "vnetCIDR": {
@@ -63,11 +63,25 @@
                 "description": "Determines whether the VNet needs to be created or using an existing one"
             }
         },
-        "virtualNetworkResourceGroupName": {
-            "type": "string",
-            "defaultValue": "[resourceGroup().name]",
+        "enableDdosProtection": {
+            "type": "bool",
+            "defaultValue": false,
             "metadata": {
-                "description": "Name of the resource group for the existing virtual network"
+                "description": "Flag to determine whether to enable DDoS protection for the virtual network"
+            }
+        },
+        "existingDdosPlan": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a new DDoS protection service or use an existing one."
+            }
+        },
+        "ddosProtectionPlanName": {
+            "type": "string",
+            "defaultValue": "Instana-DDoS-Plan",
+            "metadata": {
+                "description": "DDoS protection plan name to be used if DDoS is enabled"
             }
         },
         "subnetName": {
@@ -359,7 +373,10 @@
         }
     },
     "variables": {
-        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+        "ddosProtectionPlan": {
+            "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
+        }
     },
     "resources": [
         { 
@@ -376,6 +393,14 @@
                     "resources": []
                 }
             }
+        },
+        {
+            "type": "Microsoft.Network/ddosProtectionPlans",
+            "apiVersion": "2023-04-01",
+            "name": "[parameters('ddosProtectionPlanName')]",
+            "condition": "[and(parameters('enableDdosProtection'),not(parameters('existingDdosPlan')))]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/ddosProtectionPlans'), parameters('tagsByResource')['Microsoft.Network/ddosProtectionPlans'], json('{}')) ]",
+            "location": "[parameters('location')]"
         },
         {
             "type": "Microsoft.Resources/deployments",
@@ -396,6 +421,12 @@
                     },
                     "vnetCIDR": {
                         "value": "[parameters('vnetCIDR')]" 
+                    },
+                    "enableDdosProtection": {
+                        "value": "[parameters('enableDdosProtection')]"
+                    },
+                    "ddosProtectionPlan": {
+                        "value": "[variables('ddosProtectionPlan')]" 
                     },
                     "subnetName": {
                         "value": "[parameters('subnetName')]"
@@ -418,6 +449,12 @@
                             "type": "string"
                         },
                         "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "enableDdosProtection": {
+                            "type": "bool"
+                        },
+                        "ddosProtectionPlan": {
                             "type": "string"
                         },
                         "subnetName": {
@@ -449,7 +486,9 @@
                                     "addressPrefixes": [
                                         "[parameters('vnetCIDR')]"
                                     ]
-                                }
+                                },
+                                "enableDdosProtection": "[parameters('enableDdosProtection')]",
+                                "ddosProtectionPlan": "[if(parameters('enableDdosProtection'),parameters('ddosProtectionPlan'),json('null'))]"
                             }
                         },
                         {
