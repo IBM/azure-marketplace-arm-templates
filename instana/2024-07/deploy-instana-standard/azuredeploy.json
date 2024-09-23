@@ -656,7 +656,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/instana-product.repo.j2'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh','&& echo ',replace(string(variables('scriptParameters')), '\"', '\\\"'),'> ./parameters.json')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }
