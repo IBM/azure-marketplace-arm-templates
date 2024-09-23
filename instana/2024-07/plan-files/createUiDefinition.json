@@ -57,6 +57,22 @@
         },
         "basics": [
             {
+                "name": "namePrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Azure resource prefix",
+                "defaultValue": "instana",
+                "toolTip": "Prefix for Azure installation resources.",
+				"constraints":{
+					"required": true,
+					"validations": [
+						{
+							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+						}
+					]
+				}
+            },
+            {
                 "name": "installType",
                 "type": "Microsoft.Common.DropDown",
                 "label": "Installation Type",
@@ -98,7 +114,7 @@
                             "subnets": "The name and CIDR for the subnet"
                         },
                         "defaultValue": {
-                            "name": "instana-vnet",
+                            "name": "[concat(basics('namePrefix'),'-vnet')]",
                             "addressPrefixSize": "/24"
                         },
                         "constraints": {
@@ -168,7 +184,7 @@
                         "type": "Microsoft.Common.TextBox",
                         "label": "Name of the new DDoS Plan",
                         "toolTip": "Name for the new DDoS plan",
-                        "defaultValue": "Instana-DDoS-Plan",
+                        "defaultValue": "[concat(basics('namePrefix'),'-DDoS-Plan')]",
                         "visible": "[equals(steps('networking').existingDdosPlan,'new')]",
                         "constraints":{
                             "required": false,
@@ -184,7 +200,7 @@
                         "name": "nsgName",
                         "type": "Microsoft.Common.TextBox",
                         "label": "Name for the network security group",
-                        "defaultValue": "instana-nsg",
+                        "defaultValue": "[concat(basics('namePrefix'),'-nsg')]",
                         "toolTip": "A network security group is created for the Instana VM network interface.",
                         "visible": true,
                         "constraints": {
@@ -195,33 +211,6 @@
                                     "message": "Must be between 1-80 charactors and have only alphanumeric, underscores, letters, periods and hyphens."
                                 }
                             ]
-                        }
-                    },
-                    {
-                        "name": "publicIp",
-                        "label": {
-                            "publicIpAddress": "VM Public IP Address",
-                            "domainNameLabel": "Domain Name"
-                        },
-                        "type": "Microsoft.Network.PublicIpAddressCombo",
-                        "visible": true,
-                        "toolTip": {
-                            "publicIpAddress": "This will be the public IP address for application and VM",
-                            "domainNameLabel": "This will be the domain name for the application and VM"
-                        },
-                        "defaultValue": {
-                            "publicIpAddressName": "instana-pip",
-                            "domainNameLabel": "[toLower(concat('i',substring(uniqueString(resourceGroup().id),0,8)))]"
-                        },
-                        "constraints": {
-                            "required": {
-                                "domainNameLabel": true
-                            }
-                        },
-                        "options": {
-                            "hideExisting": false,
-                            "hideDomainNameLabel": false,
-                            "hideNone": false
                         }
                     }
                 ]
@@ -235,7 +224,7 @@
                         "type": "Microsoft.Common.TextBox",
                         "label": "Name for the Instana virtual machine",
                         "toolTip": "The resource and hostname for the virtual machine",
-                        "defaultValue": "instana-vm",
+                        "defaultValue": "[concat(basics('namePrefix'),'-vm')]",
                         "visible": true,
                         "constraints": {
                             "required": true,
@@ -890,6 +879,42 @@
                                 }
                             ]
                         }
+                    },
+					{
+						"name": "vmPublicIPRequired",
+						"label": "VM Public IP",
+						"toolTip": "Create a public IP for the deployment VM?",
+						"type": "Microsoft.Common.CheckBox",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "vmPublicIP",
+						"type": "Microsoft.Network.PublicIpAddressCombo",
+						"label": {
+							"publicIpAddress": "Public IP address for VM",
+							"domainNameLabel": "Domain name label for the VM's public IP"
+						},
+						"toolTip": {
+							"publicIpAddress": "Name of the public IP for the VM",
+							"domainNameLabel": "Domain name label for the public IP of the VM"
+						},
+						"defaultValue": {
+							"publicIpAddressName": "[concat(basics('namePrefix'),'-pip')]",
+							"domainNameLabel": "[toLower( concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)) )]"
+						},
+						"constraints": {
+							"required": {
+								"domainNameLabel": false
+							}
+						},
+						"options": {
+							"hideNone": true,
+							"hideDomainNameLabel": false,
+							"hideExisting": false
+						},
+						"visible": "[steps('virtualMachine').vmPublicIPRequired]"
                     }
                 ]
             },
@@ -1147,11 +1172,11 @@
             "storageSKU": "[steps('virtualMachine').storageSku]",
             "osVersion": "[steps('virtualMachine').osVersion]",
             "vmSize": "[if(equals(basics('installType'),'demo'),steps('virtualMachine').vmSizeDemo,steps('virtualMachine').vmSizeProd)]",
-            "vmPublicIp": "[if(not(equals(steps('networking').publicIp.newOrExistingOrNone,'none')),true,false)]",
-            "publicIpName": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.name)]",
-            "existingPublicIp": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'new'),false,true)]",
-            "publicIpResourceGroup": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.resourceGroup)]",
-            "vmDomainName": "[if(equals(steps('networking').publicIp.newOrExistingOrNone,'none'),'',steps('networking').publicIp.domainNameLabel)]",
+            "createPublicIP": "[steps('virtualMachine').vmPublicIPRequired]",
+            "publicIPName": "[steps('virtualMachine').vmPublicIP.name]",
+            "publicIpNewOrExisting": "[steps('virtualMachine').vmPublicIP.newOrExistingOrNone]",
+            "publicIpResourceGroup": "[steps('virtualMachine').vmPublicIP.resourceGroup]",
+            "domainName": "[steps('virtualMachine').vmPublicIP.domainNameLabel]",
             "encryption": "[steps('virtualMachine').hostEncryption]",
             "installType": "[basics('installType')]",
             "instanaPassword": "[steps('instana').instanaPassword]",
