@@ -996,25 +996,11 @@
                         "visible": true
                     },
                     {
-                        "name": "dockerDiskSizeDemo",
-                        "type": "Microsoft.Common.Slider",
-                        "min": 10,
-                        "max": 30,
-                        "defaultValue": 20,
-                        "label": "Docker Disk Size",
-                        "subLabel": "GB",
-                        "toolTip": "The existing volume group will be extended to by this amount for the docker images",
-                        "visible": "[equals(basics('installType'),'demo')]",
-                        "constraints": {
-                            "required": true
-                        }
-                    },
-                    {
                         "name": "dataDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
-                        "min": 5,
+                        "min": 150,
                         "max": 1024,
-                        "defaultValue": 100,
+                        "defaultValue": 150,
                         "label": "Data Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The size of the data disk that will be mounted",
@@ -1026,9 +1012,9 @@
                     {
                         "name": "metricsDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
-                        "min": 5,
+                        "min": 300,
                         "max": 1024,
-                        "defaultValue": 100,
+                        "defaultValue": 300,
                         "label": "Metrics Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The size of the metrics disk that will be mounted",
@@ -1038,29 +1024,29 @@
                         }
                     },
                     {
-                        "name": "tracesDiskSizeDemo",
+                        "name": "analyticsDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
-                        "min": 5,
+                        "min": 500,
                         "max": 1024,
-                        "defaultValue": 100,
-                        "label": "Traces Disk Size",
+                        "defaultValue": 500,
+                        "label": "Analytics Disk Size",
                         "subLabel": "GB",
-                        "toolTip": "The size of the traces disk that will be mounted",
+                        "toolTip": "The size of the analytics disk that will be mounted",
                         "visible": "[equals(basics('installType'),'demo')]",
                         "constraints": {
                             "required": true
                         }
                     },
                     {
-                        "name": "dockerDiskSizeProd",
+                        "name": "objectsDiskSizeDemo",
                         "type": "Microsoft.Common.Slider",
-                        "min": 10,
-                        "max": 30,
-                        "defaultValue": 20,
-                        "label": "Docker Disk Size",
+                        "min": 250,
+                        "max": 1024,
+                        "defaultValue": 250,
+                        "label": "Objects Disk Size",
                         "subLabel": "GB",
-                        "toolTip": "The existing volume group will be extended to by this amount for the docker images",
-                        "visible": "[equals(basics('installType'),'production')]",
+                        "toolTip": "The size of the objects disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'demo')]",
                         "constraints": {
                             "required": true
                         }
@@ -1068,9 +1054,9 @@
                     {
                         "name": "dataDiskSizeProd",
                         "type": "Microsoft.Common.Slider",
-                        "min": 5,
-                        "max": 1024,
-                        "defaultValue": 100,
+                        "min": 500,
+                        "max": 5000,
+                        "defaultValue": 500,
                         "label": "Data Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The size of the data disk that will be mounted",
@@ -1082,9 +1068,9 @@
                     {
                         "name": "metricsDiskSizeProd",
                         "type": "Microsoft.Common.Slider",
-                        "min": 5,
-                        "max": 1024,
-                        "defaultValue": 100,
+                        "min": 1000,
+                        "max": 5000,
+                        "defaultValue": 1000,
                         "label": "Metrics Disk Size",
                         "subLabel": "GB",
                         "toolTip": "The size of the metrics disk that will be mounted",
@@ -1094,14 +1080,28 @@
                         }
                     },
                     {
-                        "name": "tracesDiskSizeProd",
+                        "name": "analyticsDiskSizeProd",
                         "type": "Microsoft.Common.Slider",
-                        "min": 5,
-                        "max": 1024,
-                        "defaultValue": 100,
-                        "label": "Traces Disk Size",
+                        "min": 1200,
+                        "max": 5000,
+                        "defaultValue": 1200,
+                        "label": "Analytics Disk Size",
                         "subLabel": "GB",
-                        "toolTip": "The size of the traces disk that will be mounted",
+                        "toolTip": "The size of the analytics disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "objectsDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 1000,
+                        "max": 5000,
+                        "defaultValue": 1000,
+                        "label": "Objects Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the objects disk that will be mounted",
                         "visible": "[equals(basics('installType'),'production')]",
                         "constraints": {
                             "required": true
@@ -1155,10 +1155,10 @@
             "encryption": "[steps('virtualMachine').hostEncryption]",
             "installType": "[basics('installType')]",
             "instanaPassword": "[steps('instana').instanaPassword]",
-            "dockerDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').dockerDiskSizeProd,steps('instana').dockerDiskSizeProd)]",
             "dataDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').dataDiskSizeProd,steps('instana').dataDiskSizeProd)]",
             "metricsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').metricsDiskSizeProd,steps('instana').metricsDiskSizeProd)]",
-            "tracesDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').tracesDiskSizeProd,steps('instana').tracesDiskSizeProd)]",
+            "analticsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').analyticsDiskSizeProd,steps('instana').analyticsDiskSizeProd)]",
+            "objectsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').objectsDiskSizeProd,steps('instana').objectsDiskSizeProd)]",
             "downloadKey": "[steps('instana').downloadKey]",
             "salesKey": "[steps('instana').salesKey]",
             "tenantName": "[steps('instana').tenantName]",

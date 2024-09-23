@@ -263,6 +263,7 @@
         },
         "osDiskSize": {
             "type": "int",
+            "minValue": 200,
             "defaultValue": 200,
             "metadata": {
                "description": "Size of the OS Disk (GB)" 
