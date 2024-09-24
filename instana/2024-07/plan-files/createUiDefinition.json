@@ -851,6 +851,33 @@
                             ]
                         }
                     },
+					{
+						"name": "vmZone",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Availability Zone for VM",
+						"defaultValue": ["1"],
+						"toolTip": "Zone must be present in selected region",
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "1",
+									"value": "1"
+								},
+								{
+									"label": "2",
+									"value": "2"
+								},
+								{
+									"label": "3",
+									"value": "3"
+								}
+							]
+						},
+						"required": true,
+						"visible": true
+					},
                     {
                         "name": "hostEncryption",
                         "type": "Microsoft.Common.CheckBox",
@@ -1166,6 +1193,7 @@
             "vmSubnetCidr": "[steps('networking').vnet.subnets.vmSubnet.addressPrefix]",
             "nsgName": "[steps('networking').nsgName]",
             "vmName": "[steps('virtualMachine').vmName]",
+            "vmZone": "[steps('virtualMachine').vmZone]",
             "adminUserName": "[steps('virtualMachine').adminUserName]",
             "adminPassword": "[if(equals(steps('virtualMachine').adminPassword.authenticationType,'password'),steps('virtualMachine').adminPassword.password,steps('virtualMachine').adminPassword.sshPublicKey)]",
             "authType": "[steps('virtualMachine').adminPassword.authenticationType]",
