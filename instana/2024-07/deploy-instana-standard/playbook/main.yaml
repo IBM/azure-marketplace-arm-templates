@@ -15,6 +15,7 @@
       accept_license: false
       admin_password: ""
       install_type: "demo"
+      domain: ""
     tls:
       cert: ""
       key: ""
@@ -123,12 +124,13 @@
   - name: Install Instana
     ansible.builtin.shell: |
       set timeout 3000
-      stanctl up --install-type production \
+      stanctl up --install-type {{ instana.install_type }} \
         --download-key {{ instana.download_key }} \
         --sales-key {{ instana.sales_key }} \
         --unit-tenant-name {{ instana.tenant_name }} \
         --unit-unit-name {{ instana.unit_name }} \
-        --unit-initial-admin-password {{ instana.admin_password }}
+        --unit-initial-admin-password {{ instana.admin_password }} \
+        --core-base-domain {{ instana.domain }} \
         --quiet
       exit 0
     args:

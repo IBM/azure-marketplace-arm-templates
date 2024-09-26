@@ -57,6 +57,13 @@
                 "description": "Unit name for Instana"
             }
         },
+        "instanaDomain": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('domainName'),'.',parameters('location'),'.cloudapp.azure.com')]",
+            "metadata": {
+                "description": "FQDN for the public IP"
+            }
+        },
         "acceptLicense": {
             "type": "bool",
             "defaultValue": false,
@@ -420,7 +427,8 @@
                 "unit_name": "[parameters('unitName')]",
                 "accept_license": "[parameters('acceptLicense')]",
                 "admin_password": "[parameters('instanaPassword')]",
-                "install_type": "[parameters('installType')]"
+                "install_type": "[parameters('installType')]",
+                "instanaDomain": "[parameters('instanaDomain')]"
             },
             "tls": {
                 "cert": "",

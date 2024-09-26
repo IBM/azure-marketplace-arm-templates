@@ -291,7 +291,7 @@
         },
         "createPublicIP": {
             "type": "bool",
-            "defaultValue": false,
+            "defaultValue": true,
             "metadata": {
                 "description": "Flag to indicate whether a public ip address should be used."
             }
@@ -326,6 +326,13 @@
             "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
             "metadata": {
                 "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "instanaDomain": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('domainName'),'.',parameters('location'),'.cloudapp.azure.com')]",
+            "metadata": {
+                "description": "FQDN for the public IP"
             }
         },
         "tagsByResource": {
@@ -608,6 +615,9 @@
                     },
                     "domainName": {
                         "value": "[parameters('domainName')]"
+                    },
+                    "instanaDomain": {
+                        "value": "[parameters('instanaDomain')]"
                     },
                     "deployInstana": {
                         "value": true
