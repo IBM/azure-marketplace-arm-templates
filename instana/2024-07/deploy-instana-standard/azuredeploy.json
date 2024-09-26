@@ -661,6 +661,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/prepare-disks.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/extend-os-disk.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/instana-product.repo.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/stanctl-preflight.sh'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/wait-for-cloud-init.sh'))]"
                     ],
                     "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"

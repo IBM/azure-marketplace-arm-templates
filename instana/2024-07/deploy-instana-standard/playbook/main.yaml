@@ -60,31 +60,22 @@
     loop_control:
       loop_var: disk
 
-  - name: Configure kernel parameters - vm.swappiness
-    ansible.builtin.shell: |
-      set timeout 300
-      sh -c 'echo vm.swappiness=0 >> /etc/sysctl.d/99-stanctl.conf'
-      sysctl -p /etc/sysctl.d/99-stanctl.conf
-      exit 0
-    args:
-      executable: /bin/bash
-    
-  - name: Configure kernel parameters - vm.swappiness
-    ansible.builtin.shell: |
-      set timeout 300
-      sh -c 'echo fs.inotify.max_user_instances=8192 >> /etc/sysctl.d/99-stanctl.conf'
-      sysctl -p /etc/sysctl.d/99-stanctl.conf
-      exit 0
-    args:
-      executable: /bin/bash 
+  # - name: Configure kernel parameters - vm.swappiness
+  #   ansible.builtin.shell: |
+  #     set timeout 300
+  #     sh -c 'echo vm.swappiness=0 >> /etc/sysctl.d/99-stanctl.conf'
+  #     sysctl -p /etc/sysctl.d/99-stanctl.conf
+  #     exit 0
+  #   args:
+  #     executable: /bin/bash
 
-  - name: Configure kernel parameters - transparent hub pages
-    ansible.builtin.shell: |
-      set timeout 300
-      grubby --args="transparent_hugepage=never" --update-kernel ALL
-      exit 0
-    args:
-      executable: /bin/bash 
+  # - name: Configure kernel parameters - transparent hub pages
+  #   ansible.builtin.shell: |
+  #     set timeout 300
+  #     grubby --args="transparent_hugepage=never" --update-kernel ALL
+  #     exit 0
+  #   args:
+  #     executable: /bin/bash 
 
   - name: Add bin directory (for RHEL)
     ansible.builtin.shell: echo 'export PATH=$PATH:/usr/local/bin' >> ~root/.bashrc
@@ -107,7 +98,6 @@
     args:
       executable: /bin/bash
 
-
   - name: Add Instana repository
     ansible.builtin.template:
       src: "./instana-product.repo.j2"
@@ -118,6 +108,17 @@
       name: 
         - stanctl
       state: latest
+
+  - name: Run Instana preflight shell script
+    ansible.builtin.script: ./stanctl-preflight.sh
+    args: 
+      executable: /bin/bash
+    register: response
+
+  - name: Output preflight result
+    ansible.builtin.debug:
+      msg: "{{ response.stdout }}"
+    when: log_level == "debug"
 
   - name: Install Instana
     ansible.builtin.shell: |
@@ -133,10 +134,11 @@
     args:
       executable: /bin/bash
     when: instana.accept_license
-    register: response
+    register: instana-install
 
   - name: Output install result
     ansible.builtin.debug:
-      msg: "{{ response.stdout }}"
+      msg: "{{ instana-install.stdout }}"
+    when: log_level == "debug"
 
 
