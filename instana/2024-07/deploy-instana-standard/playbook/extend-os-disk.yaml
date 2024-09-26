@@ -38,7 +38,7 @@
       executable: /bin/bash
 
   - name: Extend the var logical volume
-    ansible.builtin.shell: lvextend -L +o{{ osdisk.var.size }}G /dev/rootvg/varlv
+    ansible.builtin.shell: lvextend -L +{{ osdisk.var.size }}G /dev/rootvg/varlv
     args:
       executable: /bin/bash
 
