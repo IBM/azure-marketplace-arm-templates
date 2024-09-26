@@ -130,6 +130,6 @@
       exit 0
     args:
       command: /bin/bash
-    when: accept_license
+    when: instana.accept_license
 
 
