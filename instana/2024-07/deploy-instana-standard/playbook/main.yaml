@@ -134,11 +134,11 @@
     args:
       executable: /bin/bash
     when: instana.accept_license
-    register: instana-install
+    register: response
 
   - name: Output install result
     ansible.builtin.debug:
-      msg: "{{ instana-install.stdout }}"
+      msg: "{{ response.stdout }}"
     when: log_level == "debug"
 
 
