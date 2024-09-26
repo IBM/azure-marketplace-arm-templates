@@ -47,12 +47,12 @@
     args:
       executable: /bin/bash
 
-  - name: Extend the home logical volume
-    ansible.builtin.shell: lvextend -L +{{ osdisk.home.size }}G /dev/rootvg/homelv
+  - name: Extend root's $HOME (rootlv) logical volume
+    ansible.builtin.shell: lvextend -L +{{ osdisk.home.size }}G /dev/rootvg/rootlv
     args:
       executable: /bin/bash
 
-  - name: Extend the var filesystem
-    ansible.builtin.shell: xfs_growfs /dev/rootvg/homelv
+  - name: Extend root's $HOME (rootlv) filesystem
+    ansible.builtin.shell: xfs_growfs /dev/rootvg/rootv
     args:
       executable: /bin/bash
