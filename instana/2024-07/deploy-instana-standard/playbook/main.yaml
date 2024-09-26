@@ -5,6 +5,8 @@
   become: true
 
   vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
     instana:
       download_key: ""
       sales_key: ""
@@ -129,7 +131,12 @@
         --quiet
       exit 0
     args:
-      command: /bin/bash
+      executable: /bin/bash
     when: instana.accept_license
+    register: response
+
+  - name: Output install result
+    ansible.builtin.debug:
+      msg: "{{ response.stdout }}"
 
 
