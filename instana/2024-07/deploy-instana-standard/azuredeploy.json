@@ -57,6 +57,13 @@
                 "description": "Unit name for Instana"
             }
         },
+        "acceptLicense": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag for Instana license acceptance"
+            }
+        },
         "vmName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
@@ -411,7 +418,7 @@
                 "sales_key": "[parameters('salesKey')]",
                 "tenant_name": "[parameters('tenantName')]",
                 "unit_name": "[parameters('unitName')]",
-                "accept_license": false,
+                "accept_license": "[parameters('acceptLicense')]",
                 "admin_password": "[parameters('instanaPassword')]",
                 "install_type": "[parameters('installType')]"
             },

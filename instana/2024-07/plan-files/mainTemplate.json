@@ -139,6 +139,13 @@
                 "description": "Unit name for Instana"
             }
         },
+        "acceptLicense": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag for Instana license acceptance"
+            }
+        },
         "vmName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
@@ -526,6 +533,9 @@
                     },
                     "unitName": {
                         "value": "[parameters('unitName')]"
+                    },
+                    "acceptLicense": {
+                        "value": "[parameters('acceptLicense')]"
                     },
                     "vmName": {
                         "value": "[parameters('vmName')]"
