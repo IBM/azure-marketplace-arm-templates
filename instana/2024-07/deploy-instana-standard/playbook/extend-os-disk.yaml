@@ -53,6 +53,6 @@
       executable: /bin/bash
 
   - name: Extend root's $HOME (rootlv) filesystem
-    ansible.builtin.shell: xfs_growfs /dev/rootvg/rootv
+    ansible.builtin.shell: xfs_growfs /dev/rootvg/rootlv
     args:
       executable: /bin/bash
