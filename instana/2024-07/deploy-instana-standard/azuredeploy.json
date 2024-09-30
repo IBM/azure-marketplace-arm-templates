@@ -428,7 +428,7 @@
                 "accept_license": "[parameters('acceptLicense')]",
                 "admin_password": "[parameters('instanaPassword')]",
                 "install_type": "[parameters('installType')]",
-                "instanaDomain": "[parameters('instanaDomain')]"
+                "domain": "[parameters('instanaDomain')]"
             },
             "tls": {
                 "cert": "",
