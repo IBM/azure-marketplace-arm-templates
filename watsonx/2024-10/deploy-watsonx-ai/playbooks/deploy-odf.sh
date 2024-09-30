@@ -10,45 +10,46 @@
 
 function usage()
 {
-   echo "Installs OpenShift data foundation onto Azure Red Hat OpenShift."
-   echo
-   echo "Usage: setup-workspace.sh "
-   echo "  options:"
-   echo "  -l     whether the license is accepted (accept or decline)"
-
-   echo "  -h     Print this help"
-   echo
+  echo "Installs OpenShift data foundation onto Azure Red Hat OpenShift."
+  echo
+  echo "Usage: setup-workspace.sh "
+  echo "  options:"
+  echo "  -l     whether the license is accepted (accept or decline)"
+  echo "  -s     size of cluster in string format (e.g. 2Ti)"
+  echo "  -e     use existing nodes (yes) or create new nodes (no) dedicated to ODF"
+  echo "  -h     Print this help"
+  echo
 }
 
 ######
 # Parse command line for arguments
-while getopts ":l:d:s:c:z:e:n:r:b:g:h" option; do
+while getopts ":l:s:e:h" option; do
    case $option in
       h) # display Help
-         usage
-         exit 1;;
+        usage
+        exit 1;;
       l) # Accept license
-         LICENSE=$OPTARG;;
-         ;;
-      d) 
+        LICENSE=$OPTARG;;
+        ;;
+      s) # Cluster size
+        STORAGE_SIZE=$OPTARG;;
+        ;;
+      e) # Existing nodes
+        EXISTING_NODES=$OPTARG;;
+        ;;
      \?) # Invalid option
-         echo "Error: Invalid option"
-         usage
-         exit 1;;
+        echo "Error: Invalid option"
+        usage
+        exit 1;;
    esac
 done
 
 ######
 # Set defaults
 if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
-if [[ -z $CLIENT_ID ]]; then CLIENT_ID=""; fi
-if [[ -z $CLIENT_SECRET ]]; then CLIENT_SECRET=""; fi
-if [[ -z $TENANT_ID ]]; then TENANT_ID=""; fi
-if [[ -z $SUBSCRIPTION_ID ]]; then SUBSCRIPTION_ID=""; fi
 if [[ -z $WORKSPACE_DIR ]]; then export WORKSPACE_DIR="/workspace"; fi
 if [[ -z $BIN_DIR ]]; then export BIN_DIR="/usr/local/bin"; fi
 if [[ -z $TMP_DIR ]]; then export TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
-if [[ -z $NEW_CLUSTER ]]; then NEW_CLUSTER="no"; fi
 if [[ -z $STORAGE_SIZE ]]; then export STORAGE_SIZE="2Ti"; fi
 if [[ -z $EXISTING_NODES ]]; then EXISTING_NODES="no"; fi
 
@@ -56,18 +57,6 @@ if [[ -z $EXISTING_NODES ]]; then EXISTING_NODES="no"; fi
 # Create working directories
 mkdir -p ${WORKSPACE_DIR}
 mkdir -p ${TMP_DIR}
-
-######
-# Check variables set
-ENV_VAR_NOT_SET=""
-
-if [[ -z $ARO_CLUSTER ]]; then ENV_VAR_NOT_SET="ARO_CLUSTER"; fi
-if [[ -z $RESOURCE_GROUP ]]; then ENV_VAR_NOT_SET="RESOURCE_GROUP"; fi
-
-if [[ -n $ENV_VAR_NOT_SET ]]; then
-    log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
-    exit 1
-fi
 
 ##### 
 # Obtain cluster id, version and other details
@@ -582,4 +571,4 @@ while [[ $(${BIN_DIR}/oc get StorageCluster ocs-storagecluster -n openshift-stor
         exit 1;    
     fi
 done
-log-output "ODF successfully installed on cluster $ARO_CLUSTER"
+log-output "ODF successfully installed on cluster"
