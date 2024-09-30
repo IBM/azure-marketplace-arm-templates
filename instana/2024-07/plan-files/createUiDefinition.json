@@ -908,15 +908,6 @@
                         }
                     },
 					{
-						"name": "vmPublicIPRequired",
-						"label": "VM Public IP",
-						"toolTip": "Create a public IP for the deployment VM?",
-						"type": "Microsoft.Common.CheckBox",
-						"constraints": {
-							"required": false
-						}
-					},
-					{
 						"name": "vmPublicIP",
 						"type": "Microsoft.Network.PublicIpAddressCombo",
 						"label": {
@@ -941,7 +932,7 @@
 							"hideDomainNameLabel": false,
 							"hideExisting": false
 						},
-						"visible": "[steps('virtualMachine').vmPublicIPRequired]"
+						"visible": true
                     }
                 ]
             },
@@ -1200,7 +1191,7 @@
             "storageSKU": "[steps('virtualMachine').storageSku]",
             "osVersion": "[steps('virtualMachine').osVersion]",
             "vmSize": "[if(equals(basics('installType'),'demo'),steps('virtualMachine').vmSizeDemo,steps('virtualMachine').vmSizeProd)]",
-            "createPublicIP": "[steps('virtualMachine').vmPublicIPRequired]",
+            "createPublicIP": true,
             "publicIPName": "[steps('virtualMachine').vmPublicIP.name]",
             "publicIpNewOrExisting": "[steps('virtualMachine').vmPublicIP.newOrExistingOrNone]",
             "publicIpResourceGroup": "[steps('virtualMachine').vmPublicIP.resourceGroup]",
