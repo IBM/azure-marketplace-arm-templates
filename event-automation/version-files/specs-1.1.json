@@ -7,32 +7,32 @@
     "catalogSources": [
         {
             "name": "ibm-eventautomation-flink-catalog",
-            "displayName": "ibm-eventautomation-flink-1.1.8",
-            "image": "icr.io/cpopen/ibm-eventautomation-flink-operator-catalog@sha256:fc0de95c8ac91f63e9559443bb2439690890ddad5fe7c33ff8f8c2af57020bc3",
+            "displayName": "ibm-eventautomation-flink-1.2.0",
+            "image": "icr.io/cpopen/ibm-eventautomation-flink-operator-catalog@sha256:e02a9f9288146c9c45b84f35d5727fcb6ba542de8769cde688f12506653fab2a",
             "publisher": "IBM",
             "sourceType": "grpc",
             "registryUpdate": "30m0s"
         },
         {
             "name": "ibm-eventprocessing-catalog",
-            "displayName": "ibm-eventprocessing-1.1.8",
-            "image": "icr.io/cpopen/ibm-eventprocessing-operator-catalog@sha256:d31ed04609cc3a3c4456f1a116a2a33f621905f9c74511e4fa2255a408c8986b",
+            "displayName": "ibm-eventprocessing-1.2.0",
+            "image": "icr.io/cpopen/ibm-eventprocessing-operator-catalog@sha256:4109cca3dae62836f22db0eadc470e4716dfd2634e0d090ec733f11b549057a3",
             "publisher": "IBM",
             "sourceType": "grpc",
             "registryUpdate": "30m0s"
         },
         {
             "name": "ibm-eventstreams-catalog",
-            "displayName": "ibm-eventstreams-3.4.0",
-            "image": "icr.io/cpopen/ibm-eventstreams-catalog@sha256:786c707f975b9b0626f3626565ce6800acdbdda31b3170cce580ae4e4857df1d",
+            "displayName": "ibm-eventstreams-3.5.0",
+            "image": "icr.io/cpopen/ibm-eventstreams-catalog@sha256:1b97556a63d33910c59332942eae0cf26a8c02c3e1690d7765e0251980317b3a",
             "publisher": "IBM",
             "sourceType": "grpc",
             "registryUpdate": "30m0s"
         },
         {
             "name": "ibm-eventendpointmanagement-catalog",
-            "displayName": "ibm-eventendpointmanagement-11.2.2",
-            "image": "icr.io/cpopen/ibm-eventendpointmanagement-operator-catalog@sha256:4bb2272bb4d136bb193df84b4f505a6c8a2088137c320f410bbaa3ace660ab1a",
+            "displayName": "ibm-eventendpointmanagement-11.3.0",
+            "image": "icr.io/cpopen/ibm-eventendpointmanagement-operator-catalog@sha256:293d126d410d3dfefd6e0737c77755d6c987bbaf28bd6f90a0edb0c530468c9f",
             "publisher": "IBM",
             "sourceType": "grpc",
             "registryUpdate": "30m0s"
@@ -46,7 +46,7 @@
             },
             "spec": {
                 "name": "ibm-eventautomation-flink",
-                "channel": "v1.1",
+                "channel": "v1.2",
                 "source": "ibm-eventautomation-flink-catalog",
                 "installPlanApproval": "Automatic"
             }
@@ -58,7 +58,7 @@
             },
             "spec": {
                 "name": "ibm-eventprocessing",
-                "channel": "v1.1",
+                "channel": "v1.2",
                 "source": "ibm-eventprocessing-catalog",
                 "installPlanApproval": "Automatic"
             }
@@ -70,7 +70,7 @@
             },
             "spec": {
                 "name": "ibm-eventstreams",
-                "channel": "v3.4",
+                "channel": "v3.5",
                 "source": "ibm-eventstreams-catalog",
                 "installPlanApproval": "Automatic"
             }
@@ -82,7 +82,7 @@
             },
             "spec": {
                 "name": "ibm-eventendpointmanagement",
-                "channel": "v11.2",
+                "channel": "v11.3",
                 "source": "ibm-eventendpointmanagement-catalog",
                 "installPlanApproval": "Automatic"
             }
