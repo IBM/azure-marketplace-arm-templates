@@ -914,7 +914,7 @@
                             "type": "string"
                         },
                         "vmOsDiskSize": {
-                            "value": "int"
+                            "type": "int"
                         },
                         "vmZone": {
                             "type": "string"
