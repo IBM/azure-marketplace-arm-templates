@@ -137,11 +137,11 @@
     - name: Wait for the subscription to be available
       ansible.builtin.shell: |
         set timeout 60
-        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ nfd.namespace }} {{ nfd.name }} -o jsonpath='{.status.currentCSV}' )
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ operator.namespace }} {{ operator.name }} -o jsonpath='{.status.currentCSV}' )
         if [[ "$CSV" == "null" ]]; then
           echo "PendingCSV"
         else
-          echo $({{ directories.bin_dir }}/oc get csv -n {{ nfd.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+          echo $({{ directories.bin_dir }}/oc get csv -n {{ operator.namespace }} ${CSV} -o jsonpath='{.status.phase}')
         fi
         exit 0
       args:
