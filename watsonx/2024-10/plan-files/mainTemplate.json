@@ -848,7 +848,7 @@
                         "value": "[parameters('vmDiskType')]"
                     },
                     "vmOsDiskSize": {
-                        "value": "" // TODO: Fill in parameter value
+                        "value": "[parameters('vmOsDiskSize')]" 
                     },
                     "vmNsgSecurityRules": {
                         "value": "[parameters('vmNSGSecurityRules')]"
@@ -914,7 +914,7 @@
                             "type": "string"
                         },
                         "vmOsDiskSize": {
-                            "value": ""
+                            "value": "int"
                         },
                         "vmZone": {
                             "type": "string"
