@@ -66,17 +66,7 @@
     - name: Run ODF deployment script
       ansible.builtin.script:
         cmd: ./deploy-odf.sh -l {{ odf.license }} -s {{ odf.cluster_size }} -e {{ odf.existing_nodes }} -w {{ directories.tmp_dir }} -b {{ directories.bin_dir }}
-      async: 1800
-      poll: 60
       register: odf_script
-    
-    - name: Show script status
-      ansible.builtin.async_status:
-        jid: "{{ odf_script.ansible_job_id }}"
-      register: script_result
-      until: script_result.finished
-      retries: 100
-      delay: 60
 
     - name: Show script output
       ansible.builtin.debug:
