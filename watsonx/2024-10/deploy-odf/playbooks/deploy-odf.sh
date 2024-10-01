@@ -17,13 +17,15 @@ function usage()
   echo "  -l     whether the license is accepted (accept or decline)"
   echo "  -s     size of cluster in string format (e.g. 2Ti)"
   echo "  -e     use existing nodes (yes) or create new nodes (no) dedicated to ODF"
+  echo "  -w     workspace directory to use"
+  echo "  -b     binary directory to use"
   echo "  -h     Print this help"
   echo
 }
 
 ######
 # Parse command line for arguments
-while getopts ":l:s:e:h" option; do
+while getopts ":l:s:e:w:b:h" option; do
    case $option in
       h) # display Help
         usage
@@ -37,6 +39,12 @@ while getopts ":l:s:e:h" option; do
       e) # Existing nodes
         EXISTING_NODES=$OPTARG;;
         ;;
+      w) # Workspace directory
+        WORKSPACE_DIR=$OPTARG;;
+        ;;
+      b) # Binaries directory
+        BIN_DIR=$OPTARG;;
+        ;;
      \?) # Invalid option
         echo "Error: Invalid option"
         usage
@@ -47,7 +55,7 @@ done
 ######
 # Set defaults
 if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
-if [[ -z $WORKSPACE_DIR ]]; then export WORKSPACE_DIR="/workspace"; fi
+if [[ -z $WORKSPACE_DIR ]]; then export WORKSPACE_DIR="$(pwd)"; fi
 if [[ -z $BIN_DIR ]]; then export BIN_DIR="/usr/local/bin"; fi
 if [[ -z $TMP_DIR ]]; then export TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
 if [[ -z $STORAGE_SIZE ]]; then export STORAGE_SIZE="2Ti"; fi

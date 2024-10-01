@@ -5,19 +5,10 @@
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
     log_level: "info"
-    cloud_pak:
-      version: "5.1"
-      license_accepted: false
-      branch: "main"
-    operator:
-      scope: "namespace"
-      namespace: "ibmint"
-    instance:
-      name: "integration-quickstart"
-      namespace: "ibmint"
-    instance_default:
-      retries: 90
-      retry_delay: 60
+    odf:
+      license: "decline"
+      cluster_size: "1Ti"
+      existing_nodes: "no"
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
@@ -71,18 +62,22 @@
       with_fileglob:
         - ./*.j2
 
-    # - name: Create the ODF machinesets and storage cluster
+    - name: Run ODF deployment script
+      ansible.builtin.script:
+        cmd: ./deploy-odf.sh -l {{ odf.license }} -s {{ odf.size }} -e {{ odf.existing_nodes }} -w {{ directories.tmp_dir }} -b {{ directories.bin_dir }}
+      async: 1800
+      poll: 60
+      register: odf_script
+    
+    - name: Show script status
+      ansible.builtin.async_status:
+        jid: "{{ odf_script.ansible_job_id }}"
+      register: script_result
+      until: script_result.finished
+      retries: 100
+      delay: 60
 
-    # - name: Create the GPU machineset
-
-    # - name: Install and configure Red Hat Node Feature Discovery Tool
-
-    # - name: Install and configure the Nvidia Driver
-
-    # - name: Install and configure Red Hat OpenShift AI
-
-    # - name: Install the base Cloud Pak components
-
-    # - name: Install watsonx.ai
-
-    # - name: Add the foundation models
+    - name: Show script output
+      ansible.builtin.debug:
+        msg: "{{ odf_script.stdout }}"
+      when: log_level == "debug"
