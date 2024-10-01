@@ -106,7 +106,6 @@
         },
         "pullSecret": {
             "type": "securestring",
-            "defaultValue": "",
             "metadata": {
                 "description": "Red Hat OpenShift Pull Secret"
             }
@@ -120,7 +119,7 @@
         },
         "deploymentVersion": {
             "type": "string",
-            "defaultValue": "2024-03",
+            "defaultValue": "2024-10",
             "metadata": {
                 "description": "Deployment version to use"
             }
@@ -270,6 +269,20 @@
             ],
             "metadata": {
                 "description": "Accept Red Hat and IBM License Terms to instantiate software."
+            }
+        },
+        "odfClusterSize": {
+            "type": "string",
+            "defaultValue": "1Ti",
+            "metadata": {
+                "description": "Size of the ODF storage cluster to create"
+            }
+        },
+        "odfExistingNodes": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to use existing worker nodes or create new dedicated ones for ODF"
             }
         },
         "operatorScope": {
@@ -1135,6 +1148,12 @@
                     },
                     "openShiftPassword": {
                         "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "clusterSize": {
+                        "value": "[parameters('odfClusterSize')]"  
+                    },
+                    "existingNodes": {
+                        "value": "[parameters('odfExistingNodes')]"  
                     },
                     "licenseAccepted": {
                         "value": "[parameters('acceptLicense')]" 
