@@ -62,6 +62,14 @@
       with_fileglob:
         - ./*.j2
 
+    - name: Wait for cluster to be available
+      ansible.builtin.shell: |
+        set timeout 900
+        {{ directories.bin_dir }}oc adm wait-for-stable-cluster
+        exit 0
+      args:
+        executable: /bin/bash
+
     - name: Run ODF deployment script
       ansible.builtin.script:
         cmd: ./deploy-odf.sh -l {{ odf.license }} -s {{ odf.size }} -e {{ odf.existing_nodes }} -w {{ directories.tmp_dir }} -b {{ directories.bin_dir }}
