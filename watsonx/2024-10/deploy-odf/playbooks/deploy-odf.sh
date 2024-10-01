@@ -8,6 +8,22 @@
 # Note that this script assumes the CLI is already logged into the OpenShift cluster
 ####
 
+function log-output() {
+    MSG=${1}
+
+    if [[ -z $OUTPUT_DIR ]]; then
+        OUTPUT_DIR="$(pwd)/azscriptoutput"
+    fi
+    mkdir -p $OUTPUT_DIR
+
+    if [[ -z $OUTPUT_FILE ]]; then
+        OUTPUT_FILE="script-output.log"
+    fi
+
+    echo "$(date -u +"%Y-%m-%d %T") ${MSG}" >> ${OUTPUT_DIR}/${OUTPUT_FILE}
+    echo ${MSG}
+}
+
 function usage()
 {
   echo "Installs OpenShift data foundation onto Azure Red Hat OpenShift."
@@ -32,19 +48,14 @@ while getopts ":l:s:e:w:b:h" option; do
         exit 1;;
       l) # Accept license
         LICENSE=$OPTARG;;
-        ;;
       s) # Cluster size
         STORAGE_SIZE=$OPTARG;;
-        ;;
       e) # Existing nodes
         EXISTING_NODES=$OPTARG;;
-        ;;
       w) # Workspace directory
         WORKSPACE_DIR=$OPTARG;;
-        ;;
       b) # Binaries directory
         BIN_DIR=$OPTARG;;
-        ;;
      \?) # Invalid option
         echo "Error: Invalid option"
         usage

@@ -63,12 +63,29 @@
       args:
         executable: /bin/bash
 
-    - name: Run ODF deployment script
-      ansible.builtin.script:
-        cmd: ./deploy-odf.sh -l {{ odf.license }} -s {{ odf.cluster_size }} -e {{ odf.existing_nodes }} -w {{ directories.tmp_dir }} -b {{ directories.bin_dir }}
-      register: odf_script
+    - name: Get the cluster id
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{\"\n\"}' infrastructure cluster"
+      register: response
 
-    - name: Show script output
+    - name: Set the cluster id fact
+      ansible.builtin.set_fact:
+        cluster_id: response.stdout
+
+    - name: Output the cluster id
       ansible.builtin.debug:
-        msg: "{{ odf_script.stdout }}"
+        msg: "Cluster id is {{ cluster_id }}"
       when: log_level == "debug"
+
+    - name: Get the openshift version
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,\".\"); print version[1],version[2]}' | sed 's/ /./g')"
+      register: response
+
+    - name: Set the openshift version fact
+      ansible.builtin.set_fact:
+        openshift_version: response.stdout
+
+    - name: Output the openshift version
+      ansible.builtin.debug:
+        msg: "OpenShift version is {{ openshift_version }}"
