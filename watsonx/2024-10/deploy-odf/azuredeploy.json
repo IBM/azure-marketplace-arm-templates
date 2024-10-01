@@ -50,7 +50,6 @@
         },
         "openShiftPassword": {
             "type": "securestring",
-            "defaultValue": "",
             "metadata": {
                 "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
             }
@@ -107,7 +106,7 @@
         },
         "deploymentVersion": {
             "type": "string",
-            "defaultValue": "2024-03",
+            "defaultValue": "2024-10",
             "metadata": {
                 "description": "Deployment version to use"
             }
@@ -138,10 +137,10 @@
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
-            "name": "[concat(parameters('vmName'),'/','deployODF')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
-            ],
+            "name": "[concat(parameters('vmName'),'/deployODF')]",
+            "tags": {
+                "displayName": "ODF Deployment"
+            },
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
                 "type": "CustomScript",

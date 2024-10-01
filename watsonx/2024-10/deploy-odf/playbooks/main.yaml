@@ -18,13 +18,6 @@
 
   tasks:
 
-    - name: Install podman and jq
-      ansible.builtin.package:
-        name: 
-          - podman
-          - jq
-        state: latest
-
     - name: Check if oc client is already installed
       ansible.builtin.stat:
         path: "{{ directories.bin_dir }}/oc"
@@ -72,7 +65,7 @@
 
     - name: Run ODF deployment script
       ansible.builtin.script:
-        cmd: ./deploy-odf.sh -l {{ odf.license }} -s {{ odf.size }} -e {{ odf.existing_nodes }} -w {{ directories.tmp_dir }} -b {{ directories.bin_dir }}
+        cmd: ./deploy-odf.sh -l {{ odf.license }} -s {{ odf.cluster_size }} -e {{ odf.existing_nodes }} -w {{ directories.tmp_dir }} -b {{ directories.bin_dir }}
       async: 1800
       poll: 60
       register: odf_script
