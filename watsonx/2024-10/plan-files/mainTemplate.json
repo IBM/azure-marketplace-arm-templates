@@ -393,6 +393,13 @@
                 "description": "OS Disk type for Dev VM"
             }
         },
+        "vmOsDiskSize": {
+            "type": "int",
+            "defaultValue": 256,
+            "metadata": {
+                "description": "Size of the VM's OS Disk in GB"
+            }
+        },
         "vmZone": {
             "type": "string",
             "defaultValue": "1",
@@ -840,6 +847,9 @@
                     "vmDiskType": {
                         "value": "[parameters('vmDiskType')]"
                     },
+                    "vmOsDiskSize": {
+                        "value": "" // TODO: Fill in parameter value
+                    },
                     "vmNsgSecurityRules": {
                         "value": "[parameters('vmNSGSecurityRules')]"
                     },
@@ -871,11 +881,7 @@
                             "type": "string"
                         },
                         "vmName": {
-                            "type": "string",
-                            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
-                            "metadata": {
-                                "description": "Name for the Azure virtual machine"
-                            }
+                            "type": "string"
                         },
                         "vnetName": {
                             "type": "string"
@@ -906,6 +912,9 @@
                         },
                         "vmDiskType": {
                             "type": "string"
+                        },
+                        "vmOsDiskSize": {
+                            "value": ""
                         },
                         "vmZone": {
                             "type": "string"
@@ -1064,7 +1073,11 @@
                                 },
                                 "storageProfile": {
                                     "osDisk": {
+                                        "name": "[concat(parameters('vmName'),'-osdisk')]",
                                         "createOption": "FromImage",
+                                        "diskSizeGB": "[parameters('vmOsDiskSize')]",
+                                        "caching": "ReadWrite",
+                                        "osType": "Linux",
                                         "managedDisk": {
                                             "storageAccountType": "[parameters('vmDiskType')]"
                                         }
