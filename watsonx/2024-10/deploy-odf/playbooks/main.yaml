@@ -1,6 +1,7 @@
 ---
 - name: Install IBM watsonx.ai
   hosts: localhost
+  gather_facts: false
 
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
@@ -65,12 +66,12 @@
 
     - name: Get the cluster id
       ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{\"\n\"}' infrastructure cluster"
+        cmd: "{{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{\"\\n\"}' infrastructure cluster"
       register: response
 
     - name: Set the cluster id fact
       ansible.builtin.set_fact:
-        cluster_id: response.stdout
+        cluster_id: "{{ response.stdout }}"
 
     - name: Output the cluster id
       ansible.builtin.debug:
@@ -79,13 +80,42 @@
 
     - name: Get the openshift version
       ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,\".\"); print version[1],version[2]}' | sed 's/ /./g')"
+        cmd: "{{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,\".\"); print version[1],version[2]}' | sed 's/ /./g'"
       register: response
 
     - name: Set the openshift version fact
       ansible.builtin.set_fact:
-        openshift_version: response.stdout
+        openshift_version: "{{ response.stdout }}"
 
     - name: Output the openshift version
       ansible.builtin.debug:
         msg: "OpenShift version is {{ openshift_version }}"
+      when: log_level == "debug"
+
+    - name: Get the first machineset
+      ansible.builtin.shell: 
+        cmd: "{{ directories.bin_dir }}/oc get machinesets -A | grep openshift-machine-api | head -n 1 | awk '{print $2}'"
+      register: response
+    
+    - name: Set the machineset fact
+      ansible.builtin.set_fact:
+        first_machineset: "{{ response.stdout }}"
+
+    - name: Output the first machineset
+      ansible.builtin.debug:
+        msg: "First machineset is {{ first_machineset }}"
+      when: log_level == "debug"
+
+    - name: Get the cluster location from the first machineset
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ first_machineset }} -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.location}{\"\\n\"}'"
+      register: response
+
+    - name: Set the location fact
+      ansible.builtin.set_fact:
+        cluster_location: "{{ response.stdout }}"
+
+    - name: Output the cluster location
+      ansible.builtin.debug:
+        msg: "Cluster location is {{ cluster_location }}"
+      when: log_level == "debug"
