@@ -1169,9 +1169,6 @@
                     },
                     "deploymentVersion": {
                         "value": "[parameters('deploymentVersion')]"
-                    },
-                    "tagsByResource": {
-                        "value": "[parameters('tagsByResource')]"
                     }
                 }
             }
