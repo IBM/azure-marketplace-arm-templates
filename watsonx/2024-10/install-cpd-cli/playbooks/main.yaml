@@ -24,29 +24,82 @@
         - podman
       state: latest
 
-  - name: Create temp directory
-    ansible.builtin.file:
-      path: "{{ directories.tmp_dir }}/cpd"
-      state: directory
+  - name: Check if cpd cli already installed
+    ansible.builtin.stat:
+      path: "{{ directories.bin_dir }}/cpd-cli"
+    register: cpdcli
 
   - name: Download cpdcli
     ansible.builtin.get_url:
-      url: "https://github.com/IBM/cpd-cli/releases/download/v{{ cpd.version  }}/cpd-cli-linux-{{ cpd.edition }}-{{ cpd.version }}.tgz"
-      dest: "{{ directories.tmp_dir }}/cpd"
+      url: "https://github.com/IBM/cpd-cli/releases/download/v{{ cpd.version }}/cpd-cli-linux-{{ cpd.edition }}-{{ cpd.version }}.tgz"
+      dest: "{{ directories.tmp_dir }}"
     register: cpdcli_file
+    when: not cpdcli.stat.exists
 
   - name: Extract files
     ansible.builtin.command:
       tar xzf {{ cpdcli_file.dest }}
     register: result
+    when: not cpdcli.stat.exists
+
+  - name: Output the result
+    ansible.builtin.debug:
+      var: result
+    when: 
+      - log_level == "debug"
+      - not cpdcli.stat.exists
+    
 
   - name: Fail if unable to extract file
     ansible.builtin.fail:
       msg: "Unable to extract the cpd cli from {{ cpdcli_file.dest }}"
-    when: result.failed
+    when: 
+      - result.failed
+      - not cpdcli.stat.exists
 
-  # - name: Check if the path is already set
-  
-  # - name: Set the path name and update .bashrc
+  - name: Clean up the downloaded archive
+    ansible.builtin.file:
+      state: absent
+      path: "{{ cpdcli_file.dest }}"
+    when: not cpdcli.stat.exists
+
+  - name: Get the extracted directory name
+    ansible.builtin.shell:
+      cmd: ls -d cpd-cli* | head -n 1
+    register: response
+    when: not cpdcli.stat.exists
+
+  - name: Set directory name fact
+    ansible.builtin.set_fact:
+      cpdcli_tmp_dir: "{{ response.stdout }}"
+    when: not cpdcli.stat.exists
+
+  - name: Output the temporary directory name
+    ansible.builtin.debug:
+      msg: "CPD-CLI temporary directory is {{ cpdcli_tmp_dir }}"
+    when: 
+      - log_level == "debug"
+      - not cpdcli.stat.exists
+
+  - name: Move the temporary directory to the bin directory
+    ansible.builtin.copy:
+      src: "{{ cpdcli_tmp_dir }}/"
+      dest: "{{ directories.bin_dir }}/"
+      owner: root
+      group: root
+      mode: '0755'
+    when: not cpdcli.stat.exists
 
   # - name: Verify the installation
+  #   ansible.builtin.shell: |
+  #     set timeout 300
+  #     {{ directories.bin_dir }}/cpd-cli manage restart-container
+  #     exit 0
+  #   args:
+  #     executable: /bin/bash
+  #   register: result
+
+  # - name: Output the result of the verification
+  #   ansible.builtin.debug:
+  #     var: result
+  #   when: log_level == "debug"

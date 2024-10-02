@@ -85,7 +85,7 @@
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
         "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/deploy-rh-node-discovery-tool/",
+        "gitRepoDeploymentDirectory": "/install-cpd-cli/",
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
@@ -111,7 +111,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"', ' && /usr/local/bin/cpd-cli manage restart-container')]"
                 }
             }
         }
