@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+    name: odf-operator
+    namespace: {{ odf.namespace }}
+spec:
+    channel: "stable-{{ openshift_version }}"
+    installPlanApproval: Automatic
+    name: odf-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace

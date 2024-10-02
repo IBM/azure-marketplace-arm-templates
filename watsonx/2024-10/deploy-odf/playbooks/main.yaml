@@ -10,6 +10,9 @@
       license: "decline"
       cluster_size: "1Ti"
       existing_nodes: "no"
+      namespace: "openshift-storage"
+      storage_class: "managed-premium"
+      version: ""
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
@@ -119,3 +122,210 @@
       ansible.builtin.debug:
         msg: "Cluster location is {{ cluster_location }}"
       when: log_level == "debug"
+
+    - name: Get the image SKU
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{\"\\n\"}'"
+      register: response
+
+    - name: Set the Image SKU fact
+      ansible.builtin.set_fact:
+        image_sku: "{{ response.stdout }}"
+
+    - name: Output the image SKU
+      ansible.builtin.debug:
+        msg: "Image SKU is {{ image_sku }}"
+      when: log_level = "debug"
+
+    - name: Get the image offer
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.offer}{\"\\n\"}'"
+      register: response
+
+    - name: Set the image offer fact
+      ansible.builtin.set_fact:
+        image_offer: "{{ response.stdout }}"
+
+    - name: Output the image offer
+      ansible.builtin.debug:
+        msg: "Image offer is {{ image_offer }}"
+      when: log_level == "debug"
+
+    - name: Get the image version
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{\"\\n\"}'"
+      register: response
+
+    - name: Set the image version fact
+      ansible.builtin.set_fact:
+        image_version: "{{ response.stdout }}"
+
+    - name: Output the image version
+      ansible.builtin.debug:
+        msg: "Image version is {{ image_version }}"
+      when: log_level == "debug"
+
+    - name: Get the ARO resource group
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{\"\\n\"}'"
+      register: response
+
+    - name: Set the ARO resource group fact
+      ansible.builtin.set_fact:
+        aro_resource_group: "{{ response.stdout }}"
+
+    - name: Output the ARO resource group
+      ansible.builtin.debug:
+        msg: "ARO resource group is {{ aro_resource_group }}"
+      when: log_level == "debug"
+
+    - name: Get the VNet name
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{\"\\n\"}'"
+      register: response
+
+    - name: Set the VNet name fact
+      ansible.builtin.set_fact:
+        vnet_name: "{{ response.stdout }}"
+
+    - name: Output the VNet name
+      ansible.builtin.debug:
+        msg: "VNet name is {{ vnet_name }}"
+      when: log_level == "debug"
+
+    - name: Get the Subnet name
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.subnet}{\"\\n\"}'"
+      register: response
+
+    - name: Set the subnet name fact
+      ansible.builtin.set_fact:
+        subnet_name: "{{ response.stdout }}"
+
+    - name: Output the subnet name
+      ansible.builtin.debug:
+        msg: "Subnet name is {{ subnet_name }}"
+      when: log_level == "debug"
+
+    # - name: Get the storage class (default block) if not defined
+    #   when: odf.storage_class not defined
+
+    - name: Check if ODF namespace exists
+      ansible.builtin.shell: |
+        set timeout 60
+        {{ directories.bin_dir }}/oc get ns {{ odf.namespace }} 2> /dev/null
+        exit 0
+      register: query_returnedInfo
+
+    - name: Parse returned data to determine if operator namespace already exists
+      set_fact:
+        odfNamespaceExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
+
+    - name: Create the openshift storage namespace definition
+      ansible.builtin.template:
+        src: "./templates/namespace.j2"
+        dest: "{{ directories.tmp_dir }}/odf-namespace.yaml"
+      when: not odfNamespaceExists
+
+    - name: Apply the namespace definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/odf-namespace.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+      when: not odfNamespaceExists
+    
+    - name: Output result of applying the namespace definition
+      ansible.builtin.debug:
+        var: result
+      when: 
+        - log_level == "debug"
+        - not odfNamespaceExists
+
+    - name: Clean up namespace definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/odf-namespace.yaml"
+      when: not odfNamespaceExists
+
+    - name: Create the operator group definition
+      ansible.builtin.template:
+        src: "./templates/operatorgroup.j2"
+        dest: "{{ directories.tmp_dir }}/odf-operatorgroup.yaml"
+
+    - name: Apply the operator group definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/odf-operatorgroup.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the operator group definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up operator group definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/odf-operatorgroup.yaml"
+
+    - name: Create the ODF subscription definition
+      ansible.builtin.template:
+        src: "./templates/subscription.j2"
+        dest: "{{ directories.tmp_dir }}/odf-subscription.yaml"
+
+    - name: Apply the ODF subscription definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/odf-subscription.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the ODF subscription
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Wait for the subscription to be available
+      ansible.builtin.shell: |
+        set timeout 60
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ odf.namespace }} odf-operator -o jsonpath='{.status.currentCSV}' )
+        if [[ "$CSV" == "null" ]]; then
+          echo "PendingCSV"
+        else
+          echo $({{ directories.bin_dir }}/oc get csv -n {{ odf.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+        fi
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+
+    - name: Clean up the subscription definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/odf-subscription.yaml"
+
+    - name: Patch the console to add the ODF console
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc patch console.operator cluster -n openshift-storage --type json -p '[{\"op\": \"add\", \"path\": \"/spec/plugins\", \"value\": [\"odf-console\"]}]'"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of patching the console
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    # - name: Create new machinesets for each zone (not existing nodes)
+
+    # - name: Label existing machinesets (existing nodes)
+
+    # - name: Create the storage cluster
+
+    # - name: Wait for the storage cluster to become available
+      
