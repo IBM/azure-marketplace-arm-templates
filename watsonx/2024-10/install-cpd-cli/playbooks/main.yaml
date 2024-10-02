@@ -54,9 +54,9 @@
     ansible.builtin.fail:
       msg: "Unable to extract the cpd cli from {{ cpdcli_file.dest }}"
     when: 
-      - result.failed
       - not cpdcli.stat.exists
-
+      - result.failed
+  
   - name: Clean up the downloaded archive
     ansible.builtin.file:
       state: absent
