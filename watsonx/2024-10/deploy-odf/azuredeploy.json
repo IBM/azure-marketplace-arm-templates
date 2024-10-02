@@ -24,6 +24,13 @@
                 "description": "Name for the Azure virtual machine"
             }
         },
+        "extensionName": {
+            "type": "string",
+            "defaultValue": "deployODF",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
         "openShiftApiUrl": {
             "type": "string",
             "metadata": {
@@ -137,7 +144,7 @@
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
-            "name": "[concat(parameters('vmName'),'/deployODF')]",
+            "name": "[concat(parameters('vmName'),'/',parameters('extensionName'))]",
             "tags": {
                 "displayName": "ODF Deployment"
             },

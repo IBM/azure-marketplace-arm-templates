@@ -482,6 +482,13 @@
                 "description": "Network security group rules for VM NIC (applicable when using public IP for deployment VM)"
             }
         },
+        "vmExtensionName": {
+            "type": "string",
+            "defaultValue": "watsonx",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
         "logLevel": {
             "type": "string",
             "defaultValue": "info",
@@ -1154,6 +1161,9 @@
                     "vmName": {
                         "value": "[parameters('vmName')]"
                     },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
                     "location": {
                         "value": "[parameters('location')]"
                     },
@@ -1200,7 +1210,8 @@
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.RedHatOpenShift/OpenShiftClusters', parameters('clusterName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'deploymentVM')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deploymentVM')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployODF')]"
             ],
             "name": "deployNFDTool",
             "properties": {
@@ -1221,6 +1232,9 @@
                     },
                     "openShiftApiUrl": {
                         "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
                     },
                     "openShiftUsername": {
                         "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
