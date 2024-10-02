@@ -108,8 +108,6 @@
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
                     "fileUris": [
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/oc-login.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/install-oc.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
                     ],
