@@ -13,7 +13,7 @@
       namespace: "redhat-ods-operator"
       channel: "eus-2.8"
     instance:
-      name: "default-dsci"
+      name: "default-dsc"
 
   tasks:
 
@@ -161,10 +161,78 @@
 
     - name: Wait for instance to be ready
       ansible.builtin.shell: 
-        cmd: "{{ directories.bin_dir }}/oc get nodefeaturediscovery -n {{ instance.namespace }} {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Available\")].status}'"
+        cmd: "{{ directories.bin_dir }}/oc get datasciencecluster -n {{ instance.namespace }} {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Available\")].status}'"
       args:
         executable: /bin/bash
       register: response
       until: response.stdout == "True"
       retries: "{{ default.retries }}"
       delay: "{{ default.retry_delay }}"
+
+    - name: Get list of DSC Initializations
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get dscinitializations 2> /dev/null"
+      register: result
+
+    - name: Fail if no DSC Initialization has been created
+      ansible.builtin.fail:
+        msg: "Install of OpenShift AI failed. DSC Initialization not found."
+      when: result.stdout == ""  
+    
+    - name: Patch DSC Initialization instance 
+      ansible.builtin.shell:
+        cmd: "oc patch dscinitializations {{ instance.name }}i -p '{\"spec\": {\"serviceMesh\": null}}' --type merge"
+      register: result
+
+    - name: Output result of patching the DSC initialization
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Patch the DSC instance
+      ansible.builtin.shell:
+        cmd: "oc patch DataScienceCluster default-dsc -p '{\"spec\":{\"components\":{\"kserve\":{\"defaultDeploymentMode":\"RawDeployment\",\"managementState\":\"Managed\",\"serving\":{\"managementState\":\"Removed\"}}}}}' --type=merge"
+      register: result
+
+    - name: Output result of patching the DSC
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Pause for 30 seconds to let patch apply
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: Patch the inference service 
+      ansible.builtin.shell: |
+        set timeout 300
+        TMP_INFERENCE_CONFIG="{{ directories.tmp_dir }}/inference-config.yaml"
+        oc get -n redhat-ods-applications configmap/inferenceservice-config -o yaml > $TMP_INFERENCE_CONFIG
+        sed -e 's/"ingressClassName": "istio"/"ingressClassName": "openshift-default"/' -i $TMP_INFERENCE_CONFIG
+        sed -e 's/"enableDirectPvcVolumeMount": false/"enableDirectPvcVolumeMount": true/' -i $TMP_INFERENCE_CONFIG
+        sed -e 's/"domainTemplate": "\{\{ .Name \}\}-\{\{ .Namespace \}\}.\{\{ .IngressDomain \}\}"/"domainTemplate": "example.com"/' -i $TMP_INFERENCE_CONFIG
+        oc create -f $TMP_INFERENCE_CONFIG
+        oc annotate --overwrite -n redhat-ods-applications configmap/inferenceservice-config opendatahub.io/managed=false
+        exit 0
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of patching the inference service
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Restart the operator pod
+      ansible.builtin.shell:
+        cmd: "oc get po -n {{ operator.namespace }} | grep rhods-operator | awk '{print $1}' | xargs oc delete pod -n {{ operator.namespace }}"
+      register: result
+
+    - name: Output the result of restarting the operator pod
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Pause for 30 seconds to let restart occur
+      ansible.builtin.pause:
+        seconds: 30
