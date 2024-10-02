@@ -1,0 +1,52 @@
+---
+- name: Install CPD CLI tool
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
+    cpd:
+      version: "14.0.3"
+      edition: "EE"
+    directories:
+      bin_dir: "/usr/local/bin"
+      tmp_dir: "/tmp"
+    default:
+      retries: 30
+      retry_delay: 15
+
+  tasks:
+
+  - name: Install required packages
+    ansible.builtin.package:
+      name:
+        - podman
+      state: latest
+
+  - name: Create temp directory
+    ansible.builtin.file:
+      path: "{{ directories.tmp_dir }}/cpd"
+      state: directory
+
+  - name: Download cpdcli
+    ansible.builtin.get_url:
+      url: "https://github.com/IBM/cpd-cli/releases/download/v{{ cpd.version  }}/cpd-cli-linux-{{ cpd.edition }}-{{ cpd.version }}.tgz"
+      dest: "{{ directories.tmp_dir }}/cpd"
+    register: cpdcli_file
+
+  - name: Extract files
+    ansible.builtin.command:
+      tar xzf {{ cpdcli_file.dest }}
+    register: result
+
+  - name: Fail if unable to extract file
+    ansible.builtin.fail:
+      msg: "Unable to extract the cpd cli from {{ cpdcli_file.dest }}"
+    when: result.failed
+
+  # - name: Check if the path is already set
+  
+  # - name: Set the path name and update .bashrc
+
+  # - name: Verify the installation
