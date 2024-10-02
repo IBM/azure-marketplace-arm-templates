@@ -4,8 +4,8 @@ metadata:
   name: {{ operator.name }}
   namespace: {{ operator.namespace }}
 spec:
+  channel: {{ operator.channel }}
   installPlanApproval: Automatic
   name: {{ operator.name }}
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-  channel: "stable"

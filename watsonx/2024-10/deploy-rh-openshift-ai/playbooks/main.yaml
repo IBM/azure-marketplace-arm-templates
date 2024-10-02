@@ -1,22 +1,19 @@
 ---
-- name: Install IBM watsonx.ai
+- name: Deploy Red Hat OpenShift AI
   hosts: localhost
 
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
     log_level: "info"
-    operator:
-      name: nfd
-      namespace: openshift-nfd
-    instance:
-      name: nfd-instance
-      namespace: openshift-nfd
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
-    default:
-      retries: 30
-      retry_delay: 15
+    operator:
+      name: "rhods-operator"
+      namespace: "redhat-ods-operator"
+      channel: "eus-2.8"
+    instance:
+      name: "default-dsci"
 
   tasks:
 
@@ -60,9 +57,114 @@
     - name: Wait for cluster to be available
       ansible.builtin.shell: |
         set timeout 900
-        {{ directories.bin_dir }}oc adm wait-for-stable-cluster
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster
         exit 0
       args:
         executable: /bin/bash
 
-    # - name: Red Hat OpenShift AI specific tasks from here.
+    - name: Check if operator namespace exists
+      ansible.builtin.shell: |
+        set timeout 60
+        {{ directories.bin_dir }}/oc get ns {{ operator.namespace }} 2> /dev/null
+        exit 0
+      register: query_returnedInfo
+
+    - name: Parse returned data to determine if operator namespace already exists
+      set_fact:
+        operatorNamespaceExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
+    
+    - name: Create operator namespace
+      ansible.builtin.shell: |
+        set timeout 300
+        {{ directories.bin_dir }}/oc create ns {{ operator.namespace }}
+        exit 0
+      when: not operatorNamespaceExists
+      register: result
+
+    - name: Output result of operator namespace creation
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Create the operator group definition
+      ansible.builtin.template:
+        src: "../templates/operatorgroup.j2"
+        dest: "{{ directories.tmp_dir }}/operatorgroup.yaml"
+
+    - name: Apply operator group definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/operatorgroup.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output result of operator group application
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up operator group definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/operatorgroup.yaml"
+
+    - name: Deploy Red Hat OpenShift AI operator
+      ansible.builtin.template:
+        src: "./templates/subscription.j2"
+        dest: "{{ directories.tmp_dir }}/subscription.yaml"
+
+    - name: Apply OpenShift AI operator
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/subscription.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output result of subscription application
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Wait for the OpenShift AI subscription to be available
+      ansible.builtin.shell: |
+        set timeout 60
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ operator.namespace }} {{ operator.name }} -o jsonpath='{.status.currentCSV}')
+        if [[ "$CSV" == "null" ]]; then
+          echo "PendingCSV"
+        else
+          echo $({{ directories.bin_dir }}/oc get csv -n {{ operator.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+        fi
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: 30
+      delay: 15
+
+    - name: Deploy Red Hat OpenShift AI DSC instance
+      ansible.builtin.template:
+        src: "./templates/dsc-instance.j2"
+        dest: "{{ directories.tmp_dir }}/dsc-instance.yaml"
+
+    - name: Apply OpenShift AI DSC instance
+      ansible.builtin.shell: |
+        {{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/dsc-instance.yaml
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output result of DSC instance application
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Wait for instance to be ready
+      ansible.builtin.shell: 
+        cmd: "{{ directories.bin_dir }}/oc get nodefeaturediscovery -n {{ instance.namespace }} {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Available\")].status}'"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "True"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"

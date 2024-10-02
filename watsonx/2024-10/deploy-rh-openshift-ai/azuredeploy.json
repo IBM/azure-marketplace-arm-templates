@@ -24,6 +24,13 @@
                 "description": "Name for the Azure virtual machine"
             }
         },
+        "extensionName": {
+            "type": "string",
+            "defaultValue": "deployOpenShiftAI",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
         "openShiftApiUrl": {
             "type": "string",
             "metadata": {
@@ -91,7 +98,7 @@
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
         "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/deploy-rh-node-discovery-tool/",
+        "gitRepoDeploymentDirectory": "/deploy-rh-openshift-ai/",
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
@@ -108,7 +115,7 @@
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
-            "name": "[concat(parameters('vmName'),'/','deployNFDTool')]",
+            "name": "[concat(parameters('vmName'),'/',parameters('extensionName'))]",
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
                 "type": "CustomScript",
