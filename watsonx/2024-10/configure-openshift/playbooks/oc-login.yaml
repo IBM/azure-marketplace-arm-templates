@@ -37,7 +37,7 @@
     exit 0
   args:
     executable: /bin/bash
-    chdir: ~/
+    chdir: {{ directories.home }}
   register: response
   until: response.stdout != ""
   retries: "{{ default.retries }}"

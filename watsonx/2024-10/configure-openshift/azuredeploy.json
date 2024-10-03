@@ -105,8 +105,7 @@
                 "api_server": "[parameters('openShiftApiUrl')]",
                 "username": "[parameters('openShiftUsername')]",
                 "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
-                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]",
-                "resourceGroup": "[resourceGroup().name]"
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
             }
         }
     },

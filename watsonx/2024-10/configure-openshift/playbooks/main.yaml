@@ -9,6 +9,7 @@
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
+      home: "/root/"
     default:
       retries: 30
       retry_delay: 15
@@ -265,8 +266,8 @@
         executable: /bin/bash
       register: response
       until: response.stdout != ""
-      retries: "{{ default.retries }}"
-      delay: "{{ default.retry_delay }}"
+      retries: 100
+      delay: 60
 
     # Increase PID limit
 
@@ -303,5 +304,5 @@
         executable: /bin/bash
       register: response
       until: response.stdout != ""
-      retries: "{{ default.retries }}"
-      delay: "{{ default.retry_delay }}"
+      retries: 100
+      delay: 60
