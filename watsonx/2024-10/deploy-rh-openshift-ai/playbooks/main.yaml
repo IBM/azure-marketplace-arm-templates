@@ -57,7 +57,7 @@
     - name: Wait for cluster to be available
       ansible.builtin.shell: |
         set timeout 900
-        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period 1m
         exit 0
       args:
         executable: /bin/bash
@@ -191,7 +191,7 @@
 
     - name: Patch the DSC instance
       ansible.builtin.shell:
-        cmd: "oc patch DataScienceCluster default-dsc -p '{\"spec\":{\"components\":{\"kserve\":{\"defaultDeploymentMode":\"RawDeployment\",\"managementState\":\"Managed\",\"serving\":{\"managementState\":\"Removed\"}}}}}' --type=merge"
+        cmd: "oc patch DataScienceCluster default-dsc -p '{\"spec\":{\"components\":{\"kserve\":{\"defaultDeploymentMode\":\"RawDeployment\",\"managementState\":\"Managed\",\"serving\":{\"managementState\":\"Removed\"}}}}}' --type=merge"
       register: result
 
     - name: Output result of patching the DSC
