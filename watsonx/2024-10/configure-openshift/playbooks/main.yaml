@@ -9,7 +9,6 @@
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
-      home: "/root/"
     default:
       retries: 30
       retry_delay: 15
@@ -40,19 +39,25 @@
         file: ./oc-login.yaml
       when: response.stdout == ""
 
+    - name: Check if kubeconfig already set in bash login script
+      ansible.builtin.shell: |
+        set timeout 5
+        cat {{ ansible_facts.user_dir }}/.bashrc | grep KUBECONFIG
+        exit 0
+      register: response
+
     - name: Update bashrc with kubeconfig environment variable
       ansible.builtin.shell:
-        cmd: "echo 'export KUBECONFIG=\"~/.kube/config\"' >> ~/.bashrc"
+        cmd: "echo 'export KUBECONFIG=\"{{ ansible_facts.user_dir }}/.kube/config\"' >> {{ ansible_facts.user_dir }}/.bashrc"
       register: result
+      when: response.stdout == ""
 
     - name: Output the result of updating bashrc
       ansible.builtin.debug:
         var: result
-      when: log_level == "debug"
-
-    # Check that CPD CLI has been installed and configured
-
-    # - name: Set the CPD workspace directory
+      when: 
+        - log_level == "debug"
+        - response.stdout == ""
 
     - name: Create template directory if not already in place
       ansible.builtin.file:
@@ -260,12 +265,14 @@
         path: "{{ directories.tmp_dir }}/kubelet-machineconfig.yaml"
 
     - name: Wait for nodes to be ready
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get nodes | grep -E \"SchedulingDisabled|NotReady\""
+      ansible.builtin.shell: |
+        set timeout 5
+        "{{ directories.bin_dir }}/oc get nodes | grep -E \"SchedulingDisabled|NotReady\""
+        exit 0
       args:
         executable: /bin/bash
       register: response
-      until: response.stdout != ""
+      until: response.stdout == ""
       retries: 100
       delay: 60
 
@@ -298,11 +305,13 @@
         path: "{{ directories.tmp_dir }}/containerruntimeconfig.yaml"
 
     - name: Wait for nodes to be ready
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get nodes | grep -E \"SchedulingDisabled|NotReady\""
+      ansible.builtin.shell: |
+        set timeout 5
+        "{{ directories.bin_dir }}/oc get nodes | grep -E \"SchedulingDisabled|NotReady\""
+        exit 0 
       args:
         executable: /bin/bash
       register: response
-      until: response.stdout != ""
+      until: response.stdout == ""
       retries: 100
       delay: 60
