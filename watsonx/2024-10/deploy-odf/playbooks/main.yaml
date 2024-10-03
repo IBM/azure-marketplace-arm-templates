@@ -10,9 +10,8 @@
       license: "decline"
       cluster_size: "1Ti"
       existing_nodes: "no"
+    operator:
       namespace: "openshift-storage"
-      storage_class: "managed-premium"
-      version: ""
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
@@ -213,7 +212,7 @@
     - name: Check if ODF namespace exists
       ansible.builtin.shell: |
         set timeout 60
-        {{ directories.bin_dir }}/oc get ns {{ odf.namespace }} 2> /dev/null
+        {{ directories.bin_dir }}/oc get ns {{ operator.namespace }} 2> /dev/null
         exit 0
       register: query_returnedInfo
 
@@ -290,11 +289,11 @@
     - name: Wait for the subscription to be available
       ansible.builtin.shell: |
         set timeout 60
-        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ odf.namespace }} odf-operator -o jsonpath='{.status.currentCSV}' )
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ operator.namespace }} odf-operator -o jsonpath='{.status.currentCSV}' )
         if [[ "$CSV" == "null" ]]; then
           echo "PendingCSV"
         else
-          echo $({{ directories.bin_dir }}/oc get csv -n {{ odf.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+          echo $({{ directories.bin_dir }}/oc get csv -n {{ operator.namespace }} ${CSV} -o jsonpath='{.status.phase}')
         fi
         exit 0
       args:

@@ -129,7 +129,7 @@
             "odf": {
                 "license": "[parameters('licenseAccepted')]",
                 "cluster_size": "[parameters('clusterSize')]",  
-                "existing_nodes": "[if(parameters('existingNodes'),'yes','no')]"  
+                "existing_nodes": "[if(parameters('existingNodes'),'yes','no')]"
             },
             "cluster": {
                 "api_server": "[parameters('openShiftApiUrl')]",
