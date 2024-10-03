@@ -38,6 +38,13 @@
                 "description": "Flag to determine whether to deploy the deployment VM (debug only)"
             }
         },
+        "installCpdCli": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to install cpd cli on the deployment VM (debug only)"
+            }
+        },
         "deployODF": {
             "type": "bool",
             "defaultValue": true,
@@ -278,6 +285,24 @@
                 "description": "Accept Red Hat and IBM License Terms to instantiate software."
             }
         },
+        "cpdVersion": {
+            "type": "string",
+            "defaultValue": "14.0.3",
+            "metadata": {
+                "description": "Version of CPD CLI to install. Refer to https://github.com/IBM/cpd-cli"
+            }
+        },
+        "cpdEdition": {
+            "type": "string",
+            "defaultValue": "EE",
+            "allowedValues": [
+                "EE",
+                "SE"
+            ],
+            "metadata": {
+                "description": "CPD Edition, Enterprise (EE) or Standard (SE)"
+            }
+        },
         "odfClusterSize": {
             "type": "string",
             "defaultValue": "1Ti",
@@ -301,27 +326,6 @@
             ],
             "metadata": {
                 "description": "Scope of the operator installation"
-            }
-        },
-        "operatorNamespace": {
-            "type": "string",
-            "defaultValue": "ibmint",
-            "metadata": {
-                "description": "Namespace to be utilized for the operators if namespace scoped"
-            }
-        },
-        "instanceNamespace": {
-            "type": "string",
-            "defaultValue": "ibmint",
-            "metadata": {
-                "description": "Namespace for the Platform Navigator instance"
-            }
-        },
-        "instanceName": {
-            "type": "string",
-            "defaultValue": "quickstart-integration",
-            "metadata": {
-                "description": "Name for the Platform Navigator instance"
             }
         },
         "vmName": {
@@ -412,10 +416,8 @@
         },
         "vmOSVersion": {
             "type": "string",
-            "defaultValue": "RHEL 8.7",
+            "defaultValue": "RHEL 9.2",
             "allowedValues": [
-                "RHEL 8.6",
-                "RHEL 8.7",
                 "RHEL 9.2"
             ],
             "metadata": {
@@ -1141,11 +1143,112 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
+            "condition": "[parameters('installCpdCli')]", 
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deploymentVM')]"
+            ],
+            "name": "configureVM",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/install-cpd-cli/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "cpdVersion": {
+                        "value": "[parameters('cpdVersion')]" 
+                    },
+                    "cpdEdition": {
+                        "value": "[parameters('cpdEdition')]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('installCpdCli')]", 
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'configureVM')]",
+                "[resourceId('Microsoft.RedHatOpenShift/OpenShiftClusters', parameters('clusterName'))]"
+            ],
+            "name": "configureOpenShift",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/install-cpd-cli/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
             "condition": "[parameters('deployODF')]",
             "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
-                "[resourceId('Microsoft.RedHatOpenShift/OpenShiftClusters', parameters('clusterName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'deploymentVM')]"
+                "[resourceId('Microsoft.Resources/deployments', 'configureOpenShift')]"
             ],
             "name": "deployODF",
             "properties": {
@@ -1208,9 +1311,6 @@
             "apiVersion": "2023-07-01",
             "condition": "[parameters('deployNFD')]",
             "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
-                "[resourceId('Microsoft.RedHatOpenShift/OpenShiftClusters', parameters('clusterName'))]",
-                "[resourceId('Microsoft.Resources/deployments', 'deploymentVM')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployODF')]"
             ],
             "name": "deployNFDTool",
