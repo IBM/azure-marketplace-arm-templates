@@ -14,6 +14,9 @@
       channel: "stable-2.8"
     instance:
       name: "default-dsc"
+    default:
+      retries: 30
+      retry_delay: 15
 
   tasks:
 
@@ -161,7 +164,7 @@
 
     - name: Wait for instance to be ready
       ansible.builtin.shell: 
-        cmd: "{{ directories.bin_dir }}/oc get datasciencecluster -n {{ instance.namespace }} {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Available\")].status}'"
+        cmd: "{{ directories.bin_dir }}/oc get datasciencecluster {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Available\")].status}'"
       args:
         executable: /bin/bash
       register: response
