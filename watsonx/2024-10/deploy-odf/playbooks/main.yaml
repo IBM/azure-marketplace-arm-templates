@@ -135,7 +135,7 @@
     - name: Output the image SKU
       ansible.builtin.debug:
         msg: "Image SKU is {{ image_sku }}"
-      when: log_level = "debug"
+      when: log_level == "debug"
 
     - name: Get the image offer
       ansible.builtin.shell:
