@@ -1,5 +1,5 @@
 ---
-- name: Install IBM watsonx.ai
+- name: Install ODF and create storage cluster
   hosts: localhost
   gather_facts: true
 
@@ -18,6 +18,7 @@
     default:
       retries: 60
       retry_delay: 15
+      cluster_stable_min: "1m"
 
   tasks:
 
@@ -61,7 +62,7 @@
     - name: Wait for cluster to be available
       ansible.builtin.shell: |
         set timeout 900
-        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period 1m
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_stable_min }}
         exit 0
       args:
         executable: /bin/bash
@@ -178,6 +179,19 @@
         msg: "ARO resource group is {{ aro_resource_group }}"
       when: log_level == "debug"
 
+    - name: Get the network resource group
+      ansible.builtin.shell: 
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.networkResourceGroup}{\"\\n\"}'"
+      register: response
+
+    - name: Set the network resource group
+      ansible.builtin.set_fact:
+        network_resource_group: "{{ response.stdout }}"
+
+    - name: Output the network resource group
+      ansible.builtin.debug:
+        msg: "Network resource group is {{ network_resource_group }}"
+
     - name: Get the VNet name
       ansible.builtin.shell:
         cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{\"\\n\"}'"
@@ -206,8 +220,30 @@
         msg: "Subnet name is {{ subnet_name }}"
       when: log_level == "debug"
 
-    # - name: Get the storage class (default block) if not defined
-    #   when: odf.storage_class not defined
+    - name: Get the storage class (default block) if not defined
+      ansible.builtin.shell: |
+        set timeout 10
+        {{ directories.bin_dir }}/oc get sc | grep disk.csi.azure.com | awk '{print $1}'
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response 
+      when: odf.storage_class is not defined
+
+    - name: Set the storage class fact if not defined already
+      ansible.builtin.set_fact:
+        storage_class: "{{ response.stdout }}"
+      when: odf.storage_class is not defined
+
+    - name: Set the storage class fact if defined
+      ansible.builtin.set_fact:
+        storage_class: "{{ odf.storage_class }}"
+      when: odf.storage_class is defined
+
+    - name: Output the name of the storage class
+      ansible.builtin.debug:
+        msg: "Storage class is {{ storage_class }}"
+      when: log_level == "debug"
 
     - name: Check if ODF namespace exists
       ansible.builtin.shell: |
@@ -320,11 +356,74 @@
         var: result
       when: log_level == "debug"
 
-    # - name: Create new machinesets for each zone (not existing nodes)
+    - name: Create new machinesets for each zone (not existing nodes)
+      ansible.builtin.include_tasks:
+        file: ./create-machineset.yaml
+      loop: 
+        - 1
+        - 2
+        - 3
+      when: odf.existing_nodes == "no"
+
+    - name: Wait for machinesets to be available
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-odf-{{ cluster_location }}{{ item }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout != "0"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      loop:
+        - 1
+        - 2
+        - 3
 
     # - name: Label existing machinesets (existing nodes)
 
-    # - name: Create the storage cluster
+    - name: Check if storage cluster already exists
+      ansible.builtin.shell: |
+        set timeout 10
+        {{ directories.bin_dir }}/oc get storagecluster ocs-storagecluster -n {{ operator.namespace }}
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
 
-    # - name: Wait for the storage cluster to become available
+    - name: Create storage cluster definition
+      ansible.builtin.template:
+        src: "./templates/storagecluster.j2"
+        dest: "{{ directories.tmp_dir }}/storagecluster.yaml"
+      when: response.stdout == ""
+
+    - name: Apply the storage cluster
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/storagecluster.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+      when: response.stdout == ""
+
+    - name: Output the result of the storage cluster application
+      ansible.builtin.debug:
+        var: result
+      when: 
+        - response.stdout == ""
+        - log_level == "debug"
+
+    - name: Clean up the storage cluster definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/storagecluster.yaml"
+      when: response.stdout == ""
+
+    - name: Wait for the storage cluster to become available
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get StorageCluster ocs-storagecluster -n {{ operator.namespace }} --no-headers -o custom-columns='phase:status.phase'"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Ready"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
       

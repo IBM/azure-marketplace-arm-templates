@@ -36,7 +36,7 @@ spec:
         resources:
           requests:
             storage: "{{ odf.cluster_size }}"
-        storageClassName: {{ odf.storage_class }}
+        storageClassName: {{ storage_class }}
         volumeMode: Block
     name: ocs-deviceset
     placement: {}
