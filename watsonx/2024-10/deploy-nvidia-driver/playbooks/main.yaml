@@ -1,22 +1,22 @@
 ---
-- name: Install IBM watsonx.ai
+- name: Deploy NVIDIA Driver
   hosts: localhost
 
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
     log_level: "info"
-    operator:
-      name: nfd
-      namespace: openshift-nfd
-    instance:
-      name: nfd-instance
-      namespace: openshift-nfd
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
+    operator:
+      name: "gpu-operator-certified"
+      namespace: "nvidia-gpu-operator"
+    instance:
+      name: "gpu-cluster-policy"
     default:
       retries: 30
       retry_delay: 15
+      cluster_stable_min: "30s"
 
   tasks:
 
@@ -41,28 +41,141 @@
 
     - name: Login to OpenShift cluster if not already logged in
       ansible.builtin.include_tasks:
-        file: ./oc-login.yaml
+        file: oc-login.yaml
       when: response.stdout == ""
-
-    - name: Create template directory if not already in place
-      ansible.builtin.file:
-        path: ./templates
-        state: directory
-      
-    # Following is required as some implementations download templates and playbooks to a single directory
-    - name: Copy templates to template directory
-      ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: ./templates/
-      with_fileglob:
-        - ./*.j2
 
     - name: Wait for cluster to be available
       ansible.builtin.shell: |
         set timeout 900
-        {{ directories.bin_dir }}oc adm wait-for-stable-cluster
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_stable_min }}
         exit 0
       args:
         executable: /bin/bash
 
-    # - name: Nvidia driver tasks from here
+    - name: Check if operator namespace exists
+      ansible.builtin.shell: |
+        set timeout 60
+        {{ directories.bin_dir }}/oc get ns {{ operator.namespace }} 2> /dev/null
+        exit 0
+      register: query_returnedInfo
+
+    - name: Parse returned data to determine if operator namespace already exists
+      set_fact:
+        operator_ns_exists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
+
+    - name: Create operator namespace
+      ansible.builtin.shell: |
+        set timeout 300
+        {{ directories.bin_dir }}/oc create ns {{ operator.namespace }} || true
+      register: result
+      when: not operator_ns_exists
+
+    - name: Output result of operator namespace creation
+      ansible.builtin.debug:
+        var: result
+      when: 
+        - log_level == "debug"
+        - not operator_ns_exists
+
+    - name: Create the operator group definition
+      ansible.builtin.template:
+        src: "../templates/operatorgroup.j2"
+        dest: "{{ directories.tmp_dir }}/operatorgroup.yaml"
+
+    - name: Apply operator group definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/operatorgroup.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output result of operator group application
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up operator group definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/operatorgroup.yaml"
+
+    # Get the operator channel
+    - name: Get the operator channel from the package manifest
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get packagemanifest gpu-operator-certified -n openshift-marketplace -o jsonpath='{.status.defaultChannel}'"
+      register: response
+
+    - name: Set the operator channel fact
+      ansible.builtin.set_fact:
+        operator_channel: response.stdout
+
+    # Get the operator package
+    - name: Get the operator package from the package manifest
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get packagemanifests/gpu-operator-certified -n openshift-marketplace -ojson | jq -r '.status.channels[] | select(.name == \"{{ operator_channel }}\") | .currentCSV'"
+      register: response
+
+    - name: Set the operator package fact
+      ansible.builtin.set_fact:
+        operator_package: response.stdout
+
+    - name: Create the NVIDIA subscription definition
+      ansible.builtin.template:
+        src: "../templates/nvidia-subscription.j2"
+        dest: "{{ directories.tmp_dir }}/nvidia-subscription.yaml"
+
+    - name: Apply NVIDIA subscription
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/nvidia-subscription.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output result of NVIDIA subscription application
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Wait for the NVIDIA operator subscription to be available
+      ansible.builtin.shell: |
+        set timeout 60
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ operator.namespace }} {{ operator.name }} -o jsonpath='{.status.currentCSV}')
+        if [[ "$CSV" == "null" ]]; then
+          echo "PendingCSV"
+        else
+          echo $({{ directories.bin_dir }}/oc get csv -n {{ operator.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+        fi
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: 30
+      delay: 15
+
+    - name: Deploy NVIDIA driver instance
+      ansible.builtin.template:
+        src: "../templates/nvidia-driver-instance.j2"
+        dest: "{{ directories.tmp_dir }}/nvidia-driver-instance.yaml"
+
+    - name: Apply NVIDIA driver instance
+      ansible.builtin.shell: |
+        {{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/nvidia-driver-instance.yaml
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output result of NVIDIA driver instance application
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Wait for instance to be ready
+      ansible.builtin.shell: 
+        cmd: "{{ directories.bin_dir }}/oc get nvidiadriver {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Available\")].status}'"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "True"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"

@@ -4,8 +4,9 @@ metadata:
   name: {{ operator.name }}
   namespace: {{ operator.namespace }}
 spec:
+  channel: {{ operator_channel }}
   installPlanApproval: Automatic
   name: {{ operator.name }}
-  source: redhat-operators
+  source: certified-operators
   sourceNamespace: openshift-marketplace
-  channel: "stable"
+  startingCSV: {{ operator_package }}
