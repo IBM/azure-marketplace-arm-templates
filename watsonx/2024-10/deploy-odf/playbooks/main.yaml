@@ -374,12 +374,16 @@
       until: response.stdout != "0"
       retries: "{{ default.retries }}"
       delay: "{{ default.retry_delay }}"
+      when: odf.existing_nodes == "no"
       loop:
         - 1
         - 2
         - 3
 
-    # - name: Label existing machinesets (existing nodes)
+    - name: Label existing machinesets (existing nodes)
+      ansible.builtin.include_tasks:
+        file: ./label-nodes.yaml
+      when: odf.existing_nodes == "yes"
 
     - name: Check if storage cluster already exists
       ansible.builtin.shell: |
