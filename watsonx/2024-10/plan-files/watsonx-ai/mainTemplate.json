@@ -45,6 +45,13 @@
                 "description": "Flag to determine whether to install cpd cli on the deployment VM (debug only)"
             }
         },
+        "configureOpenShift": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flaf to determine whether to configure OpenShift for watsonx (debug only)"
+            }
+        },
         "deployODF": {
             "type": "bool",
             "defaultValue": true,
@@ -1191,7 +1198,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('installCpdCli')]", 
+            "condition": "[parameters('configureOpenShift')]", 
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'configureVM')]",
                 "[resourceId('Microsoft.RedHatOpenShift/OpenShiftClusters', parameters('clusterName'))]"
