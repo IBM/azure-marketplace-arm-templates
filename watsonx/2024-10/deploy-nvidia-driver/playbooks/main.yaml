@@ -185,7 +185,7 @@
 
     - name: Wait for instance to be ready
       ansible.builtin.shell: 
-        cmd: "{{ directories.bin_dir }}/oc get nvidiadriver {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Available\")].status}'"
+        cmd: "{{ directories.bin_dir }}/oc get clusterpolicy {{ instance.name }} -o jsonpath='{.status.conditions[?(.type==\"Ready\")].status}'"
       args:
         executable: /bin/bash
       register: response
