@@ -356,15 +356,21 @@
         },
         "instanaDomain": {
             "type": "string",
-            "defaultValue": "[concat(parameters('domainName'),'.',parameters('location'),'.cloudapp.azure.com')]",
+            "defaultValue": "[concat(parameters('domainName'),'.',parameters('dnsZoneName'))]",
             "metadata": {
-                "description": "FQDN for the public IP"
+                "description": "FQDN for the Instana public IP"
             }
         },
         "dnsZoneResourceGroup": {
             "type": "string",
             "metadata": {
                 "description": "The resource group for the DNS Zone"
+            }
+        },
+        "dnsZoneName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the DNS Zone to be updated with the Instana public IP domain"
             }
         },
         "tagsByResource": {
@@ -434,6 +440,9 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
             "name": "virtualNetwork",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
+            ],
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "properties": {
                 "mode": "Incremental",
@@ -538,6 +547,9 @@
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2022-07-01",
             "condition": "[equals(parameters('publicIpNewOrExisting'),'new')]",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
             "name": "[parameters('publicIPName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
@@ -578,13 +590,13 @@
                 },
                 "parameters": {
                     "zoneName": {
-                        "value": "" // TODO: Fill in parameter value
+                        "value": "[parameters('dnsZoneName')]" 
                     },
                     "domainName": {
                         "value": "[parameters('domainName')]"
                     },
                     "ipAddress": {
-                        "value": "" // TODO: Fill in parameter value
+                        "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')),'2022-07-01').ipAddress]" 
                     }
                 },
                 "template": {
@@ -614,14 +626,23 @@
                                     "ARecords": [
                                         {
                                             "ipv4Address": "[parameters('ipAddress')]"
-                                        },
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "type": "Microsoft.Network/dnsZones/A",
+                                "apiVersion": "2018-05-01",
+                                "name": "[format('{0}/{1}', parameters('zoneName'), concat('*.',parameters('domainName')))]",
+                                "properties": {
+                                    "TTL": 3600,
+                                    "ARecords": [
                                         {
                                             "ipv4Address": "[parameters('ipAddress')]"
                                         }
                                     ]
                                 }
                             }
-                            // Add wildcard
                     ]
                 }
             }   
