@@ -391,6 +391,14 @@
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
         "ddosProtectionPlan": {
             "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
+        },
+        "publicIpId": {
+            "new": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            },
+            "existing": {
+                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            }
         }
     },
     "resources": [
@@ -522,6 +530,31 @@
             }
         },
         {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-07-01",
+            "condition": "[equals(parameters('publicIpNewOrExisting'),'new')]",
+            "name": "[parameters('publicIPName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
+            "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+            },
+            "zones": [
+                "1",
+                "2",
+                "3"
+            ],
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "deleteOption": "Delete",
+                "publicIPAddressVersion": "IPv4",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('domainName')]"
+                }
+            }
+        },
+        {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
             "condition": "[parameters('deployInstana')]",
@@ -624,7 +657,7 @@
                         "value": true
                     },
                     "publicIpNewOrExisting": {
-                        "value": "[parameters('publicIpNewOrExisting')]"
+                        "value": "existing"
                     },
                     "publicIpResourceGroup": {
                         "value": "[parameters('publicIpResourceGroup')]"
