@@ -25,6 +25,13 @@
                 "description": "Excludes the deployment registration to the partner portal if set to false (debug only)"
             }
         },
+        "updateDNSZone": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to update the DNS zone with the Instana requirements (debug only)"
+            }
+        },
         "deployInstana": {
             "type": "bool",
             "defaultValue": true,
@@ -354,6 +361,12 @@
                 "description": "FQDN for the public IP"
             }
         },
+        "dnsZoneResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource group for the DNS Zone"
+            }
+        },
         "tagsByResource": {
             "type": "object",
             "defaultValue": {},
@@ -391,14 +404,6 @@
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
         "ddosProtectionPlan": {
             "id": "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
-        },
-        "publicIpId": {
-            "new": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
-            },
-            "existing": {
-                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
-            }
         }
     },
     "resources": [
@@ -551,8 +556,75 @@
                 "publicIPAddressVersion": "IPv4",
                 "dnsSettings": {
                     "domainNameLabel": "[parameters('domainName')]"
+                },
+                "ddosSettings": {
+                    "protectionMode": "[if(parameters('enableDdosProtection'),'VirtualNetworkInherited','Disabled')]"
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('updateDNSZone')]",    
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            ],
+            "name": "updateDNSZone",
+            "resourceGroup": "[parameters('dnsZoneResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "zoneName": {
+                        "value": "" // TODO: Fill in parameter value
+                    },
+                    "domainName": {
+                        "value": "[parameters('domainName')]"
+                    },
+                    "ipAddress": {
+                        "value": "" // TODO: Fill in parameter value
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "zoneName": {
+                            "type": "string"
+                        },
+                        "domainName": {
+                            "type": "string"
+                        },
+                        "ipAddress": {
+                            "type": "string"
+                        }
+                    },
+                    "variables": {
+
+                    },
+                    "resources": [
+                            {
+                                "type": "Microsoft.Network/dnsZones/A",
+                                "apiVersion": "2018-05-01",
+                                "name": "[format('{0}/{1}', parameters('zoneName'), parameters('domainName'))]",
+                                "properties": {
+                                    "TTL": 3600,
+                                    "ARecords": [
+                                        {
+                                            "ipv4Address": "[parameters('ipAddress')]"
+                                        },
+                                        {
+                                            "ipv4Address": "[parameters('ipAddress')]"
+                                        }
+                                    ]
+                                }
+                            }
+                            // Add wildcard
+                    ]
+                }
+            }   
         },
         {
             "type": "Microsoft.Resources/deployments",
