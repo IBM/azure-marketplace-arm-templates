@@ -86,7 +86,7 @@
                     "required": true,
                     "allowedValues": [
                         {
-                            "label": "Demonstration",
+                            "label": "Demo",
                             "value": "demo"
                         },
                         {
