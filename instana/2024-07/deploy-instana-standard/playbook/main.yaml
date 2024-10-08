@@ -131,8 +131,8 @@
         --unit-unit-name {{ instana.unit_name }} \
         --unit-initial-admin-password {{ instana.admin_password }} \
         --core-base-domain {{ instana.domain }} \
+        --core-tls-generate-cert \
         --quiet
-      exit 0
     args:
       executable: /bin/bash
     when: instana.accept_license
@@ -143,4 +143,19 @@
       msg: "{{ response.stdout }}"
     when: log_level == "debug"
 
+  # - name: Confirm instana successfully running
+  # Use exit code to confirm (response.stderr)
+
+  # "kubectl get unit -n instana-unit -o json | jq .items[].status" should show ready for DB migration and components
+  # "kubectl get core -n instana-core -o json | jq .items[].status" should also show ready for same
+
+  # Add port 443, 8443 to NSG
+
+  # Create DNS zone for wildcard,
+  # C_NAME: 
+  # *.instana27iyjixjrguqoo.eastus2.cloudapp.azure.com <public_ip>
+  # instana27iyjixjrguqoo.eastus2.cloudapp.azure.com <public_ip>
+
+
+  # Use "stanctl debug" to collect debug logs
 
