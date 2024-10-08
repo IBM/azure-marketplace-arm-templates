@@ -66,6 +66,13 @@
                 "description": "Flag to determine whether to deploy the Red Hat NFD tool (debug only)"
             }
         },
+        "deployRHOpenShiftAI": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy Red Hat OpenShift AI (debug only)"
+            }
+        },
         "deployNvidiaDriver": {
             "type": "bool",
             "defaultValue": true,
@@ -1377,9 +1384,63 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('deployNvidiaDriver')]",
+            "condition": "[parameters('deployRHOpenShiftAI')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployNFDTool')]"
+            ],
+            "name": "deployRedHatOpenShiftAI",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-rh-openshift-ai/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployNvidiaDriver')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployRedHatOpenShiftAI')]"
             ],
             "name": "deployNvidiaDriver",
             "properties": {
