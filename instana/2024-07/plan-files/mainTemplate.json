@@ -192,7 +192,7 @@
             "type": "array",
             "defaultValue": [
                 {
-                    "name": "SSH",
+                    "name": "AllowSSHInbound",
                     "properties": {
                         "priority": 300,
                         "protocol": "TCP",
@@ -202,6 +202,32 @@
                         "sourcePortRange": "*",
                         "destinationAddressPrefix": "*",
                         "destinationPortRange": "22"
+                    }
+                },
+                {
+                    "name": "AllowHTTPSInbound",
+                    "properties": {
+                        "priority": 301,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "443"
+                    }
+                },
+                {
+                    "name": "AllowPort8443Inbound",
+                    "properties": {
+                        "priority": 302,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "8443"
                     }
                 }
             ]
