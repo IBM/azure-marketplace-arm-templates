@@ -98,7 +98,7 @@
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
         "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/deploy-rh-node-discovery-tool/",
+        "gitRepoDeploymentDirectory": "/deploy-nvidia-driver/",
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
