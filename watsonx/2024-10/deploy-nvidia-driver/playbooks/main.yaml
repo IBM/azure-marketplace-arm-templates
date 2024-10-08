@@ -44,6 +44,19 @@
         file: oc-login.yaml
       when: response.stdout == ""
 
+    - name: Create template directory if not already in place
+      ansible.builtin.file:
+        path: ./templates
+        state: directory
+      
+    # Following is required as some implementations download templates and playbooks to a single directory
+    - name: Copy templates to template directory
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: ./templates/
+      with_fileglob:
+        - ./*.j2
+
     - name: Wait for cluster to be available
       ansible.builtin.shell: |
         set timeout 900
