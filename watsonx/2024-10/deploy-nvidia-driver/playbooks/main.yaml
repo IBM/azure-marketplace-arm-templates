@@ -120,7 +120,7 @@
 
     - name: Set the operator channel fact
       ansible.builtin.set_fact:
-        operator_channel: response.stdout
+        operator_channel: "{{ response.stdout }}"
 
     # Get the operator package
     - name: Get the operator package from the package manifest
@@ -130,7 +130,7 @@
 
     - name: Set the operator package fact
       ansible.builtin.set_fact:
-        operator_package: response.stdout
+        operator_package: "{{ response.stdout }}"
 
     - name: Create the NVIDIA subscription definition
       ansible.builtin.template:
