@@ -270,9 +270,9 @@
         },
         "storageSKU": {
             "type": "string",
-            "defaultValue": "Standard_LRS",
+            "defaultValue": "Premium_LRS",
             "metadata": {
-                "description": "OS Disk type for Dev VM"
+                "description": "OS Disk type for deployment VM"
             }
         },
         "osDiskSize": {
