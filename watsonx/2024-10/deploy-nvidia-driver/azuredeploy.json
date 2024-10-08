@@ -24,6 +24,13 @@
                 "description": "Name for the Azure virtual machine"
             }
         },
+        "extensionName": {
+            "type": "string",
+            "defaultValue": "deployNvidiaDriver",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
         "openShiftApiUrl": {
             "type": "string",
             "metadata": {
@@ -108,7 +115,7 @@
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
-            "name": "[concat(parameters('vmName'),'/','deployNFDTool')]",
+            "name": "[concat(parameters('vmName'),'/',parameters('extensionName'))]",
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
                 "type": "CustomScript",
