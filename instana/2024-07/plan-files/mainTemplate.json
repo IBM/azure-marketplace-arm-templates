@@ -315,13 +315,6 @@
                 "description": "Size of the objects directory (GB)"
             }
         },
-        "createPublicIP": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description": "Flag to indicate whether a public ip address should be used."
-            }
-        },
         "publicIpNewOrExisting": {
             "type": "string",
             "defaultValue": "new",
@@ -628,7 +621,7 @@
                         "value": "[parameters('objectsDiskSize')]"
                     },
                     "createPublicIP": {
-                        "value": "[parameters('createPublicIP')]"
+                        "value": true
                     },
                     "publicIpNewOrExisting": {
                         "value": "[parameters('publicIpNewOrExisting')]"
