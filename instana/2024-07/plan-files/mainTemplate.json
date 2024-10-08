@@ -258,7 +258,7 @@
         },
         "vmOSVersion": {
             "type": "string",
-            "defaultValue": "RHEL 8.7",
+            "defaultValue": "RHEL 9.2",
             "allowedValues": [
                 "RHEL 8.6",
                 "RHEL 8.7",
