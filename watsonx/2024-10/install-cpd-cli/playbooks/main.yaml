@@ -22,6 +22,7 @@
     ansible.builtin.package:
       name:
         - podman
+        - jq
       state: latest
 
   - name: Check if cpd cli already installed
