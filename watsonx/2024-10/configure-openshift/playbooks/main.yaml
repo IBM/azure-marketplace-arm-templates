@@ -264,17 +264,21 @@
         state: absent
         path: "{{ directories.tmp_dir }}/kubelet-machineconfig.yaml"
 
+    - name: Sleep to let update start
+      ansible.builtin.pause:
+        minutes: 1
+
     - name: Wait for nodes to be ready
       ansible.builtin.shell: |
         set timeout 5
-        "{{ directories.bin_dir }}/oc get nodes | grep -E \"SchedulingDisabled|NotReady\""
+        {{ directories.bin_dir }}/oc get nodes | grep -E "SchedulingDisabled|NotReady"
         exit 0
       args:
         executable: /bin/bash
       register: response
       until: response.stdout == ""
       retries: 100
-      delay: 60
+      delay: 30
 
     # Increase PID limit
 
@@ -304,14 +308,18 @@
         state: absent
         path: "{{ directories.tmp_dir }}/containerruntimeconfig.yaml"
 
+    - name: Sleep to let update start
+      ansible.builtin.pause:
+        minutes: 1
+
     - name: Wait for nodes to be ready
       ansible.builtin.shell: |
         set timeout 5
-        "{{ directories.bin_dir }}/oc get nodes | grep -E \"SchedulingDisabled|NotReady\""
+        {{ directories.bin_dir }}/oc get nodes | grep -E "SchedulingDisabled|NotReady"
         exit 0 
       args:
         executable: /bin/bash
       register: response
       until: response.stdout == ""
       retries: 100
-      delay: 60
+      delay: 30
