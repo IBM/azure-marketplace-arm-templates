@@ -50,9 +50,24 @@
         - parted
       state: latest  
 
+  - name: Get the mount details
+    ansible.builtin.set_fact:
+      root_size: "{{ (ansible_facts.mounts | selectattr(\"mount\", \"equalto\", \"/\") | list)[0].size_total }}"
+
+  - name: Set okay if larger than required
+    set_fact:
+      disk_size_okay: true
+    when: (root_size | int / 1024 / 1024 / 1024) >= osdisk.home.size
+
+  - name: Set not okay if smaller than required
+    set_fact:
+      disk_size_okay: true
+    when: (root_size | int / 1024 / 1024 / 1024) < osdisk.home.size
+
   - name: Prepare OS disk
     ansible.builtin.include_tasks:
       file: ./extend-os-disk.yaml
+    when: not disk_size_okay
 
   - name: Prepare additional disks
     ansible.builtin.include_tasks:
