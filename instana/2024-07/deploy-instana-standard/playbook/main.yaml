@@ -61,7 +61,7 @@
 
   - name: Set not okay if smaller than required
     set_fact:
-      disk_size_okay: true
+      disk_size_okay: false
     when: (root_size | int / 1024 / 1024 / 1024) < osdisk.home.size
 
   - name: Prepare OS disk
