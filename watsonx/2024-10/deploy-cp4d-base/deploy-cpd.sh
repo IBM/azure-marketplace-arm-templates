@@ -35,6 +35,11 @@ else
     if [[ ! $(${BIN_DIR}/oc status 2> /dev/null) ]]; then
         echo "**** Trying to log into the OpenShift cluster from command line"
         ${BIN_DIR}/oc login "${API_SERVER}" -u $OCP_USERNAME -p $OCP_PASSWORD --insecure-skip-tls-verify=true
+
+        if [[ $? != 0 ]]; then
+            echo "ERROR: Unable to log into OpenShift cluster"
+            exit 1
+        fi
     else
         echo
         echo "**** Already logged into the OpenShift cluster"
