@@ -121,7 +121,12 @@
       msg: "{{ response.stdout }}"
     when: log_level == "debug"
 
-  - name: Install Instana
+  - name: Message if license not accepted
+    ansible.builtin.debug:
+      msg: "License not accepted. Instana not started. Please start manually"
+    when: not instana.accept_license
+
+  - name: Start Instana
     ansible.builtin.shell: |
       set timeout 3000
       stanctl up --install-type {{ instana.install_type }} \
@@ -133,13 +138,63 @@
         --core-base-domain {{ instana.domain }} \
         --core-tls-generate-cert \
         --quiet
+      exit 0
     args:
       executable: /bin/bash
+      chdir: "{{ ansible_facts.user_dir }}"
+    become: yes
+    become_user: "{{ ansible_facts.user_id }}"
     when: instana.accept_license
     register: response
 
   - name: Output install result
     ansible.builtin.debug:
       msg: "{{ response.stdout }}"
-    when: log_level == "debug"
+    when: 
+     - log_level == "debug"
+     - instana.accept_license
+
+  - name: Determine if successful
+    ansible.builtin.set_fact:
+      successful: true
+    when: 
+     - reponse.stderr == ""
+     - instana.accept_license
+
+  - name: Second attempt to start Instana
+    ansible.builtin.shell: |
+      set timeout 3000
+      stanctl up --install-type {{ instana.install_type }} \
+        --download-key {{ instana.download_key }} \
+        --sales-key {{ instana.sales_key }} \
+        --unit-tenant-name {{ instana.tenant_name }} \
+        --unit-unit-name {{ instana.unit_name }} \
+        --unit-initial-admin-password {{ instana.admin_password }} \
+        --core-base-domain {{ instana.domain }} \
+        --core-tls-generate-cert \
+        --quiet
+      exit 0
+    args:
+      executable: /bin/bash
+      chdir: "{{ ansible_facts.user_dir }}"
+    become: yes
+    become_user: "{{ ansible_facts.user_id }}"
+    when: 
+     - instana.accept_license
+     - not successful
+    register: response
+
+  - name: Fail if unsuccessful second time
+    ansible.builtin.fail:
+      msg: "Unable to start Instana after two attempts"
+    when:
+     - instana.accept_license
+     - response.stderr != ""      
+
+  - name: Output install result
+    ansible.builtin.debug:
+      msg: "{{ response.stdout }}"
+    when: 
+      - log_level == "debug"
+      - instana.accept_license
 
