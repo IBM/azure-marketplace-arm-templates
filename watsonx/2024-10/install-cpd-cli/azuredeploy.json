@@ -31,7 +31,7 @@
                 "description": "Name of the VM Extension"
             }
         },
-        "cpdVersion": {
+        "cpdCliVersion": {
             "type": "string",
             "defaultValue": "14.0.3",
             "metadata": {
@@ -90,7 +90,7 @@
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
             "cpd": {
-                "version": "[parameters('cpdVersion')]",
+                "version": "[parameters('cpdCliVersion')]",
                 "edition": "[parameters('cpdEdition')]"
             }
         }
