@@ -87,6 +87,13 @@
                 "description": "Flag to determine whether to deploy the Nvidia Driver (debug only)"
             }
         },
+        "deployWatsonxBase": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the base watsonx.ai operator and operands (debug only)"
+            }
+        },
         "apiVisibility": {
             "type": "string",
             "allowedValues": [
@@ -1654,7 +1661,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('deployCpdBase')]",
+            "condition": "[parameters('deployWatsonxBase')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployCpdBase')]"
             ],
