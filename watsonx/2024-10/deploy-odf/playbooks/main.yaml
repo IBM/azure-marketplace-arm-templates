@@ -365,13 +365,17 @@
         - 3
       when: odf.existing_nodes == "no"
 
+    - name: Pause to allow machinesets to be created
+      ansible.builtin.pause:
+        minutes: 1
+
     - name: Wait for machinesets to be available
       ansible.builtin.shell:
         cmd: "{{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-odf-{{ cluster_location }}{{ item }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'"
       args:
         executable: /bin/bash
       register: response
-      until: response.stdout != "0"
+      until: response.stdout == "1"
       retries: "{{ default.retries }}"
       delay: "{{ default.retry_delay }}"
       when: odf.existing_nodes == "no"
