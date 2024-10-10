@@ -1,0 +1,236 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "extensionName": {
+            "type": "string",
+            "defaultValue": "installBaseCpd",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Password",
+                "Token"
+            ],
+            "metadata": {
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
+        "cpdVersion": {
+            "type": "string",
+            "defaultValue": "5.0.2",
+            "metadata": {
+                "description": "IBM Cloud Pak for Data version to be installed"
+            }
+        },
+        "cpdOperatorNamespace": {
+            "type": "string",
+            "defaultValue": "cpd-operator",
+            "metadata": {
+                "description": "IBM Cloud Pak for Data operator namespace"
+            }
+        },
+        "cpdOperandsNamespace": {
+            "type": "string",
+            "defaultValue": "cpd-instance",
+            "metadata": {
+                "description": "Namespace for IBM Cloud Pak for Data operands"
+            }
+        },
+        "certManagerNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cert-manager",
+            "metadata": {
+                "description": "Namespace for the cert manager operator"
+            } 
+        },
+        "schedulingServiceNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cpd-scheduler",
+            "metadata": {
+                "description": "Namespace for the scheduling service operator"
+            } 
+        },
+        "licensingServiceNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-licensing",
+            "metadata": {
+                "description": "Namespace for the licensing service operator"
+            }
+        },
+        "tuningEnabled": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "Specify whether prompt tuning is available"
+            }
+        },
+        "liteVersion": {
+            "type": "string",
+            "defaultValue": "true",
+            "allowValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "Specify whether to deploy the light weight watsonx.ai version"
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "IBM Entitlement API Key for icr.io"
+            }
+        },
+        "blockStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-ceph-rbd",
+            "metadata": {
+                "description": "Name of the block type storage class in OpenShift to use"
+            }
+        },
+        "fileStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-cephfs",
+            "metadata": {
+                "description": "Name of the file type storage class in OpenShift to use"
+            }
+        },
+        "binDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Location of CLI binaries"
+            }
+        },
+        "cpdWorkspace": {
+            "type": "string",
+            "defaultValue": "/root/cpd-cli-workspace",
+            "metadata": {
+                "description": "Location of the CPD CLI workspace"
+            }
+        },
+        "gitRepositoryUrl": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
+            "metadata": {
+                "description": "URL for the GitHub repository containing the files to download"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for installation script"
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-10",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
+        "gitRepoBaseDirectory": "/watsonx/",
+        "gitRepoDeploymentDirectory": "/deploy-watsonx-ai/",
+        "scriptParameters": {
+            "cluster": {
+                "api_server": "[parameters('openShiftApiUrl')]",
+                "username": "[parameters('openShiftUsername')]",
+                "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]",
+                "storageclass": {
+                    "block": "[parameters('blockStorageClass')]",
+                    "file": "[parameters('fileStorageClass')]"
+                }
+            },
+            "cpd": {
+                "version": "[parameters('cpdVersion')]",
+                "namespace": {
+                    "cpd_operator": "[parameters('cpdOperatorNamespace')]",
+                    "cpd_operands": "[parameters('cpdOperandsNamespace')]"
+                },
+                "tuning": "[parameters('tuningEnabled')]",
+                "lite_version": "[parameters('liteVersion')]"
+            },
+            "directories": {
+                "bin_dir": "[parameters('binDirectory')]",
+                "cpd_dir": "[parameters('cpdWorkspace')]"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2023-03-01",
+            "location": "[parameters('location')]",
+            "name": "[concat(parameters('vmName'),'/',parameters('extensionName'))]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "fileUris": [
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'deploy-watsonx-ai.sh'))]"
+                    ],
+                    "commandToExecute": "[concat('/bin/bash ./deploy-watsonx-ai.sh \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),,'\"')]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
