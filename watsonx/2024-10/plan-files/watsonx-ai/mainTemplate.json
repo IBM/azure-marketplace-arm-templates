@@ -373,6 +373,35 @@
                 "description": "Namespace for the licensing service operator"
             }
         },
+        "tuningEnabled": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "Specify whether prompt tuning is available"
+            }
+        },
+        "liteVersion": {
+            "type": "string",
+            "defaultValue": "true",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "Specify whether to deploy the light weight watsonx.ai version"
+            }
+        },
+        "cpdWorkspace": {
+            "type": "string",
+            "defaultValue": "/root/cpd-cli-workspace",
+            "metadata": {
+                "description": "Location of the CPD CLI workspace"
+            }
+        },
         "odfClusterSize": {
             "type": "string",
             "defaultValue": "1Ti",
@@ -1552,7 +1581,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-nvidia-driver/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-cp4d-base/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -1609,6 +1638,84 @@
                     },
                     "binDirectory": {
                         "value": "/usr/local/bin"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployCpdBase')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployCpdBase')]"
+            ],
+            "name": "deployWatsonxAiBase",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-watsonx-ai/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "cpdVersion": {
+                        "value": "[parameters('cpdVersion')]"
+                    },
+                    "cpdOperatorNamespace": {
+                        "value": "[parameters('cpdOperatorNamespace')]"
+                    },
+                    "cpdOperandsNamespace": {
+                        "value": "[parameters('cpdOperandsNamespace')]"
+                    },
+                    "tuningEnabled": {
+                        "value": "[parameters('tuningEnabled')]"  
+                    },
+                    "liteVersion": {
+                        "value": "[parameters('liteVersion')]"  
+                    },
+                    "blockStorageClass": {
+                        "value": "[parameters('blockStorageClass')]"
+                    },
+                    "fileStorageClass": {
+                        "value": "[parameters('fileStorageClass')]"
+                    },
+                    "binDirectory": {
+                        "value": "/usr/local/bin"
+                    },
+                    "cpdWorkspace": {
+                        "value": "[parameters('cpdWorkspace')]" 
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"
