@@ -69,7 +69,7 @@ fi
 # Create watsonx.ai catalog source and operator subscription
 echo
 echo "**** Creating cert manager and licensing services"
-${BIN_DIR}/cpd-cli apply-olm --release=${VERSION} --components=watsonx_ai --cpd_operator_ns=${OPERATOR_NAMESPACE}
+${BIN_DIR}/cpd-cli manage apply-olm --release=${VERSION} --components=watsonx_ai --cpd_operator_ns=${OPERATOR_NAMESPACE}
 
 if [[ $? != 0 ]]; then
     echo "ERROR: Failed to apply watsonx.ai catalog or subscription"

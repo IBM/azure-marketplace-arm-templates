@@ -82,31 +82,10 @@
                 "description": "Namespace for IBM Cloud Pak for Data operands"
             }
         },
-        "certManagerNamespace": {
-            "type": "string",
-            "defaultValue": "ibm-cert-manager",
-            "metadata": {
-                "description": "Namespace for the cert manager operator"
-            } 
-        },
-        "schedulingServiceNamespace": {
-            "type": "string",
-            "defaultValue": "ibm-cpd-scheduler",
-            "metadata": {
-                "description": "Namespace for the scheduling service operator"
-            } 
-        },
-        "licensingServiceNamespace": {
-            "type": "string",
-            "defaultValue": "ibm-licensing",
-            "metadata": {
-                "description": "Namespace for the licensing service operator"
-            }
-        },
         "tuningEnabled": {
             "type": "string",
             "defaultValue": "false",
-            "allowValues": [
+            "allowedValues": [
                 "true",
                 "false"
             ],
@@ -117,18 +96,12 @@
         "liteVersion": {
             "type": "string",
             "defaultValue": "true",
-            "allowValues": [
+            "allowedValues": [
                 "true",
                 "false"
             ],
             "metadata": {
                 "description": "Specify whether to deploy the light weight watsonx.ai version"
-            }
-        },
-        "ibmEntitlementKey": {
-            "type": "securestring",
-            "metadata": {
-                "description": "IBM Entitlement API Key for icr.io"
             }
         },
         "blockStorageClass": {
@@ -226,7 +199,7 @@
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'deploy-watsonx-ai.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./deploy-watsonx-ai.sh \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),,'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./deploy-watsonx-ai.sh \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }
