@@ -22,9 +22,8 @@ OCP_USERNAME="$(echo $PARAMETERS | jq -r .cluster.username)"
 OCP_PASSWORD="$(echo $PARAMETERS | jq -r .cluster.password)"
 export STG_CLASS_FILE="$(echo $PARAMETERS | jq -r .cluster.storageclass.file)"
 export STG_CLASS_BLOCK="$(echo $PARAMETERS | jq -r .cluster.storageclass.block)"
-export VERSION="$(echo $PARAMETERS | jq -r .cpdcli.version)"
-export IBM_ENTITLEMENT_KEY="$(echo $PARAMETERS | jq -r .cpdcli.ibm_entitlement_key)"
-export COMPONENTS="$(echo $PARAMETERS | jq -r .cpdcli.conponents)"
+export VERSION="$(echo $PARAMETERS | jq -r .cpd.version)"
+export IBM_ENTITLEMENT_KEY="$(echo $PARAMETERS | jq -r .cpd.ibm_entitlement_key)"
 
 ###
 # Confirm oc cli and log into the OpenShift cluster

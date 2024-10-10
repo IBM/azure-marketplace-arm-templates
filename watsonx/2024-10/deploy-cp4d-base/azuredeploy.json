@@ -26,7 +26,7 @@
         },
         "extensionName": {
             "type": "string",
-            "defaultValue": "configureOpenShift",
+            "defaultValue": "installBaseCpd",
             "metadata": {
                 "description": "Name of the VM Extension"
             }
@@ -61,15 +61,73 @@
                 "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
             }
         },
-        "logLevel": {
+        "cpdVersion": {
             "type": "string",
-            "defaultValue": "info",
-            "allowedValues": [
-                "info",
-                "debug"
-            ],
+            "defaultValue": "5.0.2",
             "metadata": {
-                "description": "Log level for Ansible playbook"
+                "description": "IBM Cloud Pak for Data version to be installed"
+            }
+        },
+        "cpdOperatorNamespace": {
+            "type": "string",
+            "defaultValue": "cpd-operator",
+            "metadata": {
+                "description": "IBM Cloud Pak for Data operator namespace"
+            }
+        },
+        "cpdOperandsNamespace": {
+            "type": "string",
+            "defaultValue": "cpd-instance",
+            "metadata": {
+                "description": "Namespace for IBM Cloud Pak for Data operands"
+            }
+        },
+        "certManagerNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cert-manager",
+            "metadata": {
+                "description": "Namespace for the cert manager operator"
+            } 
+        },
+        "schedulingServiceNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cpd-scheduler",
+            "metadata": {
+                "description": "Namespace for the scheduling service operator"
+            } 
+        },
+        "licensingServiceNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-licensing",
+            "metadata": {
+                "description": "Namespace for the licensing service operator"
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "IBM Entitlement API Key for icr.io"
+            }
+        },
+        "blockStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-ceph-rbd",
+            "metadata": {
+                "description": "Name of the block type storage class in OpenShift to use"
+            }
+        },
+        "fileStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-cephfs",
+            "metadata": {
+                "description": "Name of the file type storage class in OpenShift to use"
+            }
+        },
+        "binDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Location of CLI binaries"
             }
         },
         "gitRepositoryUrl": {
@@ -97,15 +155,31 @@
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
         "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/configure-openshift/",
+        "gitRepoDeploymentDirectory": "/deploy-cp4d-base/",
         "scriptParameters": {
-            "ansible_python_interpreter": "/usr/bin/python3",
-            "log_level": "[parameters('logLevel')]",
             "cluster": {
                 "api_server": "[parameters('openShiftApiUrl')]",
                 "username": "[parameters('openShiftUsername')]",
                 "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
-                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]",
+                "storageclass": {
+                    "block": "[parameters('blockStorageClass')]",
+                    "file": "[parameters('fileStorageClass')]"
+                }
+            },
+            "cpd": {
+                "version": "[parameters('cpdVersion')]",
+                "namespace": {
+                    "cpd_operator": "[parameters('cpdOperatorNamespace')]",
+                    "cpd_operands": "[parameters('cpdOperandsNamespace')]",
+                    "cert_manager": "[parameters('certManagerNamespace')]",
+                    "scheduling_service": "[parameters('schedulingServiceNamespace')]",
+                    "license_service": "[parameters('licensingServiceNamespace')]"
+                },
+                "ibm_entitlement_key": "[parameters('ibmEntitlementKey')]"
+            },
+            "directories": {
+                "bin_dir": "[parameters('binDirectory')]"
             }
         }
     },
@@ -122,15 +196,9 @@
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
                     "fileUris": [
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/containerruntimeconfig.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/kubeletconfig.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/machineconfig.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/install-oc.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/oc-login.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'deploy-cpd.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./deploy-cpd.sh \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),,'\"')]"
                 }
             }
         }
