@@ -16,87 +16,42 @@
 
 - name: Get details of each worker node
   ansible.builtin.set_fact:
-    node_details: "{{ node_details | default([]) + [ { 'name': item, 'cpu': cpu, 'mem': mem, 'zone': zone, 'labelled': labelled } ] }}"
+    node_details: "{{ node_details | default([]) + [ { 'name': item, 'cpu': cpu, 'zone': zone, 'labelled': labelled } ] }}"
   loop: "{{ worker_nodes.stdout_lines }}"
   vars:
     cpu: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o json | jq -r \\'.status.capacity.cpu\\'') }}"
-    mem: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o json | jq -r \\'.status.capacity.memory\\'') }}"
-    zone: "{{ lookup('pipe', directories.bin_dir ~ '/oc get machine -n openshift-machine-api | grep ' ~ item ~ ' | awk \\'{print $5}\\'') }}"
-    labelled: "{% if lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o json | jq \\'.metadata.labels | has(\"cluster.ocs.openshift.io\")\\')') == 'true' %}true{% else %}false{% endif %}"
+    zone: "{{ lookup('pipe', directories.bin_dir ~ '/oc get machine -n openshift-machine-api | grep ' ~ item ~ ' | awk \\'{print $5}\\') }}"
+    labelled: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o json | jq \\'.metadata.labels | has(\"cluster.ocs.openshift.io\")\\')' == 'true' }}"
 
 - name: Check number of nodes with sufficient size (16 CPU or higher)
   ansible.builtin.fail:
     msg: "ERROR: Insufficient nodes of sufficient size available for storage cluster. Minimum of 3 nodes with 16 CPU or more required."
   when: node_details | selectattr('cpu', '>=', 16) | list | length < 3
 
-- name: Label existing nodes for availability zone 1
+- name: Label existing nodes for availability zones
+  vars:
+    zones:
+      - zone: "1"
+      - zone: "2"
+      - zone: "3"
+  loop: "{{ zones }}"
+  loop_control:
+    loop_var: zone_info
   block:
-    - name: Get existing labelled nodes in zone 1
+    - name: Get existing labelled nodes in zone {{ zone_info.zone }}
       set_fact:
-        zone1_labelled_nodes: "{{ node_details | selectattr('zone', 'equalto', '1') | selectattr('labelled', 'equalto', 'true') | map(attribute='name') | list }}"
+        labelled_nodes: "{{ node_details | selectattr('zone', 'equalto', zone_info.zone) | selectattr('labelled', 'equalto', true) | map(attribute='name') | list }}"
 
-    - name: Use existing labelled node or label a new one in zone 1
+    - name: Label a new node for ODF in zone {{ zone_info.zone }}
+      when: labelled_nodes | length == 0
       block:
-        - name: Use existing labelled node in zone 1
-          debug:
-            msg: "INFO: Using existing labelled node {{ item }}"
-          loop: "{{ zone1_labelled_nodes }}"
-        
-        - name: Get unlabelled node from zone 1
-          set_fact:
-            odf_nodes_zone1: "{{ node_details | selectattr('zone', 'equalto', '1') | selectattr('labelled', 'equalto', 'false') | map(attribute='name') | list }}"
+        - name: Get unlabelled node from zone {{ zone_info.zone }}
+          ansible.builtin.set_fact:
+            odf_nodes: "{{ node_details | selectattr('zone', 'equalto', zone_info.zone) | selectattr('labelled', 'equalto', false) | map(attribute='name') | list }}"
 
-        - name: Label a new node for ODF in zone 1
-          debug:
-            msg: "INFO: Labelling {{ odf_nodes_zone1[0] }} as ODF node for availability zone 1"
-          when: odf_nodes_zone1 | length > 0
-          command: "{{ directories.bin_dir }}/oc label node {{ odf_nodes_zone1[0] }} cluster.ocs.openshift.io/openshift-storage=''"
-      when: zone1_labelled_nodes | length == 0
-
-- name: Label existing nodes for availability zone 2
-  block:
-    - name: Get existing labelled nodes in zone 2
-      set_fact:
-        zone2_labelled_nodes: "{{ node_details | selectattr('zone', 'equalto', '2') | selectattr('labelled', 'equalto', 'true') | map(attribute='name') | list }}"
-
-    - name: Use existing labelled node or label a new one in zone 2
-      block:
-        - name: Use existing labelled node in zone 2
-          debug:
-            msg: "INFO: Using existing labelled node {{ item }}"
-          loop: "{{ zone2_labelled_nodes }}"
-        
-        - name: Get unlabelled node from zone 2
-          set_fact:
-            odf_nodes_zone2: "{{ node_details | selectattr('zone', 'equalto', '2') | selectattr('labelled', 'equalto', 'false') | map(attribute='name') | list }}"
-
-        - name: Label a new node for ODF in zone 2
-          debug:
-            msg: "INFO: Labelling {{ odf_nodes_zone2[0] }} as ODF node for availability zone 2"
-          when: odf_nodes_zone2 | length > 0
-          command: "{{ directories.bin_dir }}/oc label node {{ odf_nodes_zone2[0] }} cluster.ocs.openshift.io/openshift-storage=''"
-      when: zone2_labelled_nodes | length == 0
-
-- name: Label existing nodes for availability zone 3
-  block:
-    - name: Get existing labelled nodes in zone 3
-      set_fact:
-        zone3_labelled_nodes: "{{ node_details | selectattr('zone', 'equalto', '3') | selectattr('labelled', 'equalto', 'true') | map(attribute='name') | list }}"
-
-    - name: Use existing labelled node or label a new one in zone 3
-      block:
-        - name: Use existing labelled node in zone 3
-          debug:
-            msg: "INFO: Using existing labelled node {{ item }}"
-          loop: "{{ zone3_labelled_nodes }}"
-        
-        - name: Get unlabelled node from zone 3
-          set_fact:
-            odf_nodes_zone3: "{{ node_details | selectattr('zone', 'equalto', '3') | selectattr('labelled', 'equalto', 'false') | map(attribute='name') | list }}"
-
-        - name: Label a new node for ODF in zone 3
-          debug:
-            msg: "INFO: Labelling {{ odf_nodes_zone3[0] }} as ODF node for availability zone 3"
-          when: odf_nodes_zone3 | length > 0
-          command: "{{ directories.bin_dir }}/oc label node {{ odf_nodes_zone3[0] }} cluster.ocs.openshift.io/openshift-storage=''"
-      when: zone3_labelled_nodes | length == 0
+        - name: Label a new node and log the action
+          when: odf_nodes | length > 0
+          block:
+            - ansible.builtin.command: "{{ directories.bin_dir }}/oc label node {{ odf_nodes[0] }} cluster.ocs.openshift.io/openshift-storage=''"
+            - ansible.builtin.debug:
+                msg: "INFO: Labelling {{ odf_nodes[0] }} as ODF node for availability zone {{ zone_info.zone }}"
