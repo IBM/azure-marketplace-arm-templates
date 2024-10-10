@@ -12,7 +12,7 @@
     default:
       retries: 30
       retry_delay: 15
-      cluster_ready: 10m
+      cluster_ready: 5m
 
   tasks:
 
