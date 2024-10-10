@@ -116,5 +116,5 @@ fi
 # Enable CSV injector
 echo
 echo "**** Enabling the CSV injector"
-${BIN_DIR}/oc patch namespacescope common-service --type='json' -p='[{\"op\":\"replace\", \"path\": \"/spec/csvInjector/enable\", \"value\":true}]' -n ${OPERATOR_NAMESPACE}
+${BIN_DIR}/oc patch namespacescope common-service --type='json' -p='[{"op":"replace", "path": "/spec/csvInjector/enable", "value":true}]' -n ${OPERATOR_NAMESPACE}
 
