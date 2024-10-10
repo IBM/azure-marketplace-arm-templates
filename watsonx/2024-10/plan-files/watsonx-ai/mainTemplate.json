@@ -80,6 +80,13 @@
                 "description": "Flag to determine whether to deploy the Nvidia Driver (debug only)"
             }
         },
+        "deployCpdBase": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the Nvidia Driver (debug only)"
+            }
+        },
         "apiVisibility": {
             "type": "string",
             "allowedValues": [
@@ -308,6 +315,13 @@
         },
         "cpdVersion": {
             "type": "string",
+            "defaultValue": "5.0.3",
+            "metadata": {
+                "description": "IBM Cloud Pak for Data version to be installed"
+            }
+        },
+        "cpdCliVersion": {
+            "type": "string",
             "defaultValue": "14.0.3",
             "metadata": {
                 "description": "Version of CPD CLI to install. Refer to https://github.com/IBM/cpd-cli"
@@ -324,6 +338,41 @@
                 "description": "CPD Edition, Enterprise (EE) or Standard (SE)"
             }
         },
+        "cpdOperatorNamespace": {
+            "type": "string",
+            "defaultValue": "cpd-operator",
+            "metadata": {
+                "description": "IBM Cloud Pak for Data operator namespace"
+            }
+        },
+        "cpdOperandsNamespace": {
+            "type": "string",
+            "defaultValue": "cpd-instance",
+            "metadata": {
+                "description": "Namespace for IBM Cloud Pak for Data operands"
+            }
+        },
+        "certManagerNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cert-manager",
+            "metadata": {
+                "description": "Namespace for the cert manager operator"
+            } 
+        },
+        "schedulingServiceNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cpd-scheduler",
+            "metadata": {
+                "description": "Namespace for the scheduling service operator"
+            } 
+        },
+        "licensingServiceNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-licensing",
+            "metadata": {
+                "description": "Namespace for the licensing service operator"
+            }
+        },
         "odfClusterSize": {
             "type": "string",
             "defaultValue": "1Ti",
@@ -338,15 +387,18 @@
                 "description": "Flag to determine whether to use existing worker nodes or create new dedicated ones for ODF"
             }
         },
-        "operatorScope": {
+        "blockStorageClass": {
             "type": "string",
-            "defaultValue": "namespace",
-            "allowedValues": [
-                "cluster",
-                "namespace"
-            ],
+            "defaultValue": "ocs-storagecluster-ceph-rbd",
             "metadata": {
-                "description": "Scope of the operator installation"
+                "description": "Name of the block type storage class in OpenShift to use"
+            }
+        },
+        "fileStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-cephfs",
+            "metadata": {
+                "description": "Name of the file type storage class in OpenShift to use"
             }
         },
         "vmName": {
@@ -1188,8 +1240,8 @@
                     "extensionName": {
                         "value": "[parameters('vmExtensionName')]"
                     },
-                    "cpdVersion": {
-                        "value": "[parameters('cpdVersion')]" 
+                    "cpdCliVersion": {
+                        "value": "[parameters('cpdCliVersion')]" 
                     },
                     "cpdEdition": {
                         "value": "[parameters('cpdEdition')]"  
@@ -1476,6 +1528,87 @@
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployCpdBase')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployNvidiaDriver')]"
+            ],
+            "name": "deployCpdBase",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-nvidia-driver/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "cpdVersion": {
+                        "value": "[parameters('cpdVersion')]"
+                    },
+                    "cpdOperatorNamespace": {
+                        "value": "[parameters('cpdOperatorNamespace')]"
+                    },
+                    "cpdOperandsNamespace": {
+                        "value": "[parameters('cpdOperandsNamespace')]"
+                    },
+                    "certManagerNamespace": {
+                        "value": "[parameters('certManagerNamespace')]"
+                    },
+                    "schedulingServiceNamespace": {
+                        "value": "[parameters('schedulingServiceNamespace')]"
+                    },
+                    "licensingServiceNamespace": {
+                        "value": "[parameters('licensingServiceNamespace')]"
+                    },
+                    "ibmEntitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "blockStorageClass": {
+                        "value": "[parameters('blockStorageClass')]"
+                    },
+                    "fileStorageClass": {
+                        "value": "[parameters('fileStorageClass')]"
+                    },
+                    "binDirectory": {
+                        "value": "/usr/local/bin"
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"
