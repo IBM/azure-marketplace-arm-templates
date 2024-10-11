@@ -105,7 +105,17 @@
 
       - name: Install the Azure CLI package
         ansible.builtin.shell:
-          cmd: "dns install -y azure-cli"
+          cmd: "dnf install -y azure-cli"
+
+  - name: Login into Azure CLI
+    ansible.builtin.shell:
+      cmd: "{{ /usr/local/bin/az login --identity }}"
+    register: result
+
+  - name: Output login result
+    ansible.builtin.debug:
+      var: result
+    when: log_level == "debug"
 
   # - name: Verify the installation
   #   ansible.builtin.shell: |
