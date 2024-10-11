@@ -2,6 +2,7 @@
 - name: Install CPD CLI tool
   hosts: localhost
   gather_facts: false
+  become: yes
 
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
@@ -90,6 +91,21 @@
       group: root
       mode: '0755'
     when: not cpdcli.stat.exists
+
+  - name: Install Azure CLI
+    block:
+      
+      - name: Import the Microsoft repository key
+        ansible.builtin.shell:
+          cmd: "rpm --import https://packages.microsoft.com/keys/microsoft.asc"
+
+      - name: Add the packages-microsoft-com-prod repository
+        ansible.builtin.shell:
+          cmd: "dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm"
+
+      - name: Install the Azure CLI package
+        ansible.builtin.shell:
+          cmd: "dns install -y azure-cli"
 
   # - name: Verify the installation
   #   ansible.builtin.shell: |
