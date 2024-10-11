@@ -40,25 +40,25 @@
         file: ./oc-login.yaml
       when: response.stdout == ""
 
-    - name: Check if kubeconfig already set in bash login script
-      ansible.builtin.shell: |
-        set timeout 5
-        cat {{ ansible_facts.user_dir }}/.bashrc | grep KUBECONFIG
-        exit 0
-      register: response
+    # - name: Check if kubeconfig already set in bash login script
+    #   ansible.builtin.shell: |
+    #     set timeout 5
+    #     cat {{ ansible_facts.user_dir }}/.bashrc | grep KUBECONFIG
+    #     exit 0
+    #   register: response
 
-    - name: Update bashrc with kubeconfig environment variable
-      ansible.builtin.shell:
-        cmd: "echo 'export KUBECONFIG=\"{{ ansible_facts.user_dir }}/.kube/config\"' >> {{ ansible_facts.user_dir }}/.bashrc"
-      register: result
-      when: response.stdout == ""
+    # - name: Update bashrc with kubeconfig environment variable
+    #   ansible.builtin.shell:
+    #     cmd: "echo 'export KUBECONFIG=\"{{ ansible_facts.user_dir }}/.kube/config\"' >> {{ ansible_facts.user_dir }}/.bashrc"
+    #   register: result
+    #   when: response.stdout == ""
 
-    - name: Output the result of updating bashrc
-      ansible.builtin.debug:
-        var: result
-      when: 
-        - log_level == "debug"
-        - response.stdout == ""
+    # - name: Output the result of updating bashrc
+    #   ansible.builtin.debug:
+    #     var: result
+    #   when: 
+    #     - log_level == "debug"
+    #     - response.stdout == ""
 
     - name: Create template directory if not already in place
       ansible.builtin.file:
@@ -79,9 +79,6 @@
         {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_ready }}
       args:
         executable: /bin/bash
-        chdir: {{ ansible_facts.user_dir }}
-      become: yes
-      become_user: {{ ansible_facts.user_id }}
 
     # Configure the worker node sysctl
 
