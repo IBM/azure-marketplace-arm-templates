@@ -79,6 +79,9 @@
         {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_ready }}
       args:
         executable: /bin/bash
+        chdir: {{ ansible_facts.user_dir }}
+      become: yes
+      become_user: {{ ansible_facts.user_id }}
 
     # Configure the worker node sysctl
 
