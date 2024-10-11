@@ -37,7 +37,6 @@
     exit 0
   args:
     executable: /bin/bash
-    chdir: "{{ ansible_facts.user_dir }}"
   register: response
   until: response.stdout != ""
   retries: "{{ default.retries }}"
@@ -52,7 +51,6 @@
     exit 0
   args:
     executable: /bin/bash
-    chdir: "{{ ansible_facts.user_dir }}"
   register: response
   until: response.stdout != ""
   retries: "{{ default.retries }}"
