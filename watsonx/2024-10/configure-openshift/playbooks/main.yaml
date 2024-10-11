@@ -76,7 +76,7 @@
     - name: Wait for cluster to be available
       ansible.builtin.shell: |
         set timeout 900
-        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_ready }}
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_ready }}
       args:
         executable: /bin/bash
 
