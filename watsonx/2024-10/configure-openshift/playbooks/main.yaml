@@ -77,7 +77,6 @@
       ansible.builtin.shell: |
         set timeout 900
         {{ directories.bin_dir }}/oc adm wait-for-stable-cluster oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_ready }}
-        exit 0
       args:
         executable: /bin/bash
 
