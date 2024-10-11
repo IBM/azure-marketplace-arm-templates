@@ -92,7 +92,17 @@
       mode: '0755'
     when: not cpdcli.stat.exists
 
+  - name: Check if az cli exists
+    ansible.builtin.shell:
+      cmd: "which az 2> /dev/null"
+    register: response
+
+  - name: Set fact based on response (az exists)
+    ansible.builtin.set_fact:
+      az_exists: "{{ True if( response.stdout != '' ) else False }}"
+
   - name: Install Azure CLI
+    when: not az_exists
     block:
       
       - name: Import the Microsoft repository key
@@ -107,15 +117,27 @@
         ansible.builtin.shell:
           cmd: "dnf install -y azure-cli"
 
-  - name: Login into Azure CLI
-    ansible.builtin.shell:
-      cmd: "{{ /usr/local/bin/az login --identity }}"
-    register: result
+  - name: Check if already logged into Azure CLI
+    ansible.builtin.shell: 
+      cmd: "az account show 2> /dev/null"
+    register: response
 
-  - name: Output login result
-    ansible.builtin.debug:
-      var: result
-    when: log_level == "debug"
+  - name: Set fact based on response (az cli logged in)
+    ansible.builtin.set_fact:
+      az_logged_in: "{{ True if( response.stdout != '') else False }}"
+
+  - name: Log into the Azure CLI
+    when: not az_logged_in
+    block:
+    - name: Login into Azure CLI
+      ansible.builtin.shell:
+        cmd: "az login --identity"
+      register: result
+
+    - name: Output login result
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
 
   # - name: Verify the installation
   #   ansible.builtin.shell: |
