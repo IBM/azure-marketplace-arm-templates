@@ -1,0 +1,297 @@
+---
+- name: Install ODF and create storage cluster
+  hosts: localhost
+  gather_facts: true
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
+    gpu:
+      node_type: "Standard_NC24ads_A100_v4"
+      qty: 1
+      storage_type: "Premium_LRS"
+      disk_size: 256
+      name: "gpu"
+      zone: 1
+    directories:
+      bin_dir: "/usr/local/bin"
+      tmp_dir: "/tmp"
+    default:
+      retries: 60
+      retry_delay: 15
+      cluster_stable_min: "1m"
+
+  tasks:
+
+    - name: Install required packages
+      ansible.builtin.package:
+        name:
+          - jq
+        state: latest
+      become: yes
+
+    - name: Check if oc client is already installed
+      ansible.builtin.stat:
+        path: "{{ directories.bin_dir }}/oc"
+      register: oc_file
+
+    - name: Install oc client if not already installed
+      ansible.builtin.include_tasks:
+        file: install-oc.yaml
+      when: not oc_file.stat.exists
+
+    - name: Check if logged into Azure CLI
+      ansible.builtin.shell: |
+        set timeout 30
+        az account show 2> /dev/null
+        exit 0
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Install and log into Azure CLI
+      ansible.builtin.include_tasks:
+        file: az-login.yaml
+      when: result.stdout == ""
+
+    - name: Check if already logged into cluster
+      ansible.builtin.shell: |
+        set timeout 30
+        {{ directories.bin_dir }}/oc status 2> /dev/null
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+
+    - name: Login to OpenShift cluster if not already logged in
+      ansible.builtin.include_tasks:
+        file: ./oc-login.yaml
+      when: response.stdout == ""
+
+    - name: Create template directory if not already in place
+      ansible.builtin.file:
+        path: ./templates
+        state: directory
+      
+    # Following is required as some implementations download templates and playbooks to a single directory
+    - name: Copy templates to template directory
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: ./templates/
+      with_fileglob:
+        - ./*.j2
+
+    - name: Wait for cluster to be available
+      ansible.builtin.shell: |
+        set timeout 900
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_stable_min }}
+        exit 0
+      args:
+        executable: /bin/bash
+
+    - name: Get the cluster id
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{\"\\n\"}' infrastructure cluster"
+      register: response
+
+    - name: Set the cluster id fact
+      ansible.builtin.set_fact:
+        cluster_id: "{{ response.stdout }}"
+
+    - name: Output the cluster id
+      ansible.builtin.debug:
+        msg: "Cluster id is {{ cluster_id }}"
+      when: log_level == "debug"
+
+    - name: Get the openshift version
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,\".\"); print version[1],version[2]}' | sed 's/ /./g'"
+      register: response
+
+    - name: Set the openshift version fact
+      ansible.builtin.set_fact:
+        openshift_version: "{{ response.stdout }}"
+
+    - name: Output the openshift version
+      ansible.builtin.debug:
+        msg: "OpenShift version is {{ openshift_version }}"
+      when: log_level == "debug"
+
+    - name: Get the first machineset
+      ansible.builtin.shell: 
+        cmd: "{{ directories.bin_dir }}/oc get machinesets -A | grep openshift-machine-api | head -n 1 | awk '{print $2}'"
+      register: response
+    
+    - name: Set the machineset fact
+      ansible.builtin.set_fact:
+        first_machineset: "{{ response.stdout }}"
+
+    - name: Output the first machineset
+      ansible.builtin.debug:
+        msg: "First machineset is {{ first_machineset }}"
+      when: log_level == "debug"
+
+    - name: Get the cluster location from the first machineset
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ first_machineset }} -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.location}{\"\\n\"}'"
+      register: response
+
+    - name: Set the location fact
+      ansible.builtin.set_fact:
+        cluster_location: "{{ response.stdout }}"
+
+    - name: Output the cluster location
+      ansible.builtin.debug:
+        msg: "Cluster location is {{ cluster_location }}"
+      when: log_level == "debug"
+
+    - name: Get the current image SKU
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ first_machineset }} -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{\"\\n\"}'"
+      register: response
+
+    - name: Set current image SKU
+      ansible.builtin.set_fact:
+        current_sku: "{{ response.stdout }}"
+
+    - name: Output the current image SKU
+      ansible.builtin.debug:
+        msg: "Current SKU is {{ current_sku }}"
+      when: log_level == "debug"
+
+    - name: Get the image version
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{\"\\n\"}'"
+      register: response
+
+    - name: Set the image version fact
+      ansible.builtin.set_fact:
+        image_version: "{{ response.stdout }}"
+
+    - name: Output the image version
+      ansible.builtin.debug:
+        msg: "Image version is {{ image_version }}"
+      when: log_level == "debug"
+
+    - name: Get the list of image SKUs
+      ansible.builtin.shell: 
+        cmd: "az vm image list --all --publisher azureopenshift -o json | jq -r --arg VERSION {{ image_version }} '.[] | select(.version==$VERSION) | .sku' | grep -v {{ current_sku }}"
+      register: response
+
+    - name: Set the required image
+      ansible.builtin.set_fact:
+        image_sku: "{{ response.stdout_lines | first }}"
+
+    - name: Output the response to query on image SKU
+      ansible.builtin.debug:
+        msg: "Image SKU is {{ image_sku }}"
+      when: log_level == "debug"
+
+    - name: Get the image offer
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.offer}{\"\\n\"}'"
+      register: response
+
+    - name: Set the image offer fact
+      ansible.builtin.set_fact:
+        image_offer: "{{ response.stdout }}"
+
+    - name: Output the image offer
+      ansible.builtin.debug:
+        msg: "Image offer is {{ image_offer }}"
+      when: log_level == "debug"
+
+    - name: Get the ARO resource group
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{\"\\n\"}'"
+      register: response
+
+    - name: Set the ARO resource group fact
+      ansible.builtin.set_fact:
+        aro_resource_group: "{{ response.stdout }}"
+
+    - name: Output the ARO resource group
+      ansible.builtin.debug:
+        msg: "ARO resource group is {{ aro_resource_group }}"
+      when: log_level == "debug"
+
+    - name: Get the network resource group
+      ansible.builtin.shell: 
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.networkResourceGroup}{\"\\n\"}'"
+      register: response
+
+    - name: Set the network resource group
+      ansible.builtin.set_fact:
+        network_resource_group: "{{ response.stdout }}"
+
+    - name: Output the network resource group
+      ansible.builtin.debug:
+        msg: "Network resource group is {{ network_resource_group }}"
+
+    - name: Get the VNet name
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{\"\\n\"}'"
+      register: response
+
+    - name: Set the VNet name fact
+      ansible.builtin.set_fact:
+        vnet_name: "{{ response.stdout }}"
+
+    - name: Output the VNet name
+      ansible.builtin.debug:
+        msg: "VNet name is {{ vnet_name }}"
+      when: log_level == "debug"
+
+    - name: Get the Subnet name
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.subnet}{\"\\n\"}'"
+      register: response
+
+    - name: Set the subnet name fact
+      ansible.builtin.set_fact:
+        subnet_name: "{{ response.stdout }}"
+
+    - name: Output the subnet name
+      ansible.builtin.debug:
+        msg: "Subnet name is {{ subnet_name }}"
+      when: log_level == "debug"
+
+    - name: Create machineset definition
+      ansible.builtin.template:
+        src: ./templates/machineset.j2
+        dest: "{{ directories.tmp_dir }}/odf-machineset-{{ gpu.zone }}.yaml"
+
+    - name: Apply the machineset
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/odf-machineset-{{ gpu.zone }}.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the machineset
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Pause to allow machinesets to be created
+      ansible.builtin.pause:
+        minutes: 1
+
+    - name: Wait for machinesets to be available
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-odf-{{ cluster_location }}{{ gpu.zone }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "{{ gpu.qty }}"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+
+    - name: Clean up the machineset definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/odf-machineset-{{ gpu.zone }}.yaml"
+
+    - name: Output result
+      ansible.builtin.debug:
+        msg: "Successfully provisioned GPU node(s)"

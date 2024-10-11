@@ -1,0 +1,61 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  labels:
+    machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
+    machine.openshift.io/cluster-api-machine-role: worker
+    machine.openshift.io/cluster-api-machine-type: worker
+  name: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
+  namespace: openshift-machine-api
+spec:
+  replicas: {{ gpu.qty }}
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
+      machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
+    spec:
+      metadata:
+        creationTimestamp: null
+      providerSpec:
+        value:
+          apiVersion: azureproviderconfig.openshift.io/v1beta1
+          credentialsSecret:
+            name: azure-cloud-credentials
+            namespace: openshift-machine-api
+          image:
+            offer: {{ image_offer }}
+            publisher: azureopenshift
+            resourceID: ''
+            sku: {{ image_sku }}
+            version: {{ image_version }}
+          internalLoadBalancer: ""
+          kind: AzureMachineProviderSpec
+          location: {{ cluster_location }}
+          metadata:
+            creationTimestamp: null
+          natRule: null
+          networkResourceGroup: {{ network_resource_group }}
+          osDisk:
+            diskSizeGB: {{ gpu.disk_size }}
+            managedDisk:
+              storageAccountType: {{ gpu.storage_type }}
+            osType: Linux
+          publicIP: false
+          publicLoadBalancer: {{ cluster_id }}
+          resourceGroup: {{ aro_resource_group }} 
+          sshPrivateKey: ""
+          sshPublicKey: ""
+          subnet: {{ subnet_name }}  
+          userDataSecret:
+            name: worker-user-data 
+          vmSize: {{ gpu.node_type }}
+          vnet: {{ vnet_name }}
+          zone: "{{ gpu.zone }}"  }}
