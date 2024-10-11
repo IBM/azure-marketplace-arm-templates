@@ -93,8 +93,10 @@
     when: not cpdcli.stat.exists
 
   - name: Check if az cli exists
-    ansible.builtin.shell:
-      cmd: "which az 2> /dev/null"
+    ansible.builtin.shell: |
+      set timeout 5
+      which az 2> /dev/null
+      exit 0
     register: response
 
   - name: Set fact based on response (az exists)
@@ -118,8 +120,10 @@
           cmd: "dnf install -y azure-cli"
 
   - name: Check if already logged into Azure CLI
-    ansible.builtin.shell: 
-      cmd: "az account show 2> /dev/null"
+    ansible.builtin.shell: |
+      set timeout 5
+      az account show 2> /dev/null
+      exit 0
     register: response
 
   - name: Set fact based on response (az cli logged in)
