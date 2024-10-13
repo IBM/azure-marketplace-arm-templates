@@ -22,8 +22,12 @@ spec:
         machine.openshift.io/cluster-api-machine-type: worker
         machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
     spec:
-      metadata:
-        creationTimestamp: null
+{% if taint_nodes %}
+      taints:
+      - key: watsonxai
+        value: gpunode
+        effect: PreferNoSchedule
+{% endif %}
       providerSpec:
         value:
           apiVersion: azureproviderconfig.openshift.io/v1beta1
@@ -58,4 +62,4 @@ spec:
             name: worker-user-data 
           vmSize: {{ gpu.node_type }}
           vnet: {{ vnet_name }}
-          zone: "{{ gpu.zone }}"  }}
+          zone: "{{ gpu.zone }}" 

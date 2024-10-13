@@ -12,6 +12,7 @@
       storage_type: "Premium_LRS"
       disk_size: 256
       name: "gpu"
+      taint_nodes: true
       zone: 1
     directories:
       bin_dir: "/usr/local/bin"
