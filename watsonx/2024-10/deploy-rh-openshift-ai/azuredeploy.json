@@ -62,6 +62,13 @@
                 "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
             }
         },
+        "operatorChannel": {
+            "type": "string",
+            "defaultValue": "stable-2.8",
+            "metadata": {
+                "description": "Channel for the operator subscription"
+            }
+        },
         "logLevel": {
             "type": "string",
             "defaultValue": "info",
@@ -107,6 +114,15 @@
                 "username": "[parameters('openShiftUsername')]",
                 "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
                 "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
+            },
+            "directories": {
+                "bin_dir": "/usr/local/bin",
+                "tmp_dir": "/tmp"
+            },
+            "operator": {
+                "name": "rhods-operator",
+                "namespace": "redhat-ods-operator",
+                "channel": "[parameters('operatorChannel')]"
             }
         }
     },

@@ -322,14 +322,14 @@
         },
         "cpdVersion": {
             "type": "string",
-            "defaultValue": "5.0.3",
+            "defaultValue": "5.0.2",
             "metadata": {
                 "description": "IBM Cloud Pak for Data version to be installed"
             }
         },
         "cpdCliVersion": {
             "type": "string",
-            "defaultValue": "14.0.3",
+            "defaultValue": "14.0.2",
             "metadata": {
                 "description": "Version of CPD CLI to install. Refer to https://github.com/IBM/cpd-cli"
             }
@@ -407,6 +407,13 @@
             "defaultValue": "/root/cpd-cli-workspace",
             "metadata": {
                 "description": "Location of the CPD CLI workspace"
+            }
+        },
+        "rhOpenShiftAiChannel": {
+            "type": "string",
+            "defaultValue": "stable-2.8",
+            "metadata": {
+                "description": "Channel subscription for Red Hat OpenShift AI. Note watsonx.ai version 5.0.3 requires >2.11"
             }
         },
         "odfClusterSize": {
@@ -1548,6 +1555,9 @@
                     },
                     "openShiftPassword": {
                         "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "operatorChannel": {
+                        "value": "[parameters('rhOpenShiftAiChannel')]"
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
