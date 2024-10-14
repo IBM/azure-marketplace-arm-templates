@@ -198,7 +198,7 @@
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'deploy-cpd.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./deploy-cpd.sh \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),,'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./deploy-cpd.sh \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }
