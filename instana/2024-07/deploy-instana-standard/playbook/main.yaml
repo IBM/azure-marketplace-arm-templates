@@ -171,10 +171,8 @@
 
   - name: Determine if successful
     ansible.builtin.set_fact:
-      successful: true
-    when: 
-     - response.stderr == ""
-     - instana.accept_license
+      successful: "{{ True if( response.stderr == \"\" ) else False }}"
+    when: instana.accept_license
 
   - name: Second attempt to start Instana
     ansible.builtin.shell: |
