@@ -1,3 +1,18 @@
+apiVersion: dscinitialization.opendatahub.io/v1
+kind: DSCInitialization 
+metadata:
+  name: default-dsci
+spec:
+  applicationsNamespace: redhat-ods-applications
+  monitoring:
+    managementState: Managed
+    namespace: redhat-ods-monitoring
+  serviceMesh:
+    managementState: Removed 
+  trustedCABundle:
+    managementState: Managed
+    customCABundle: ""
+---
 apiVersion: datasciencecluster.opendatahub.io/v1
 kind: DataScienceCluster
 metadata:

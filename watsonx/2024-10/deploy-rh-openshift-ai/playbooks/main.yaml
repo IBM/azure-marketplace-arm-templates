@@ -65,7 +65,102 @@
       args:
         executable: /bin/bash
 
-    - name: Check if operator namespace exists
+    - name: Check if service mesh namespace exists
+      ansible.builtin.shell: |
+        set timeout 60
+        {{ directories.bin_dir }}/oc get ns istio-system 2> /dev/null
+        exit 0
+      register: query_returnedInfo
+
+    - name: Parse returned data to determine if service mesh namespace already exists
+      set_fact:
+        serviceMeshNamespaceExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
+    
+    - name: Create operator namespace
+      ansible.builtin.shell: |
+        set timeout 300
+        {{ directories.bin_dir }}/oc create ns istio-system
+        exit 0
+      when: not serviceMeshNamespaceExists
+      register: result
+
+    - name: Output result of service mesh namespace creation
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Create the service mesh  definition
+      ansible.builtin.template:
+        src: "./templates/service-mesh-operator.j2"
+        dest: "{{ directories.tmp_dir }}/service-mesh-operator.yaml"
+
+    - name: Apply service mesh definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/service-mesh-operator.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the service mesh definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up the service mesh definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/service-mesh-operator.yaml"
+
+    - name: Wait for the Service Mesh subscription to be available
+      ansible.builtin.shell: |
+        set timeout 60
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n openshift-marketplace servicemeshoperator -o jsonpath='{.status.currentCSV}')
+        if [[ "$CSV" == "null" ]]; then
+          echo "PendingCSV"
+        else
+          echo $({{ directories.bin_dir }}/oc get csv -n openshift-marketplace ${CSV} -o jsonpath='{.status.phase}')
+        fi
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: 30
+      delay: 15
+
+    - name: Create the control plane  definition
+      ansible.builtin.template:
+        src: "./templates/istio-control-plane.j2"
+        dest: "{{ directories.tmp_dir }}/istio-control-plane.yaml"
+
+    - name: Apply the control plane definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/istio-control-plane.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the control plane definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Wait for istio control plane to be ready
+      ansible.builtin.shell: 
+        cmd: "{{ directories.bin_dir }}/oc get servicemeshcontrolplane basic -n istio-system -o jsonpath='{.status.conditions[?(.type==\"Ready\")].status}'"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "True"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+
+    - name: Clean up the istio control plane definition
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/istio-control-plane.yaml"
+
+    - name: Check if the AI operator namespace exists
       ansible.builtin.shell: |
         set timeout 60
         {{ directories.bin_dir }}/oc get ns {{ operator.namespace }} 2> /dev/null
@@ -76,7 +171,7 @@
       set_fact:
         operatorNamespaceExists: "{{True if(query_returnedInfo.stdout | length > 0) else False}}"
     
-    - name: Create operator namespace
+    - name: Create AI operator namespace
       ansible.builtin.shell: |
         set timeout 300
         {{ directories.bin_dir }}/oc create ns {{ operator.namespace }}
@@ -91,7 +186,7 @@
 
     - name: Create the operator group definition
       ansible.builtin.template:
-        src: "../templates/operatorgroup.j2"
+        src: "./templates/operatorgroup.j2"
         dest: "{{ directories.tmp_dir }}/operatorgroup.yaml"
 
     - name: Apply operator group definition
