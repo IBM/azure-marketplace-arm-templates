@@ -173,7 +173,7 @@
     ansible.builtin.set_fact:
       successful: true
     when: 
-     - reponse.stderr == ""
+     - response.stderr == ""
      - instana.accept_license
 
   - name: Second attempt to start Instana
