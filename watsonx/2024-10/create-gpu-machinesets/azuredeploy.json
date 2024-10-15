@@ -26,7 +26,7 @@
         },
         "extensionName": {
             "type": "string",
-            "defaultValue": "deployODF",
+            "defaultValue": "createGPUMachineset",
             "metadata": {
                 "description": "Name of the VM Extension"
             }
@@ -61,29 +61,53 @@
                 "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
             }
         },
-        "clusterSize": {
+        "nodeType": {
             "type": "string",
-            "defaultValue": "1Ti",
+            "defaultValue": "Standard_NC24ads_A100_v4",
             "metadata": {
-                "description": "Size of the ODF storage cluster to create"
+                "description": "Type of GPU node to be deployed"
             }
         },
-        "existingNodes": {
+        "nodeQty": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Number of GPU nodes to deploy"
+            }
+        },
+        "nodeStorageType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "metadata": {
+                "description": "Type of managed disk to be attached to the node"
+            }
+        },
+        "nodeDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "metadata": {
+                "description": "Size of the root disk for the GPU node"
+            }
+        },
+        "nodeName": {
+            "type": "string",
+            "defaultValue": "gpu",
+            "metadata": {
+                "description": "Machineset naming identifier"
+            }
+        },
+        "taintNodes": {
             "type": "bool",
-            "defaultValue": false,
+            "defaultValue": true,
             "metadata": {
-                "description": "Flag to determine whether to use existing worker nodes or create new dedicated ones for ODF"
+                "description": "Flag to determine whether GPU node/s can be used for non-GPU related workloads or not (taint/set true to prevent other workloads)"
             }
         },
-        "licenseAccepted": {
-            "type": "string",
-            "defaultValue": "decline",
-            "allowedValues": [
-                "accept",
-                "decline"
-            ],
+        "nodeZone": {
+            "type": "int",
+            "defaultValue": 2,
             "metadata": {
-                "description": "Accept Red Hat License Terms to instantiate software."
+                "description": "The Azure availability zone containing the GPU nodes. Refer to documentation to determine zone"
             }
         },
         "logLevel": {
@@ -122,20 +146,28 @@
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
         "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/deploy-odf/",
+        "gitRepoDeploymentDirectory": "/create-gpu-machinesets/",
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
-            "odf": {
-                "license": "[parameters('licenseAccepted')]",
-                "cluster_size": "[parameters('clusterSize')]",  
-                "existing_nodes": "[if(parameters('existingNodes'),'yes','no')]"
+            "gpu": {
+                "node_type": "[parameters('nodeType')]",
+                "qty": "[parameters('nodeQty')]",
+                "storage_type": "[parameters('nodeStorageType')]",
+                "disk_size": "[parameters('nodeDiskSize')]",
+                "name": "[parameters('nodeName')]",
+                "taint_nodes": "[parameters('taintNodes')]",
+                "zone": "[parameters('nodeZone')]"
             },
             "cluster": {
                 "api_server": "[parameters('openShiftApiUrl')]",
                 "username": "[parameters('openShiftUsername')]",
                 "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
                 "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
+            },
+            "directories": {
+                "bin_dir": "/usr/local/bin",
+                "tmp_dir": "/tmp"
             }
         }
     },
@@ -156,15 +188,10 @@
                 "protectedSettings": {
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/machineset.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/namespace.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/operatorgroup.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/storagecluster.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/subscription.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/create-machineset.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/label-nodes.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/oc-login.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/az-login.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/install-oc.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/oc-login.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
                     ],
                     "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
