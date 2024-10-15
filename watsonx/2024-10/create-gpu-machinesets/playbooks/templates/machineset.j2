@@ -22,7 +22,7 @@ spec:
         machine.openshift.io/cluster-api-machine-type: worker
         machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
     spec:
-{% if taint_nodes %}
+{% if gpu.taint_nodes %}
       taints:
       - key: watsonxai
         value: gpunode
