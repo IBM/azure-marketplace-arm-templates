@@ -100,7 +100,7 @@
                 "Public",
                 "Private"
             ],
-            "defaultValue": "Public",
+            "defaultValue": "Private",
             "metadata": {
                 "description": "Public or Private API endpoint"
             }
@@ -125,6 +125,7 @@
         },
         "aroVersion": {
             "type": "string",
+            "defaultValue": "4.14.16",
             "metadata": {
                 "description": "Version of ARO to deploy. Format 4.x.x"
             }
@@ -273,7 +274,7 @@
         },
         "workerSize": {
             "type": "string",
-            "defaultValue": "Standard_D16s_v3",
+            "defaultValue": "Standard_D4s_v3",
             "metadata": {
                 "description": "VM size for worker nodes"
             }
@@ -322,14 +323,14 @@
         },
         "cpdVersion": {
             "type": "string",
-            "defaultValue": "5.0.2",
+            "defaultValue": "5.0.3",
             "metadata": {
                 "description": "IBM Cloud Pak for Data version to be installed"
             }
         },
         "cpdCliVersion": {
             "type": "string",
-            "defaultValue": "14.0.2",
+            "defaultValue": "14.0.3",
             "metadata": {
                 "description": "Version of CPD CLI to install. Refer to https://github.com/IBM/cpd-cli"
             }
@@ -411,7 +412,7 @@
         },
         "rhOpenShiftAiChannel": {
             "type": "string",
-            "defaultValue": "stable-2.8",
+            "defaultValue": "stable-2.13",
             "metadata": {
                 "description": "Channel subscription for Red Hat OpenShift AI. Note watsonx.ai version 5.0.3 requires >2.11"
             }
