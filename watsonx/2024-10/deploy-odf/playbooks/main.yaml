@@ -368,6 +368,7 @@
     - name: Pause to allow machinesets to be created
       ansible.builtin.pause:
         minutes: 1
+      when: odf.existing_nodes == "no"
 
     - name: Wait for machinesets to be available
       ansible.builtin.shell:
