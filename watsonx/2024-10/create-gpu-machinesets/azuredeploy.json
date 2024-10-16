@@ -105,9 +105,9 @@
         },
         "nodeZone": {
             "type": "int",
-            "defaultValue": 2,
+            "defaultValue": 0,
             "metadata": {
-                "description": "The Azure availability zone containing the GPU nodes. Refer to documentation to determine zone"
+                "description": "The Azure availability zone containing the GPU nodes. Set to zero to attempt to determine automatically. Refer to documentation to determine zone"
             }
         },
         "logLevel": {

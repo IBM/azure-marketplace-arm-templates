@@ -13,7 +13,7 @@
       disk_size: 256
       name: "gpu"
       taint_nodes: true
-      zone: 1
+      zone: 2
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
@@ -257,14 +257,35 @@
         msg: "Subnet name is {{ subnet_name }}"
       when: log_level == "debug"
 
+    - name: Set zone to zero if not defined
+      ansible.builtin.set_fact:
+        gpu: "{{ gpu | combine({'zone': response.stdout}, recursive=True) }}"
+      when: gpu.zone is not defined 
+
+    - name: Determine the GPU zone if set to zero
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/az vm list-skus -l {{ cluster_location }} --resource-type virtualMachines --size {{ gpu.node_type }} --query '[0].locationInfo[0].zones[0]' -o tsv"
+      when: gpu.zone == 0
+      register: response
+    
+    - name: Set GPU zone if set to zero
+      ansible.builtin.set_fact:
+        gpu: "{{ gpu | combine({'zone': response.stdout}, recursive=True) }}"
+      when: gpu.zone == 0
+
+    - name: Output the zone value
+      ansible.builtin.debug:
+        msg: "Zone is set to {{ gpu.zone }}"
+      when: log_level == "debug"
+
     - name: Create machineset definition
       ansible.builtin.template:
         src: ./templates/machineset.j2
-        dest: "{{ directories.tmp_dir }}/odf-machineset-{{ gpu.zone }}.yaml"
+        dest: "{{ directories.tmp_dir }}/gpu-machineset-{{ gpu.zone }}.yaml"
 
     - name: Apply the machineset
       ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/odf-machineset-{{ gpu.zone }}.yaml"
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/gpu-machineset-{{ gpu.zone }}.yaml"
       args:
         executable: /bin/bash
       register: result
@@ -280,7 +301,7 @@
 
     - name: Wait for machinesets to be available
       ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-odf-{{ cluster_location }}{{ gpu.zone }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'"
+        cmd: "{{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'"
       args:
         executable: /bin/bash
       register: response
@@ -291,8 +312,10 @@
     - name: Clean up the machineset definition
       ansible.builtin.file:
         state: absent
-        path: "{{ directories.tmp_dir }}/odf-machineset-{{ gpu.zone }}.yaml"
+        path: "{{ directories.tmp_dir }}/gpu-machineset-{{ gpu.zone }}.yaml"
 
     - name: Output result
       ansible.builtin.debug:
         msg: "Successfully provisioned GPU node(s)"
+
+    ### Add check for machine readiness
