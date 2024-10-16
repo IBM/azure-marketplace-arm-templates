@@ -259,7 +259,7 @@
 
     - name: Set zone to zero if not defined
       ansible.builtin.set_fact:
-        gpu: "{{ gpu | combine({'zone': response.stdout}, recursive=True) }}"
+        gpu: "{{ gpu | combine({'zone': 0}, list_merge='append', recursive=True) }}"
       when: gpu.zone is not defined 
 
     - name: Determine the GPU zone if set to zero
@@ -270,7 +270,7 @@
     
     - name: Set GPU zone if set to zero
       ansible.builtin.set_fact:
-        gpu: "{{ gpu | combine({'zone': response.stdout}, recursive=True) }}"
+        gpu: "{{ gpu | ansible.builtin.combine({'zone': response.stdout}, list_merge='replace', recursive=True) }}"
       when: gpu.zone == 0
 
     - name: Output the zone value
