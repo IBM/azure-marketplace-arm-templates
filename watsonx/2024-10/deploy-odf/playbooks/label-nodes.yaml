@@ -34,20 +34,23 @@
       - zone: "1"
       - zone: "2"
       - zone: "3"
-  loop: "{{ zones }}"
-  loop_control:
-    loop_var: zone_info
   block:
-    - name: Get existing labelled nodes in zone {{ zone_info.zone }}
+    - name: Get existing labelled nodes in zone
       set_fact:
         labelled_nodes: "{{ node_details | selectattr('zone', 'equalto', zone_info.zone) | selectattr('labelled', 'equalto', true) | map(attribute='name') | list }}"
+      loop: "{{ zones }}"
+      loop_control:
+        loop_var: zone_info
 
-    - name: Label a new node for ODF in zone {{ zone_info.zone }}
+    - name: Label a new node for ODF in zone
       when: labelled_nodes | length == 0
       block:
-        - name: Get unlabelled node from zone {{ zone_info.zone }}
+        - name: Get unlabelled node from zone
           ansible.builtin.set_fact:
             odf_nodes: "{{ node_details | selectattr('zone', 'equalto', zone_info.zone) | selectattr('labelled', 'equalto', false) | map(attribute='name') | list }}"
+          loop: "{{ zones }}"
+          loop_control:
+            loop_var: zone_info
 
         - name: Label a new node and log the action
           when: odf_nodes | length > 0
@@ -55,3 +58,6 @@
             - ansible.builtin.command: "{{ directories.bin_dir }}/oc label node {{ odf_nodes[0] }} cluster.ocs.openshift.io/openshift-storage=''"
             - ansible.builtin.debug:
                 msg: "INFO: Labelling {{ odf_nodes[0] }} as ODF node for availability zone {{ zone_info.zone }}"
+          loop: "{{ zones }}"
+          loop_control:
+            loop_var: zone_info
