@@ -264,7 +264,7 @@
 
     - name: Determine the GPU zone if set to zero
       ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/az vm list-skus -l {{ cluster_location }} --resource-type virtualMachines --size {{ gpu.node_type }} --query '[0].locationInfo[0].zones[0]' -o tsv"
+        cmd: "az vm list-skus -l {{ cluster_location }} --resource-type virtualMachines --size {{ gpu.node_type }} --query '[0].locationInfo[0].zones[0]' -o tsv"
       when: gpu.zone == 0
       register: response
     
