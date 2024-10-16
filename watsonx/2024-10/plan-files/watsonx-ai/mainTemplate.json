@@ -94,6 +94,13 @@
                 "description": "Flag to determine whether to deploy the base watsonx.ai operator and operands (debug only)"
             }
         },
+        "createGPUMachineset": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create the GPU machineset (debug only)"
+            }
+        },
         "apiVisibility": {
             "type": "string",
             "allowedValues": [
@@ -443,6 +450,55 @@
             "defaultValue": "ocs-storagecluster-cephfs",
             "metadata": {
                 "description": "Name of the file type storage class in OpenShift to use"
+            }
+        },
+        "gpuNodeType": {
+            "type": "string",
+            "defaultValue": "Standard_NC24ads_A100_v4",
+            "metadata": {
+                "description": "Type of GPU node to be deployed"
+            }
+        },
+        "gpuNodeQty": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Number of GPU nodes to deploy"
+            }
+        },
+        "gpuNodeStorageType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "metadata": {
+                "description": "Type of managed disk to be attached to the node"
+            }
+        },
+        "gpuNodeDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "metadata": {
+                "description": "Size of the root disk for the GPU node"
+            }
+        },
+        "gpuNodeName": {
+            "type": "string",
+            "defaultValue": "gpu",
+            "metadata": {
+                "description": "Machineset naming identifier"
+            }
+        },
+        "gpuTaintNodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether GPU node/s can be used for non-GPU related workloads or not (taint/set true to prevent other workloads)"
+            }
+        },
+        "gpuNodeZone": {
+            "type": "int",
+            "defaultValue": 0,
+            "metadata": {
+                "description": "The Azure availability zone containing the GPU nodes. Set to zero to attempt to determine automatically. Refer to documentation to determine zone"
             }
         },
         "vmName": {
@@ -1775,6 +1831,81 @@
                     },
                     "cpdWorkspace": {
                         "value": "[parameters('cpdWorkspace')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('createGPUMachineset')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployWatsonxAiBase')]"
+            ],
+            "name": "createGpuMachineset",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/create-gpu-machinesets/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "nodeType": {
+                        "value": "[parameters('gpuNodeType')]" 
+                    },
+                    "nodeQty": {
+                        "value": "[parameters('gpuNodeQty')]"  
+                    },
+                    "nodeStorageType": {
+                        "value": "[parameters('gpuNodeStorageType')]" 
+                    },
+                    "nodeDiskSize": {
+                        "value": "[parameters('gpuNodeDiskSize')]" 
+                    },
+                    "nodeName": {
+                        "value": "[parameters('gpuNodeName')]" 
+                    },
+                    "taintNodes": {
+                        "value": "[parameters('gpuTaintNodes')]"  
+                    },
+                    "nodeZone": {
+                        "value": "[parameters('gpuNodeZone')]" 
+                    },
+                    "binDirectory": {
+                        "value": "/usr/local/bin"
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"

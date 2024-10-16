@@ -121,6 +121,13 @@
                 "description": "Log level for Ansible playbook"
             }
         },
+        "binDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Location of CLI binaries"
+            }
+        },
         "gitRepositoryUrl": {
             "type": "string",
             "defaultValue": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
@@ -166,7 +173,7 @@
                 "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
             },
             "directories": {
-                "bin_dir": "/usr/local/bin",
+                "bin_dir": "[parameters('binDirectory')]",
                 "tmp_dir": "/tmp"
             }
         }
@@ -177,9 +184,6 @@
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
             "name": "[concat(parameters('vmName'),'/',parameters('extensionName'))]",
-            "tags": {
-                "displayName": "ODF Deployment"
-            },
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
                 "type": "CustomScript",
