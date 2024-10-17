@@ -10,6 +10,7 @@
   - name: Run Instana up command
     ansible.builtin.shell: |
       set timeout 3000
+      export HOME="{{ ansible_facts.user_dir }}"
       stanctl up --install-type {{ instana.install_type }} \
         --download-key {{ instana.download_key }} \
         --sales-key {{ instana.sales_key }} \
@@ -68,7 +69,7 @@
   - name: Fail if more than required retries
     ansible.builtin.fail: 
       msg: "Unable to start Instana after {{ default.retries }} attempts. Please check logs."
-    when: retry_count | int > default.retries
+    when: retry_count | int >= default.retries
 
   - name: Send message that retrying
     ansible.builtin.debug:
