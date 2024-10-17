@@ -1523,9 +1523,84 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('deployNFD')]",
+            "condition": "[parameters('createGPUMachineset')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployODF')]"
+            ],
+            "name": "createGpuMachineset",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/create-gpu-machinesets/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "nodeType": {
+                        "value": "[parameters('gpuNodeType')]" 
+                    },
+                    "nodeQty": {
+                        "value": "[parameters('gpuNodeQty')]"  
+                    },
+                    "nodeStorageType": {
+                        "value": "[parameters('gpuNodeStorageType')]" 
+                    },
+                    "nodeDiskSize": {
+                        "value": "[parameters('gpuNodeDiskSize')]" 
+                    },
+                    "nodeName": {
+                        "value": "[parameters('gpuNodeName')]" 
+                    },
+                    "taintNodes": {
+                        "value": "[parameters('gpuTaintNodes')]"  
+                    },
+                    "nodeZone": {
+                        "value": "[parameters('gpuNodeZone')]" 
+                    },
+                    "binDirectory": {
+                        "value": "/usr/local/bin"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployNFD')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'createGpuMachineset')]"
             ],
             "name": "deployNFDTool",
             "properties": {
@@ -1577,9 +1652,63 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('deployRHOpenShiftAI')]",
+            "condition": "[parameters('deployNvidiaDriver')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployNFDTool')]"
+            ],
+            "name": "deployNvidiaDriver",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-nvidia-driver/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployRHOpenShiftAI')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployNvidiaDriver')]"
             ],
             "name": "deployRedHatOpenShiftAI",
             "properties": {
@@ -1634,63 +1763,9 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('deployNvidiaDriver')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'deployRedHatOpenShiftAI')]"
-            ],
-            "name": "deployNvidiaDriver",
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-nvidia-driver/azuredeploy.json'))]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "namePrefix": {
-                        "value": "[parameters('namePrefix')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "vmName": {
-                        "value": "[parameters('vmName')]"
-                    },
-                    "openShiftApiUrl": {
-                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
-                    },
-                    "extensionName": {
-                        "value": "[parameters('vmExtensionName')]"
-                    },
-                    "openShiftUsername": {
-                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
-                    },
-                    "openShiftAuthType": {
-                        "value": "Password"
-                    },
-                    "openShiftPassword": {
-                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
-                    },
-                    "logLevel": {
-                        "value": "[parameters('logLevel')]" 
-                    },
-                    "gitRepositoryUrl": {
-                        "value": "[variables('gitRepositoryUrl')]"
-                    },
-                    "branch": {
-                        "value": "[parameters('branch')]"
-                    },
-                    "deploymentVersion": {
-                        "value": "[parameters('deploymentVersion')]"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2023-07-01",
             "condition": "[parameters('deployCpdBase')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'deployNvidiaDriver')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployRedHatOpenShiftAI')]"
             ],
             "name": "deployCpdBase",
             "properties": {
@@ -1831,81 +1906,6 @@
                     },
                     "cpdWorkspace": {
                         "value": "[parameters('cpdWorkspace')]" 
-                    },
-                    "gitRepositoryUrl": {
-                        "value": "[variables('gitRepositoryUrl')]"
-                    },
-                    "branch": {
-                        "value": "[parameters('branch')]"
-                    },
-                    "deploymentVersion": {
-                        "value": "[parameters('deploymentVersion')]"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2023-07-01",
-            "condition": "[parameters('createGPUMachineset')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'deployWatsonxAiBase')]"
-            ],
-            "name": "createGpuMachineset",
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/create-gpu-machinesets/azuredeploy.json'))]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "namePrefix": {
-                        "value": "[parameters('namePrefix')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "vmName": {
-                        "value": "[parameters('vmName')]"
-                    },
-                    "extensionName": {
-                        "value": "[parameters('vmExtensionName')]"
-                    },
-                    "openShiftApiUrl": {
-                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
-                    },
-                    "openShiftUsername": {
-                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
-                    },
-                    "openShiftAuthType": {
-                        "value": "Password"
-                    },
-                    "openShiftPassword": {
-                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
-                    },
-                    "nodeType": {
-                        "value": "[parameters('gpuNodeType')]" 
-                    },
-                    "nodeQty": {
-                        "value": "[parameters('gpuNodeQty')]"  
-                    },
-                    "nodeStorageType": {
-                        "value": "[parameters('gpuNodeStorageType')]" 
-                    },
-                    "nodeDiskSize": {
-                        "value": "[parameters('gpuNodeDiskSize')]" 
-                    },
-                    "nodeName": {
-                        "value": "[parameters('gpuNodeName')]" 
-                    },
-                    "taintNodes": {
-                        "value": "[parameters('gpuTaintNodes')]"  
-                    },
-                    "nodeZone": {
-                        "value": "[parameters('gpuNodeZone')]" 
-                    },
-                    "binDirectory": {
-                        "value": "/usr/local/bin"
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"
