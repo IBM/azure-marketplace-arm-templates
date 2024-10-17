@@ -5,14 +5,14 @@ metadata:
     machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
     machine.openshift.io/cluster-api-machine-role: worker
     machine.openshift.io/cluster-api-machine-type: worker
-  name: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
+  name: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu_zone }}
   namespace: openshift-machine-api
 spec:
   replicas: {{ gpu.qty }}
   selector:
     matchLabels:
       machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
-      machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
+      machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu_zone }}
   template:
     metadata:
       creationTimestamp: null
@@ -20,7 +20,7 @@ spec:
         machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
         machine.openshift.io/cluster-api-machine-role: worker
         machine.openshift.io/cluster-api-machine-type: worker
-        machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu.zone }}
+        machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu_zone }}
     spec:
 {% if gpu.taint_nodes %}
       taints:
@@ -62,4 +62,4 @@ spec:
             name: worker-user-data 
           vmSize: {{ gpu.node_type }}
           vnet: {{ vnet_name }}
-          zone: "{{ gpu.zone }}" 
+          zone: "{{ gpu_zone }}" 
