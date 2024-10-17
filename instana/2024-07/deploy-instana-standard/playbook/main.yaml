@@ -40,6 +40,10 @@
     dir:
       tmp_dir: "/tmp"
       bin_dir: "/usr/local/bin"
+    default:
+      retries: 2
+      timeout: 1830
+      poll: 60
 
 
   tasks: 
@@ -48,6 +52,7 @@
     ansible.builtin.package:
       name: 
         - parted
+        - jq
       state: latest  
 
   - name: Get the mount details
@@ -142,70 +147,8 @@
     when: not instana.accept_license
 
   - name: Start Instana
+    ansible.builtin.include_tasks:
+      file: ./start-instana.yaml
     when: instana.accept_license
-    block:
-  
-    - name: First attempt to start Instana
-      ansible.builtin.shell: |
-        set timeout 3000
-        stanctl up --install-type {{ instana.install_type }} \
-          --download-key {{ instana.download_key }} \
-          --sales-key {{ instana.sales_key }} \
-          --unit-tenant-name {{ instana.tenant_name }} \
-          --unit-unit-name {{ instana.unit_name }} \
-          --unit-initial-admin-password {{ instana.admin_password }} \
-          --core-base-domain {{ instana.domain }} \
-          --core-tls-generate-cert \
-          --quiet
-        exit 0
-      args:
-        executable: /bin/bash
-        chdir: "{{ ansible_facts.user_dir }}"
-      become: yes
-      become_user: "{{ ansible_facts.user_id }}"
-      register: response
-
-    - name: Output install result
-      ansible.builtin.debug:
-        msg: "{{ response.stdout }}"
-      when: 
-      - log_level == "debug"
-
-    - name: Determine if successful
-      ansible.builtin.set_fact:
-        successful: "{{ True if( response.stderr == \"\" ) else False }}"
-
-    - name: Second attempt to start Instana
-      ansible.builtin.shell: |
-        set timeout 3000
-        stanctl up --install-type {{ instana.install_type }} \
-          --download-key {{ instana.download_key }} \
-          --sales-key {{ instana.sales_key }} \
-          --unit-tenant-name {{ instana.tenant_name }} \
-          --unit-unit-name {{ instana.unit_name }} \
-          --unit-initial-admin-password {{ instana.admin_password }} \
-          --core-base-domain {{ instana.domain }} \
-          --core-tls-generate-cert \
-          --quiet
-        exit 0
-      args:
-        executable: /bin/bash
-        chdir: "{{ ansible_facts.user_dir }}"
-      become: yes
-      become_user: "{{ ansible_facts.user_id }}"
-      when: 
-      - not successful
-      register: response
-
-    - name: Fail if unsuccessful second time
-      ansible.builtin.fail:
-        msg: "Unable to start Instana after two attempts"
-      when:
-      - response.stderr != ""      
-
-    - name: Output install result
-      ansible.builtin.debug:
-        msg: "{{ response.stdout }}"
-      when: 
-        - log_level == "debug"
-
+    
+    
