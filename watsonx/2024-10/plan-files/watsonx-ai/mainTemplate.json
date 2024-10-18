@@ -410,6 +410,13 @@
                 "description": "Specify whether to deploy the light weight watsonx.ai version"
             }
         },
+        "llmList": {
+            "type": "object",
+            "defaultValue": ["ibm-granite-13b-chat-v2"],
+            "metadata": {
+                "description": "List of Foundation Models to deploy"
+            }
+        },
         "cpdWorkspace": {
             "type": "string",
             "defaultValue": "/root/cpd-cli-workspace",
@@ -1906,6 +1913,63 @@
                     },
                     "cpdWorkspace": {
                         "value": "[parameters('cpdWorkspace')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployWatsonxBase')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployWatsonxAiBase')]"
+            ],
+            "name": "deployLLM",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-watsonx-ai/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[reference(parameters('clusterName')).apiserverProfile.url]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminUsername]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "Password"
+                    },
+                    "openShiftPassword": {
+                        "value": "[listCredentials(parameters('clusterName'),'2022-04-01').kubeadminPassword]"  
+                    },
+                    "cpdNamespace": {
+                        "value": "[parameters('cpdOperandsNamespace')]"
+                    },
+                    "llmList": {
+                        "value": "[parameters('llmList')]" 
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"
