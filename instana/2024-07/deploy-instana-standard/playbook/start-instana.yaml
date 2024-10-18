@@ -76,6 +76,25 @@
       msg: "Trying again"
     when: retry_count | int < default.retries
 
+  - name: Delay to let processes clean themselves up
+    ansible.builtin.pause:
+      minutes: 1
+
+  - name: Get list of any existing stanctl jobs running
+    ansible.builtin.shell: | 
+      set timeout 30
+      ps xua | grep stanctl | grep -v grep | awk '{print $2}'
+    args:
+      executable: /bin/bash
+    register: response
+    when: retry_count | int < default.retries
+
+  - name: Kill any existing stanctl jobs
+    ansible.builtin.shell: 
+      cmd: "kill {{ item }}"
+    loop: "{{ response.stdout_lines }}"
+    when: retry_count | int < default.retries
+
   - name: Run again
     ansible.builtin.include_tasks:
       file: ./start-instana.yaml
