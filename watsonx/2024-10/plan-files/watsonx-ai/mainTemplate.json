@@ -101,6 +101,13 @@
                 "description": "Flag to determine whether to create the GPU machineset (debug only)"
             }
         },
+        "deployLLM": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the foundation model/s (debug only)"
+            }
+        },
         "apiVisibility": {
             "type": "string",
             "allowedValues": [
@@ -1929,7 +1936,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('deployWatsonxBase')]",
+            "condition": "[parameters('deployLLM')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployWatsonxAiBase')]"
             ],
