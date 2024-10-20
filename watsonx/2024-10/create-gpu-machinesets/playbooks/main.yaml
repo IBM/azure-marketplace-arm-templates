@@ -1,5 +1,5 @@
 ---
-- name: Install ODF and create storage cluster
+- name: Create GPU machinesets
   hosts: localhost
   gather_facts: true
 

@@ -1,5 +1,5 @@
 ---
-- name: Install IBM watsonx.ai
+- name: Install Red Hat Node Feature Discovery Tool
   hosts: localhost
 
   vars:

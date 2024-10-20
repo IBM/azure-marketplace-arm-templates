@@ -1,5 +1,5 @@
 ---
-- name: Configure OpenShift cluster for 
+- name: Configure OpenShift cluster for watsonx
   hosts: localhost
   gather_facts: true
 

@@ -1,5 +1,5 @@
 ---
-- name: Install CPD CLI tool
+- name: Install CPD CLI tool and configure deployment VM for watsonx
   hosts: localhost
   gather_facts: false
   become: yes
