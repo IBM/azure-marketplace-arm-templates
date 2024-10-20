@@ -418,7 +418,7 @@
             }
         },
         "llmList": {
-            "type": "object",
+            "type": "array",
             "defaultValue": ["ibm-granite-13b-chat-v2"],
             "metadata": {
                 "description": "List of Foundation Models to deploy"
