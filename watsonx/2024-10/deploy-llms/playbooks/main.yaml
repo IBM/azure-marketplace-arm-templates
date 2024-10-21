@@ -15,7 +15,7 @@
         - ibm-granite-13b-chat-v2
     default:
       retries: 100
-      retry_delay: 15
+      retry_delay: 60
       cluster_stable_min: "30s"
 
   tasks:
