@@ -82,15 +82,15 @@
                 "description": "Namespace for IBM Cloud Pak for Data operands"
             }
         },
-        "tuningEnabled": {
+        "tuningDisabled": {
             "type": "string",
-            "defaultValue": "false",
+            "defaultValue": "true",
             "allowedValues": [
                 "true",
                 "false"
             ],
             "metadata": {
-                "description": "Specify whether prompt tuning is available"
+                "description": "Specify whether prompt tuning should be disabled"
             }
         },
         "liteVersion": {
@@ -175,7 +175,7 @@
                     "cpd_operator": "[parameters('cpdOperatorNamespace')]",
                     "cpd_operands": "[parameters('cpdOperandsNamespace')]"
                 },
-                "tuning": "[parameters('tuningEnabled')]",
+                "tuning_disabled": "[parameters('tuningDisabled')]",
                 "lite_version": "[parameters('liteVersion')]"
             },
             "directories": {

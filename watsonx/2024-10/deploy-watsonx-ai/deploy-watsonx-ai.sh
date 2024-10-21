@@ -21,7 +21,7 @@ export STG_CLASS_BLOCK="$(echo $PARAMETERS | jq -r .cluster.storageclass.block)"
 export OPERATOR_NAMESPACE="$(echo $PARAMETERS | jq -r .cpd.namespace.cpd_operator)"
 export INSTANCE_NAMESPACE="$(echo $PARAMETERS | jq -r .cpd.namespace.cpd_operands)"
 export VERSION="$(echo $PARAMETERS | jq -r .cpd.version)"
-export TUNING="$(echo $PARAMETERS | jq -r .cpd.tuning)"
+export TUNING_DISABLED="$(echo $PARAMETERS | jq -r .cpd.tuning_disabled)"
 export LITE_VERSION="$(echo $PARAMETERS | jq -r .cpd.lite_version)"
 
 ###
@@ -81,7 +81,7 @@ fi
 cat << EOF >> ${CPD_WORKSPACE}/olm-utils-workspace/work/install-options.yaml
 custom_spec:  
  watsonx_ai:
-  tuning_disabled: ${TUNING}
+  tuning_disabled: ${TUNING_DISABLED}
   lite_install: ${LITE_VERSION}
 EOF
 

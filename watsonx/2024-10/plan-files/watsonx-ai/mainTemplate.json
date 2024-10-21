@@ -395,15 +395,15 @@
                 "description": "Namespace for the licensing service operator"
             }
         },
-        "tuningEnabled": {
+        "tuningDisabled": {
             "type": "string",
-            "defaultValue": "false",
+            "defaultValue": "true",
             "allowedValues": [
                 "true",
                 "false"
             ],
             "metadata": {
-                "description": "Specify whether prompt tuning is available"
+                "description": "Specify whether prompt tuning should be disabled"
             }
         },
         "liteVersion": {
@@ -1903,8 +1903,8 @@
                     "cpdOperandsNamespace": {
                         "value": "[parameters('cpdOperandsNamespace')]"
                     },
-                    "tuningEnabled": {
-                        "value": "[parameters('tuningEnabled')]"  
+                    "tuningDisabled": {
+                        "value": "[parameters('tuningDisabled')]"  
                     },
                     "liteVersion": {
                         "value": "[parameters('liteVersion')]"  
