@@ -547,9 +547,6 @@
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2022-07-01",
             "condition": "[equals(parameters('publicIpNewOrExisting'),'new')]",
-            "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
-            ],
             "name": "[parameters('publicIPName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
@@ -568,9 +565,376 @@
                 "publicIPAddressVersion": "IPv4",
                 "dnsSettings": {
                     "domainNameLabel": "[parameters('domainName')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",  
+            "dependsOn": [
+               "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]" 
+            ],
+            "name": "createVM",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
                 },
-                "ddosSettings": {
-                    "protectionMode": "[if(parameters('enableDdosProtection'),'VirtualNetworkInherited','Disabled')]"
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkResourceGroupName": {
+                        "value": "[parameters('networkResourceGroup')]" 
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]" 
+                    },
+                    "publicIpNewOrExisting": {
+                        "value": "[parameters('publicIpNewOrExisting')]"
+                    },
+                    "publicIpResourceGroup": {
+                        "value": "[parameters('publicIpResourceGroup')]" 
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('publicIPName')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('domainName')]" 
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]"
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]"
+                    },
+                    "vmOSVersion": {
+                        "value": "[parameters('vmOSVersion')]"
+                    },
+                    "storageSKU": {
+                        "value": "[parameters('storageSKU')]"
+                    },
+                    "osDiskSize": {
+                        "value": "[parameters('osDiskSize')]" 
+                    },
+                    "dataDiskSize": {
+                        "value": "[parameters('dataDiskSize')]"
+                    },
+                    "analyticsDiskSize": {
+                        "value": "[parameters('analyticsDiskSize')]"
+                    },
+                    "metricsDiskSize": {
+                        "value": "[parameters('metricsDiskSize')]"
+                    },
+                    "objectsDiskSize": {
+                        "value": "[parameters('objectsDiskSize')]"
+                    },
+                    "vmNsgSecurityRules": {
+                        "value": "[parameters('vmNSGSecurityRules')]"
+                    },
+                    "securityType": {
+                        "value": "[parameters('securityType')]"
+                    },
+                    "authType": {
+                        "value": "[parameters('authType')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('adminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                    
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "namePrefix": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "vmName": {
+                            "type": "string"
+                        },
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "virtualNetworkResourceGroupName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "adminUserName": {
+                            "type": "string"
+                        },
+                        "adminPassword": {
+                            "type": "secureString"
+                        },
+                        "authType": {
+                            "type": "string"
+                        },
+                        "securityType": {
+                            "type": "string"
+                        },
+                        "vmNsgSecurityRules": {
+                            "type": "array"
+                        },
+                        "vmSize": {
+                            "type": "string"
+                        },
+                        "storageSKU": {
+                            "type": "string"
+                        },
+                        "osDiskSize": {
+                            "type": "int"
+                        },
+                        "dataDiskSize": {
+                            "type": "int"
+                        },
+                        "metricsDiskSize": {
+                            "type": "int"
+                        },
+                        "analyticsDiskSize": {
+                            "type": "int"
+                        },
+                        "objectsDiskSize": {
+                            "type": "int"
+                        },
+                        "vmZone": {
+                            "type": "string"
+                        },
+                        "vmOSVersion": {
+                            "type": "string"
+                        },
+                        "publicIpNewOrExisting": {
+                            "type": "string"
+                        },
+                        "publicIpResourceGroup": {
+                            "type": "string"
+                        },
+                        "publicIPName": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "variables": {
+                        "nsgName": "[concat(parameters('namePrefix'), '-nsg')]",
+                        "nicName": "[concat(parameters('namePrefix'),'-nic')]",
+                        "linuxConfigSSH": {
+                            "disablePasswordAuthentication": true,
+                            "ssh": {
+                                "publicKeys": [
+                                    {
+                                        "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                                        "keyData": "[parameters('adminPassword')]"
+                                    }
+                                ]
+                            }
+                        },
+                        "linuxConfigPWD": {
+                            "disablePasswordAuthentication": false
+                        },
+                        "imageReference": {
+                            "RHEL 8.6": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "8_6",
+                                "version": "latest"
+                            },
+                            "RHEL 8.7": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "8_7",
+                                "version": "latest"
+                            },
+                            "RHEL 9.2": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "9_2",
+                                "version": "latest"
+                            }
+                        },
+                        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- python3.11\n- python3.11-pip\nruncmd:\n- python3.11 -m pip install ansible-core==2.16.3')]",
+                        "securityProfile": {
+                            "uefiSettings": {
+                                "secureBootEnabled": false,
+                                "vTpmEnabled": false
+                            },
+                            "securityType": "[parameters('securityType')]"
+                        },
+                        "publicIpId": {
+                            "new": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                            },
+                            "existing": {
+                                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                            }
+                        },
+                        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
+                        "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]"
+                    },
+                    "resources": [                 
+                        {
+                            "type": "Microsoft.Network/networkSecurityGroups",
+                            "apiVersion": "2022-07-01",
+                            "name": "[variables('nsgName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
+                            "properties": {
+                                "securityRules": "[parameters('vmNsgSecurityRules')]"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2022-07-01",
+                            "name": "[variables('nicName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkInterfaces'), parameters('tagsByResource')['Microsoft.Network/networkInterfaces'], json('{}')) ]",
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "ipconfig1",
+                                        "properties": {
+                                            "subnet": {
+                                                "id": "[variables('subnetId')]"
+                                            },
+                                            "publicIPAddress": "[variables('publicIpId')[parameters('publicIpNewOrExisting')]]",
+                                            "privateIPAllocationMethod": "Dynamic"
+                                        }
+                                    }
+                                ],
+                                "networkSecurityGroup": {
+                                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                                }
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
+                                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                            ]
+                        },
+                            {
+                                "type": "Microsoft.Compute/virtualMachines",
+                                "apiVersion": "2021-03-01",
+                                "name": "[parameters('vmName')]",
+                                "location": "[parameters('location')]",
+                                "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/virtualMachines'), parameters('tagsByResource')['Microsoft.Compute/virtualMachines'], json('{}')) ]",
+                                "properties": {
+                                    "hardwareProfile": {
+                                        "vmSize": "[parameters('vmSize')]"
+                                    },
+                                    "storageProfile": {
+                                        "osDisk": {
+                                            "createOption": "FromImage",
+                                            "diskSizeGB": "[parameters('osDiskSize')]",
+                                            "managedDisk": {
+                                                "storageAccountType": "[parameters('storageSKU')]"
+                                            }
+                                        },
+                                        "dataDisks": [
+                                            {
+                                                "name": "[concat(parameters('namePrefix'),'-data-disk')]",
+                                                "caching": "None",
+                                                "createOption": "Empty",
+                                                "deleteOption": "Delete",
+                                                "diskSizeGB": "[parameters('dataDiskSize')]",
+                                                "lun": 0,
+                                                "managedDisk": {
+                                                    "storageAccountType": "[parameters('storageSKU')]"
+                                                }
+                                            },
+                                            {
+                                                "name": "[concat(parameters('namePrefix'),'-metrics-disk')]",
+                                                "caching": "None",
+                                                "createOption": "Empty",
+                                                "deleteOption": "Delete",
+                                                "diskSizeGB": "[parameters('metricsDiskSize')]",
+                                                "lun": 1,
+                                                "managedDisk": {
+                                                    "storageAccountType": "[parameters('storageSKU')]"
+                                                }
+                                            },
+                                            {
+                                                "name": "[concat(parameters('namePrefix'),'-analytics-disk')]",
+                                                "caching": "None",
+                                                "createOption": "Empty",
+                                                "deleteOption": "Delete",
+                                                "diskSizeGB": "[parameters('analyticsDiskSize')]",
+                                                "lun": 2,
+                                                "managedDisk": {
+                                                    "storageAccountType": "[parameters('storageSKU')]"
+                                                }
+                                            },
+                                            {
+                                                "name": "[concat(parameters('namePrefix'),'-objects-disk')]",
+                                                "caching": "None",
+                                                "createOption": "Empty",
+                                                "deleteOption": "Delete",
+                                                "diskSizeGB": "[parameters('objectsDiskSize')]",
+                                                "lun": 3,
+                                                "managedDisk": {
+                                                    "storageAccountType": "[parameters('storageSKU')]"
+                                                }
+                                            }
+                                        ],
+                                        "imageReference": "[variables('imageReference')[parameters('vmOSVersion')]]"
+                                    },
+                                    "networkProfile": {
+                                        "networkInterfaces": [
+                                            {
+                                                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                                            }
+                                        ]
+                                    },
+                                    "osProfile": {
+                                        "computerName": "[parameters('vmName')]",
+                                        "adminUsername": "[parameters('adminUserName')]",
+                                        "adminPassword": "[parameters('adminPassword')]",
+                                        "customData": "[base64(variables('vmBootstrap'))]",
+                                        "linuxConfiguration": "[if(equals(parameters('authType'), 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
+                                    },
+                                    "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'),variables('securityProfile'),json('null'))]",
+                                    "diagnosticsProfile": {
+                                        "bootDiagnostics": {
+                                            "enabled": true
+                                        }
+                                    }
+                                },
+                                "zones": [
+                                    "[parameters('vmZone')]"
+                                ],
+                                "dependsOn": [
+                                    "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                                ]
+                            }
+                    ],
+                    "outputs": {
+                        "vmName": {
+                            "type": "string",
+                            "value": "[parameters('vmName')]"
+                        },
+                        "internalIP": {
+                            "type": "string",
+                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2022-07-01').ipConfigurations[0].properties.privateIPAddress]"
+                        }
+                    }
                 }
             }
         },
@@ -686,53 +1050,14 @@
                     "unitName": {
                         "value": "[parameters('unitName')]"
                     },
+                    "instanaDomain": {
+                        "value": "[parameters('instanaDomain')]"
+                    },
                     "acceptLicense": {
                         "value": "[parameters('acceptLicense')]"
                     },
                     "vmName": {
                         "value": "[parameters('vmName')]"
-                    },
-                    "virtualNetworkNewOrExisting": {
-                        "value": "existing"
-                    },
-                    "virtualNetworkResourceGroupName": {
-                        "value": "[parameters('networkResourceGroup')]"
-                    },
-                    "subnetName": {
-                        "value": "[parameters('subnetName')]"
-                    },
-                    "adminUserName": {
-                        "value": "[parameters('adminUserName')]"
-                    },
-                    "adminPassword": {
-                        "value": "[parameters('adminPassword')]"
-                    },
-                    "authType": {
-                        "value": "[parameters('authType')]"
-                    },
-                    "securityType": {
-                        "value": "[parameters('securityType')]"
-                    },
-                    "vmNsgSecurityRules": {
-                        "value": "[parameters('vmNsgSecurityRules')]"
-                    },
-                    "vmSize": {
-                        "value": "[parameters('vmSize')]"
-                    },
-                    "vmDiskType": {
-                        "value": "[parameters('vmDiskType')]"
-                    },
-                    "vmZone": {
-                        "value": "[parameters('vmZone')]"
-                    },
-                    "vmOSVersion": {
-                        "value": "[parameters('vmOSVersion')]"
-                    },
-                    "storageSKU": {
-                        "value": "[parameters('storageSKU')]"
-                    },
-                    "osDiskSize": {
-                        "value": "[parameters('osDiskSize')]"
                     },
                     "dataDiskSize": {
                         "value": "[parameters('dataDiskSize')]"
@@ -746,23 +1071,8 @@
                     "objectsDiskSize": {
                         "value": "[parameters('objectsDiskSize')]"
                     },
-                    "createPublicIP": {
-                        "value": true
-                    },
-                    "publicIpNewOrExisting": {
-                        "value": "existing"
-                    },
-                    "publicIpResourceGroup": {
-                        "value": "[parameters('publicIpResourceGroup')]"
-                    },
-                    "publicIPName": {
-                        "value": "[parameters('publicIPName')]"
-                    },
                     "domainName": {
                         "value": "[parameters('domainName')]"
-                    },
-                    "instanaDomain": {
-                        "value": "[parameters('instanaDomain')]"
                     },
                     "deployInstana": {
                         "value": true
