@@ -385,9 +385,46 @@
         - 2
         - 3
 
+    - name: Get data on existing nodes
+      when: odf.existing_nodes == "yes"
+      block:
+      - name: Log information about labelling existing worker nodes for use with ODF storage cluster
+        ansible.builtin.debug:
+          msg: "INFO: Labelling existing worker nodes for use with ODF storage cluster"
+
+      - name: Get list of worker nodes
+        ansible.builtin.shell: |
+          {{ directories.bin_dir }}/oc get nodes | grep worker | awk '{print $1}'
+        register: worker_nodes
+
+      - name: Check if there are at least 3 worker nodes available
+        ansible.builtin.fail:
+          msg: "ERROR: Insufficient nodes for storage cluster. Must have at least 3 nodes available"
+        when: worker_nodes.stdout_lines | length < 3
+
+      - name: Get details of each worker node
+        ansible.builtin.set_fact:
+          node_details: "{{ node_details | default([]) + [ { 'name': item, 'cpu': cpu, 'zone': zone, 'labelled': labelled } ] }}"
+        loop: "{{ worker_nodes.stdout_lines }}"
+        vars:
+          cpu: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o jsonpath=\"' + '{' + '.status.capacity.cpu' + '}' + '\"' ) }}"
+          zone: "{{ lookup('pipe', directories.bin_dir ~ '/oc get machine -n openshift-machine-api ' ~ item ~ ' -o jsonpath=\"' + '{' + '.spec.providerSpec.value.zone' + '}' + '\"' ) }}"
+          labelled: "{{ False if lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o jsonpath=\" ' + '{' + '.metadata.labels' + '}' + '\" | grep --ignore-case --count cluster.ocs.openshift.io || true' ) == '0' else True }}"
+
+      - name: Check number of nodes with sufficient size (16 CPU or higher)
+        ansible.builtin.fail:
+          msg: "ERROR: Insufficient nodes of sufficient size available for storage cluster. Minimum of 3 nodes with 16 CPU or more required."
+        when: node_details | selectattr('cpu', '>=', '16') | list | length < 3
+
     - name: Label existing machinesets (existing nodes)
       ansible.builtin.include_tasks:
         file: ./label-nodes.yaml
+      loop: 
+        - "1"
+        - "2"
+        - "3"
+      loop_control:
+        loop_var: zone
       when: odf.existing_nodes == "yes"
 
     - name: Check if storage cluster already exists

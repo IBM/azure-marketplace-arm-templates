@@ -1,57 +1,31 @@
 ---
 
-- name: Log information about labelling existing worker nodes for use with ODF storage cluster
+- name: Get existing labelled nodes in zone {{ zone }}
+  set_fact:
+    labelled_nodes: "{{ node_details | selectattr('zone', 'equalto', zone) | selectattr('labelled', 'equalto', true) | map(attribute='name') | list }}"
+
+- name: Output already labelled label found
   ansible.builtin.debug:
-    msg: "INFO: Labelling existing worker nodes for use with ODF storage cluster"
+    msg: "INFO: Found {{ labelled_nodes }} in zone {{ zone }} already labelled for OCS"
+  when: labelled_nodes | length > 0
 
-- name: Get list of worker nodes
-  ansible.builtin.shell: |
-    {{ directories.bin_dir }}/oc get nodes -o jsonpath='{.items[?(@.status.phase=="Ready")].metadata.name}' | grep worker
-  register: worker_nodes
-
-- name: Check if there are at least 3 worker nodes available
-  ansible.builtin.fail:
-    msg: "ERROR: Insufficient nodes for storage cluster. Must have at least 3 nodes available"
-  when: worker_nodes.stdout_lines | length < 3
-
-- name: Get details of each worker node
+- name: Get unlabelled nodes from zone {{ zone }}
   ansible.builtin.set_fact:
-    node_details: "{{ node_details | default([]) + [ { 'name': item, 'cpu': cpu, 'zone': zone, 'labelled': labelled } ] }}"
-  loop: "{{ worker_nodes.stdout_lines }}"
-  vars:
-    cpu: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o jsonpath=\"' + '{' + '.status.capacity.cpu' + '}' + '\"' ) }}"
-    zone: "{{ lookup('pipe', directories.bin_dir ~ '/oc get machine -n openshift-machine-api ' ~ item ~ ' -o jsonpath=\"' + '{' + '.spec.providerSpec.value.zone' + '}' + '\"' ) }}"
-    labelled: "{{ False if lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o jsonpath=\" ' + '{' + '.metadata.labels' + '}' + '\" | grep --ignore-case --count cluster.ocs.openshift.io || true' ) == '0' else True }}"
+    odf_nodes: "{{ node_details | selectattr('zone', 'equalto', zone) | selectattr('labelled', 'equalto', false) | selectattr('cpu', '>=', '16') | map(attribute='name') | list }}"
+  when: labelled_nodes | length == 0
 
-- name: Check number of nodes with sufficient size (16 CPU or higher)
+- name: Fail if no nodes available or already labelled in zone {{ zone }}
   ansible.builtin.fail:
-    msg: "ERROR: Insufficient nodes of sufficient size available for storage cluster. Minimum of 3 nodes with 16 CPU or more required."
-  when: node_details | selectattr('cpu', '>=', 16) | list | length < 3
+    msg: "No compatible nodes found in zone {{ zone }}"
+  when: 
+    - labelled_nodes | length == 0
+    - odf_nodes | length == 0
 
-- name: Label existing nodes for availability zones
-  vars:
-    zones:
-      - zone: "1"
-      - zone: "2"
-      - zone: "3"
-  loop: "{{ zones }}"
-  loop_control:
-    loop_var: zone_info
-  tasks:
-    - name: Get existing labelled nodes in zone {{ zone_info.zone }}
-      set_fact:
-        labelled_nodes: "{{ node_details | selectattr('zone', 'equalto', zone_info.zone) | selectattr('labelled', 'equalto', true) | map(attribute='name') | list }}"
+- name: Label a new node for ODF in zone {{ zone }}
+  ansible.builtin.command: "{{ directories.bin_dir }}/oc label node {{ odf_nodes[0] }} cluster.ocs.openshift.io/openshift-storage=''"
+  when: odf_nodes | length > 0
 
-    - name: Get unlabelled node from zone {{ zone_info.zone }}
-      ansible.builtin.set_fact:
-        odf_nodes: "{{ node_details | selectattr('zone', 'equalto', zone_info.zone) | selectattr('labelled', 'equalto', false) | map(attribute='name') | list }}"
-      when: labelled_nodes | length == 0
-
-    - name: Label a new node for ODF in zone {{ zone_info.zone }}
-      ansible.builtin.command: "{{ directories.bin_dir }}/oc label node {{ odf_nodes[0] }} cluster.ocs.openshift.io/openshift-storage=''"
-      when: odf_nodes | length > 0
-
-    - name: Log the action of labelling node
-      ansible.builtin.debug:
-        msg: "INFO: Labelling {{ odf_nodes[0] }} as ODF node for availability zone {{ zone_info.zone }}"
-      when: odf_nodes | length > 0
+- name: Log the action of labelling node
+  ansible.builtin.debug:
+    msg: "INFO: Labelling {{ odf_nodes[0] }} as ODF node for availability zone {{ zone }}"
+  when: odf_nodes | length > 0
