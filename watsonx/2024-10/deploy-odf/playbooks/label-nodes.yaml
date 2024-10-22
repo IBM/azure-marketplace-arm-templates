@@ -19,9 +19,9 @@
     node_details: "{{ node_details | default([]) + [ { 'name': item, 'cpu': cpu, 'zone': zone, 'labelled': labelled } ] }}"
   loop: "{{ worker_nodes.stdout_lines }}"
   vars:
-    cpu: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o json | jq -r \\'.status.capacity.cpu\\'') }}"
-    zone: "{{ lookup('pipe', directories.bin_dir ~ '/oc get machine -n openshift-machine-api | grep ' ~ item ~ ' | awk \\'{print $5}\\')' }}"
-    labelled: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o json | jq \\'.metadata.labels | has(\"cluster.ocs.openshift.io\")\\')' == 'true' }}"
+    cpu: "{{ lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o jsonpath=\"' + '{' + '.status.capacity.cpu' + '}' + '\"' ) }}"
+    zone: "{{ lookup('pipe', directories.bin_dir ~ '/oc get machine -n openshift-machine-api ' ~ item ~ ' -o jsonpath=\"' + '{' + '.spec.providerSpec.value.zone' + '}' + '\"' ) }}"
+    labelled: "{{ False if lookup('pipe', directories.bin_dir ~ '/oc get node ' ~ item ~ ' -o jsonpath=\" ' + '{' + '.metadata.labels' + '}' + '\" | grep --ignore-case --count cluster.ocs.openshift.io || true' ) == '0' else True }}"
 
 - name: Check number of nodes with sufficient size (16 CPU or higher)
   ansible.builtin.fail:
