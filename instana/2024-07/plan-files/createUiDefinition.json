@@ -212,7 +212,22 @@
                                 }
                             ]
                         }
-                    }
+                    },
+					{
+						"name": "dnsZone",
+						"type": "Microsoft.Solutions.ResourceSelector",
+						"label": "DNS Zone for Cluster",
+						"toolTip": "DNS Zone with base domain name for the cluster",
+						"resourceType": "Microsoft.Network/dnsZones",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"filter": {
+								"subscription": "onBasics"
+							}
+						}
+					}
                 ]
             },
             {
@@ -1182,6 +1197,8 @@
             "ddosProtectionPlanName": "[if(and(steps('networking').ddosPlan,equals(steps('networking').existingDdosPlan,'existing')),steps('networking').ddosPlanSelector,steps('networking').ddosPlanName)]",
             "vmSubnetName": "[steps('networking').vnet.subnets.vmSubnet.name]",
             "vmSubnetCidr": "[steps('networking').vnet.subnets.vmSubnet.addressPrefix]",
+            "dnsZoneName": "[steps('networking').dnsZone.name]",
+            "dnsZoneResourceGroup": "[last(take(split(steps('networking').dnsZone.id,'/'),5))]",
             "nsgName": "[steps('networking').nsgName]",
             "vmName": "[steps('virtualMachine').vmName]",
             "vmZone": "[steps('virtualMachine').vmZone]",
@@ -1206,7 +1223,7 @@
             "downloadKey": "[steps('instana').downloadKey]",
             "salesKey": "[steps('instana').salesKey]",
             "tenantName": "[steps('instana').tenantName]",
-            "envName": "[steps('instana').envName]",
+            "unitName": "[steps('instana').envName]",
             "acceptLicense": "[steps('instana').acceptLicense]",
             "tagsByResource": "[steps('tags').tagsByResource]"
         }
