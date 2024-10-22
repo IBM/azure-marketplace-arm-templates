@@ -117,13 +117,6 @@
                 "description": "Domain name prefix for the public IP address"
             }
         },
-        "deployInstana": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description": "Flag to enable or disable deployment of Instana on VM"
-            }
-        },
         "logLevel": {
             "type": "string",
             "defaultValue": "info",
@@ -203,10 +196,6 @@
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
             "name": "[concat(parameters('vmName'),'/','installInstana')]",
-            "condition": "[parameters('deployInstana')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
-            ],
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
                 "type": "CustomScript",

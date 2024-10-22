@@ -572,7 +572,8 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",  
             "dependsOn": [
-               "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]" 
+               "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+               "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]" 
             ],
             "name": "createVM",
             "properties": {
@@ -604,9 +605,6 @@
                     },
                     "publicIPName": {
                         "value": "[parameters('publicIPName')]" 
-                    },
-                    "domainName": {
-                        "value": "[parameters('domainName')]" 
                     },
                     "vmName": {
                         "value": "[parameters('vmName')]"
@@ -780,14 +778,6 @@
                             },
                             "securityType": "[parameters('securityType')]"
                         },
-                        "publicIpId": {
-                            "new": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
-                            },
-                            "existing": {
-                                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
-                            }
-                        },
                         "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
                         "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]"
                     },
@@ -816,7 +806,9 @@
                                             "subnet": {
                                                 "id": "[variables('subnetId')]"
                                             },
-                                            "publicIPAddress": "[variables('publicIpId')[parameters('publicIpNewOrExisting')]]",
+                                            "publicIPAddress": {
+                                                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                                            },
                                             "privateIPAllocationMethod": "Dynamic"
                                         }
                                     }
@@ -826,8 +818,7 @@
                                 }
                             },
                             "dependsOn": [
-                                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
-                                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
                             ]
                         },
                             {
@@ -1016,7 +1007,9 @@
             "apiVersion": "2023-07-01",
             "condition": "[parameters('deployInstana')]",
             "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'createVM')]",
+                "[resourceId(parameters('dnsZoneResourceGroup'),'Microsoft.Resources/deployments', 'updateDNSZone')]"
             ],
             "name": "instanaDeployment",
             "properties": {
@@ -1074,9 +1067,6 @@
                     "domainName": {
                         "value": "[parameters('domainName')]"
                     },
-                    "deployInstana": {
-                        "value": true
-                    },
                     "logLevel": {
                         "value": "[parameters('logLevel')]"
                     },
@@ -1085,9 +1075,6 @@
                     },
                     "deploymentVersion": {
                         "value": "[parameters('deploymentVersion')]"
-                    },
-                    "tagsByResource": {
-                        "value": "[parameters('tagsByResource')]"
                     }
                 }
             }
