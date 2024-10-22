@@ -38,7 +38,7 @@
 
   - name: Check status of Instana core
     ansible.builtin.shell:
-      cmd: "kubectl get core -n instana-core -o json | jq -r .items[].status.componentsStatus"
+      cmd: "{{ dir.bin_dir }}/kubectl get core -n instana-core -o json | jq -r .items[].status.componentsStatus"
     register: core_status
 
   - name: Output Instana core status
@@ -48,7 +48,7 @@
 
   - name: Check status of instana unit
     ansible.builtin.shell:
-      cmd: "kubectl get unit -n instana-unit -o json | jq -r .items[].status.componentsStatus"
+      cmd: "{{ dir.bin_dir }}/kubectl get unit -n instana-unit -o json | jq -r .items[].status.componentsStatus"
     register: unit_status
 
   - name: Output Instana unit status
@@ -58,7 +58,7 @@
 
   - name: Set Instana status
     ansible.builtin.set_fact:
-      instana_status: "{{ 'Ready' if(core_status == 'Ready' and unit_status == 'Ready') else 'NotReady' }}"
+      instana_status: "{{ 'Ready' if(core_status.stdout == 'Ready' and unit_status.stdout == 'Ready') else 'NotReady' }}"
 
   - name: Force failure if not ready
     ansible.builtin.command: /bin/false
