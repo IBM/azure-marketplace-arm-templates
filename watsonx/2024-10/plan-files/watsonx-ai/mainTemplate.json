@@ -1986,6 +1986,9 @@
                     },
                     "deploymentVersion": {
                         "value": "[parameters('deploymentVersion')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]"
                     }
                 }
             }
