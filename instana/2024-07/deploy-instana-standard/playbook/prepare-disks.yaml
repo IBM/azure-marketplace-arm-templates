@@ -1,7 +1,7 @@
 ---
 
 - name: Output name of disk to be prepared
-  debug:
+  ansible.builtin.debug:
     msg: "Preparing disk {{ disk.name }} of size {{ disk.size }}"
 
 - name: Update host facts
@@ -12,72 +12,77 @@
   register: response
 
 - name: If already mount, set flag
-  set_fact:
-    disk_mounted: true
-  when: response.stdout != ""
+  ansible.builtin.set_fact:
+    disk_mounted: {{ True if(response.stdout != "") else False }}
 
-- name: If not already mount, set flag
-  set_fact:
-    disk_mounted: false
-  when: response.stdout == ""
+- name: Message if disk already mounted
+  ansible.builtin.debug:
+    msg: "Disk {{ disk.name }} already mounted at {{ disk.mount_point }}. Skipping to next."
+  when: disk_mounted
 
-- name: Create mount point
-  ansible.builtin.file:
-    path: "{{ disk.mount_point }}"
-    state: directory
-
-- set_fact:
-    available_disks: []
-
-- name: Get list of available devices
-  set_fact:
-    available_disks: "{{ available_disks | default({}) | union([{ 'name': item.key, 'size': item.value.size} ]) }}"
-  with_dict: "{{ ansible_facts.devices }}"
-  when: 
-  - item.value.partitions | length == 0
-  - item.value.size == disk.size
-
-- fail:
-    msg: "No available disks found with size {{ disk.size }}"
-  when: 
-  - available_disks | length == 0
-  - not disk_mounted
-
-- set_fact:
-    disk_device: "/dev/{{ available_disks[0].name }}"
-  when:
-  - not disk_mounted
-
-- debug:
-    msg: "Found disk {{ disk_device }}"
-  when:
-  - not disk_mounted
-
-- name: Label the partition
-  ansible.builtin.shell: parted -s {{ disk_device }} mklabel msdos
-  args:
-    executable: /bin/bash
-  register: response
+- name: Locate empty disk, partition it, format it and mount it if not already mounted
   when: not disk_mounted
+  block:
+  - name: Create mount point
+    ansible.builtin.file:
+      path: "{{ disk.mount_point }}"
+      state: directory
 
-- name: Create disk partition
-  ansible.builtin.shell: parted -s -a optimal {{ disk_device }} mkpart primary ext4 1 100%
-  args:
-    executable: /bin/bash
-  register: response
-  when: not disk_mounted
+  - name: Determine sectors in required partition
+    ansible.builtin.set_fact:
+      sector_size: "{{ disk.size * 1024 * 1024 * 2 }}"
 
-- name: Format the filesystem
-  ansible.builtin.shell: mkfs.xfs -f {{ disk_device }}1
-  args:
-    executable: /bin/bash
-  when: not disk_mounted
+  - name: Output required sector size
+    ansible.builtin.debug:
+      var: sector_size
+    when: log_level == "debug"
 
-- name: Mount the filesystem
-  ansible.builtin.shell: mount -t xfs {{ disk_device }}1 {{ disk.mount_point }}
-  when: not disk_mounted
+  - name: Set empty fact list
+    ansible.builtin.set_fact:
+      available_disks: []
 
-- name: Add filesystem to fstab
-  ansible.builtin.shell: echo "{{ disk_device }}1 {{ disk.mount_point }} xfs defaults 0 0" >> /etc/fstab
-  when: not disk_mounted
+  - name: Get list of available devices
+    set_fact:
+      available_disks: "{{ available_disks | default({}) | union([{ 'name': item.key, 'size': item.value.sectors} ]) }}"
+    with_dict: "{{ ansible_facts.devices }}"
+    when: 
+    - item.value.partitions | length == 0
+    - item.value.sectors == sector_size
+
+  - name: Fail if no available disks with no partitions of required sector size found
+    ansible.builtin.fail:
+      msg: "No available disks found with size {{ disk.size }}"
+    when: 
+    - available_disks | length == 0
+
+  - name: Set the fact with the found device
+    ansible.builtin.set_fact:
+      disk_device: "/dev/{{ available_disks[0].name }}"
+
+  - name: Output the matching empty disk
+    ansible.builtin.debug:
+      msg: "Found disk {{ disk_device }}"
+
+  - name: Label the partition
+    ansible.builtin.shell: parted -s {{ disk_device }} mklabel msdos
+    args:
+      executable: /bin/bash
+    register: response
+
+  - name: Create disk partition
+    ansible.builtin.shell: parted -s -a optimal {{ disk_device }} mkpart primary ext4 1 100%
+    args:
+      executable: /bin/bash
+    register: response
+
+  - name: Format the filesystem
+    ansible.builtin.shell: mkfs.xfs -f {{ disk_device }}1
+    args:
+      executable: /bin/bash
+
+  - name: Mount the filesystem
+    ansible.builtin.shell: mount -t xfs {{ disk_device }}1 {{ disk.mount_point }}
+
+  - name: Add filesystem to fstab
+    ansible.builtin.shell: echo "{{ disk_device }}1 {{ disk.mount_point }} xfs defaults 0 0" >> /etc/fstab
 

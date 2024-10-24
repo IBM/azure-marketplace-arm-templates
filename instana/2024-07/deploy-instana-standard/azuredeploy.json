@@ -165,22 +165,22 @@
             "disks": [
                 {
                     "name": "data",
-                    "size": "[concat(parameters('dataDiskSize'),'.00 GB')]",
+                    "size": "[parameters('dataDiskSize')]",
                     "mount_point": "/mnt/instana/stanctl/data"
                 },
                 {
                     "name": "metrics",
-                    "size": "[concat(parameters('metricsDiskSize'),'.00 GB')]",
+                    "size": "[parameters('metricsDiskSize')]",
                     "mount_point": "/mnt/instana/stanctl/metrics"
                 },
                 {
                     "name": "analytics",
-                    "size": "[concat(parameters('analyticsDiskSize'),'.00 GB')]",
+                    "size": "[parameters('analyticsDiskSize')]",
                     "mount_point": "/mnt/instana/stanctl/analytics"
                 },
                 {
                     "name": "objects",
-                    "size": "[concat(parameters('objectsDiskSize'),'.00 GB')]",
+                    "size": "[parameters('objectsDiskSize')]",
                     "mount_point": "/mnt/instana/stanctl/objects"
                 }
             ],
