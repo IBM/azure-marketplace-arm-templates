@@ -1218,7 +1218,7 @@
             "instanaPassword": "[steps('instana').instanaPassword]",
             "dataDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').dataDiskSizeProd,steps('instana').dataDiskSizeProd)]",
             "metricsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').metricsDiskSizeProd,steps('instana').metricsDiskSizeProd)]",
-            "analticsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').analyticsDiskSizeProd,steps('instana').analyticsDiskSizeProd)]",
+            "analyticsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').analyticsDiskSizeProd,steps('instana').analyticsDiskSizeProd)]",
             "objectsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').objectsDiskSizeProd,steps('instana').objectsDiskSizeProd)]",
             "downloadKey": "[steps('instana').downloadKey]",
             "salesKey": "[steps('instana').salesKey]",
