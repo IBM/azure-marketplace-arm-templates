@@ -13,7 +13,7 @@
 
 - name: If already mount, set flag
   ansible.builtin.set_fact:
-    disk_mounted: {{ True if(response.stdout != "") else False }}
+    disk_mounted: "{{ True if(response.stdout != '') else False }}"
 
 - name: Message if disk already mounted
   ansible.builtin.debug:
