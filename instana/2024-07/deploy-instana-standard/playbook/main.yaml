@@ -55,24 +55,22 @@
         - jq
       state: latest  
 
-  - name: Get the mount details
-    ansible.builtin.set_fact:
-      root_size: "{{ (ansible_facts.mounts | selectattr(\"mount\", \"equalto\", \"/\") | list)[0].size_total }}"
+  - name: Check root volume
+    block:
 
-  - name: Set okay if larger than required
-    set_fact:
-      disk_size_okay: true
-    when: (root_size | int / 1024 / 1024 / 1024) >= osdisk.home.size
+    - name: Get the mount details
+      ansible.builtin.set_fact:
+        root_size: "{{ (ansible_facts.mounts | selectattr(\"mount\", \"equalto\", \"/\") | list)[0].size_total }}"
 
-  - name: Set not okay if smaller than required
-    set_fact:
-      disk_size_okay: false
-    when: (root_size | int / 1024 / 1024 / 1024) < osdisk.home.size
+    - name: Set flag on whether the root disk size is sufficient
+      set_fact:
+        disk_size_okay: "{{ True if ( (root_size | int / 1024 / 1024 / 1024) >= osdisk.home.size ) else False }}"
+      when: (root_size | int / 1024 / 1024 / 1024) >= osdisk.home.size
 
-  - name: Prepare OS disk
-    ansible.builtin.include_tasks:
-      file: ./extend-os-disk.yaml
-    when: not disk_size_okay
+    - name: Prepare OS disk
+      ansible.builtin.include_tasks:
+        file: ./extend-os-disk.yaml
+      when: not disk_size_okay
 
   - name: Prepare additional disks
     ansible.builtin.include_tasks:
@@ -81,27 +79,27 @@
     loop_control:
       loop_var: disk
 
-  # - name: Configure kernel parameters - vm.swappiness
-  #   ansible.builtin.shell: |
-  #     set timeout 300
-  #     sh -c 'echo vm.swappiness=0 >> /etc/sysctl.d/99-stanctl.conf'
-  #     sysctl -p /etc/sysctl.d/99-stanctl.conf
-  #     exit 0
-  #   args:
-  #     executable: /bin/bash
+  - name: Configure path for binaries for user
+    block:
+    - name: Query current path setting in bashrc
+      ansible.builtin.shell:  
+        cmd: "cat ~{{ ansible_facts.user_id }}/.bashrc | grep /usr/local/bin || true"
+      args:
+        executable: /bin/bash
+      register: response
+      become_user: "{{ ansible_facts.user_id }}"
 
-  # - name: Configure kernel parameters - transparent hub pages
-  #   ansible.builtin.shell: |
-  #     set timeout 300
-  #     grubby --args="transparent_hugepage=never" --update-kernel ALL
-  #     exit 0
-  #   args:
-  #     executable: /bin/bash 
+    - name: Check if response contains /usr/local/bin
+      ansible.builtin.set_fact:
+        path_added: "{{ True if( response.stdout != '' ) else False }}"
 
-  - name: Add bin directory (for RHEL)
-    ansible.builtin.shell: echo 'export PATH=$PATH:/usr/local/bin' >> ~root/.bashrc
-    args:
-      executable: /bin/bash
+    - name: Add /usr/local/bin directory to {{ ansible_facts.user_id }}
+      ansible.builtin.shell: 
+        cmd: "echo 'export PATH=$PATH:/usr/local/bin' >> ~{{ ansible_facts.user_id }}/.bashrc"
+      args:
+        executable: /bin/bash
+      when: not path_added
+      become_user: "{{ ansible_facts.user_id }}"
 
   - name: Add firewall rules
     ansible.builtin.shell: |
