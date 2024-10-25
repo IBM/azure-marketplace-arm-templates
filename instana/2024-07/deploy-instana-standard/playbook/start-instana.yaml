@@ -97,7 +97,7 @@
 
     - name: Stop instana
       ansible.builtin.shell: |
-        set timeout 600
+        set timeout 1800
         export HOME="{{ ansible_facts.user_dir }}"
         stanctl down
       args:
