@@ -66,7 +66,21 @@
 
   rescue:
 
-  - name: Fail if more than required retries
+  - name: Dump result if exceeded retries
+    ansible.builtin.shell: |
+      set timeout 600
+      export HOME="{{ ansible_facts.user_dir }}"
+      stanctl dump
+      exit 0
+    args:
+      executable: /bin/bash
+      chdir: "{{ ansible_facts.user_dir }}"
+    become: yes
+    become_user: "{{ ansible_facts.user_id }}"
+    when: retry_count | int >= default.retries
+
+
+  - name: Fail if exceeded retries
     ansible.builtin.fail: 
       msg: "Unable to start Instana after {{ default.retries }} attempts. Please check logs."
     when: retry_count | int >= default.retries
@@ -80,20 +94,20 @@
     ansible.builtin.pause:
       minutes: 1
 
-  # - name: Get list of any existing stanctl jobs running
-  #   ansible.builtin.shell: | 
-  #     set timeout 30
-  #     ps xua | grep stanctl | grep -v grep | awk '{print $2}'
-  #   args:
-  #     executable: /bin/bash
-  #   register: response
-  #   when: retry_count | int < default.retries
-
-  # - name: Kill any existing stanctl jobs
-  #   ansible.builtin.shell: 
-  #     cmd: "kill {{ item }}"
-  #   loop: "{{ response.stdout_lines }}"
-  #   when: retry_count | int < default.retries
+  - name: Stop instana
+    ansible.builtin.shell: |
+      set timeout 600
+      export HOME="{{ ansible_facts.user_dir }}"
+      stanctl down
+    args:
+      executable: /bin/bash
+      chdir: "{{ ansible_facts.user_dir }}"
+    become: yes
+    become_user: "{{ ansible_facts.user_id }}"
+    register: response
+    async: "{{ default.timeout | int }}"
+    poll: "{{ default.poll | int }}"
+    when: retry_count | int < default.retries
 
   - name: Run again
     ansible.builtin.include_tasks:
