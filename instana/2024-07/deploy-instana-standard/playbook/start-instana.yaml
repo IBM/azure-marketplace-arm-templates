@@ -99,7 +99,8 @@
       ansible.builtin.shell: |
         set timeout 1800
         export HOME="{{ ansible_facts.user_dir }}"
-        stanctl down
+        stanctl down --quiet
+        exit 0
       args:
         executable: /bin/bash
         chdir: "{{ ansible_facts.user_dir }}"
