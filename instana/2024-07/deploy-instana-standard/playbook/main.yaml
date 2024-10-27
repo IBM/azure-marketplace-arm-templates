@@ -65,7 +65,6 @@
     - name: Set flag on whether the root disk size is sufficient
       set_fact:
         disk_size_okay: "{{ True if ( (root_size | int / 1024 / 1024 / 1024) >= osdisk.home.size ) else False }}"
-      when: (root_size | int / 1024 / 1024 / 1024) >= osdisk.home.size
 
     - name: Prepare OS disk
       ansible.builtin.include_tasks:
