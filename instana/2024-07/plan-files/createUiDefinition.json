@@ -1020,6 +1020,7 @@
                         "type": "Microsoft.Common.TextBox",
                         "label": "Name for the Instana tenant",
                         "toolTip": "This will be used to configure the Instana application",
+                        "defaultValue": "tenant0",
                         "visible": true,
                         "constraints": {
                             "required": true,
@@ -1036,6 +1037,7 @@
                         "type": "Microsoft.Common.TextBox",
                         "label": "Unit name for the Instana instance",
                         "toolTip": "This will be used to configure the Instana application",
+                        "defaultValue": "unit0",
                         "visible": true,
                         "constraints": {
                             "required": true,
