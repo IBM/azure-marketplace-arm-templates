@@ -96,14 +96,14 @@
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-subnet')]",
             "metadata": {
-                "description": "Name of the subnet to attach the deployment script container to. Used for private vnet."
+                "description": "Name of the subnet for the virtual machine."
             }
         },
         "subnetCidr": {
             "type": "string",
             "defaultValue": "10.0.1.0/27",
             "metadata": {
-                "description": "Network address of the subnet to attach the deployment script container to"
+                "description": "Network address of the virtual machine subnet"
             }
         },
         "installType": {
@@ -244,13 +244,6 @@
             "defaultValue": "Standard_D16s_v3",
             "metadata": {
                 "description": "Size of Virtual Machine"
-            }
-        },
-        "vmDiskType": {
-            "type": "string",
-            "defaultValue": "Premium_LRS",
-            "metadata": {
-                "description": "OS Disk type for Dev VM"
             }
         },
         "vmZone": {
@@ -597,9 +590,6 @@
                     "subnetName": {
                         "value": "[parameters('subnetName')]" 
                     },
-                    "publicIpNewOrExisting": {
-                        "value": "[parameters('publicIpNewOrExisting')]"
-                    },
                     "publicIpResourceGroup": {
                         "value": "[parameters('publicIpResourceGroup')]" 
                     },
@@ -718,9 +708,6 @@
                             "type": "string"
                         },
                         "vmOSVersion": {
-                            "type": "string"
-                        },
-                        "publicIpNewOrExisting": {
                             "type": "string"
                         },
                         "publicIpResourceGroup": {
