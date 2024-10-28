@@ -41,7 +41,7 @@
       tmp_dir: "/tmp"
       bin_dir: "/usr/local/bin"
     default:
-      retries: 2
+      retries: 1
       timeout: 1830
       poll: 60
 
