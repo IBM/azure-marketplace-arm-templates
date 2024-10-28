@@ -95,20 +95,20 @@
       ansible.builtin.pause:
         minutes: 1
 
-    - name: Stop instana
-      ansible.builtin.shell: |
-        set timeout 1800
-        export HOME="{{ ansible_facts.user_dir }}"
-        stanctl down --quiet
-        exit 0
-      args:
-        executable: /bin/bash
-        chdir: "{{ ansible_facts.user_dir }}"
-      become: yes
-      become_user: "{{ ansible_facts.user_id }}"
-      register: response
-      async: "{{ default.timeout | int }}"
-      poll: "{{ default.poll | int }}"
+    # - name: Stop instana
+    #   ansible.builtin.shell: |
+    #     set timeout 1800
+    #     export HOME="{{ ansible_facts.user_dir }}"
+    #     stanctl down --quiet
+    #     exit 0
+    #   args:
+    #     executable: /bin/bash
+    #     chdir: "{{ ansible_facts.user_dir }}"
+    #   become: yes
+    #   become_user: "{{ ansible_facts.user_id }}"
+    #   register: response
+    #   async: "{{ default.timeout | int }}"
+    #   poll: "{{ default.poll | int }}"
 
     - name: Run again
       ansible.builtin.include_tasks:
