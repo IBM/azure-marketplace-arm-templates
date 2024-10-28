@@ -973,8 +973,11 @@
 					},
                     {
                         "name": "downloadKey",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Instana Download Key",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "Instana Download Key",
+                            "confirmPassword": "Confirm"
+                        },
                         "toolTip": "Download key for the Instana application",
                         "visible": true,
                         "constraints": {
@@ -985,12 +988,18 @@
                                     "message": "Must be between 8 and 30 characters in length and contain only alphanumeric characters"
                                 }
                             ]
+                        },
+                        "options": {
+                            "hideConfirmation": true
                         }
                     },
                     {
                         "name": "salesKey",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Instana Sales Key",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "Instana Sales Key",
+                            "confirmPassword": "Confirm"
+                        },
                         "toolTip": "Sales key for the Instana application",
                         "visible": true,
                         "constraints": {
@@ -1001,6 +1010,9 @@
                                     "message": "Must be between 8 and 30 characters in length and contain only alphanumeric characters"
                                 }
                             ]
+                        },
+                        "options": {
+                            "hideConfirmation": true
                         }
                     },
                     {
