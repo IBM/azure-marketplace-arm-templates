@@ -1066,5 +1066,12 @@
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "instanaUrl": {
+            "type": "string",
+            "condition": "[parameters('deployInstana')]",
+            "value": "[concat('https://',parameters('instanaDomain'),'/')]"
+        }
+    }
 }
