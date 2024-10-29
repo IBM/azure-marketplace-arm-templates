@@ -73,7 +73,7 @@
       ansible.builtin.shell: |
         set timeout 600
         export HOME="{{ ansible_facts.user_dir }}"
-        stanctl dump
+        stanctl debug --quiet --output-dir ~{{ ansible_facts.user_dir }}/
         exit 0
       args:
         executable: /bin/bash
