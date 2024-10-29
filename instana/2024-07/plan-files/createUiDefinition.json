@@ -1201,6 +1201,7 @@
             }
         ],
         "outputs": {
+            "namePrefix": "[basics('namePrefix')]",
             "location": "[location()]",
             "networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
             "vnetName": "[steps('networking').vnet.name]",
