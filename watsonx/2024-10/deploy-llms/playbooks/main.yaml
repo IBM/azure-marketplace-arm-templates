@@ -1,0 +1,107 @@
+---
+- name: Add Foundation Models
+  hosts: localhost
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
+    directories:
+      bin_dir: "/usr/local/bin"
+      tmp_dir: "/tmp"
+    cpd:
+      instance:
+        namespace: "cpd-instance"
+      llm:
+        - ibm-granite-13b-chat-v2
+    default:
+      retries: 100
+      retry_delay: 60
+      cluster_stable_min: "30s"
+
+  tasks:
+
+    - name: Check if oc client is already installed
+      ansible.builtin.stat:
+        path: "{{ directories.bin_dir }}/oc"
+      register: oc_file
+
+    - name: Install oc client if not already installed
+      ansible.builtin.include_tasks:
+        file: install-oc.yaml
+      when: not oc_file.stat.exists
+
+    - name: Check if already logged into cluster
+      ansible.builtin.shell: |
+        set timeout 30
+        {{ directories.bin_dir }}/oc status 2> /dev/null
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+
+    - name: Login to OpenShift cluster if not already logged in
+      ansible.builtin.include_tasks:
+        file: oc-login.yaml
+      when: response.stdout == ""
+
+    - name: Wait for cluster to be available
+      ansible.builtin.shell: |
+        set timeout 900
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_stable_min }}
+        exit 0
+      args:
+        executable: /bin/bash
+
+    - name: Confirm watsonxaiifm is running
+      block:
+
+      - name: Query the current status
+        ansible.builtin.shell:
+          cmd: "{{ directories.bin_dir }}/oc get watsonxaiifm watsonxaiifm-cr -n {{ cpd.instance.namespace }} -o jsonpath='{.status.conditions[?(.type==\"Successful\")].status}'"
+        register: response
+        args:
+          executable: /bin/bash
+
+      - name: Output the query result
+        ansible.builtin.debug:
+          var: response
+        when: log_level == "debug"
+
+      - name: Determine status from query
+        ansible.builtin.set_fact:
+          watsonxaiifm_ready: "{{ True if( response.stdout == 'True') else False }}"
+
+      - name: Fail if watsonxaiifm not ready
+        ansible.builtin.fail:
+          msg: "watsonxaiifm CR not ready. Unable to proceed."
+        when: not watsonxaiifm_ready
+
+    - name: Patch the CR with the LLMs
+      block:
+
+        - name: Output list of LLMs provided
+          ansible.builtin.debug:
+            msg: "Will add the following LLMS {{ cpd.llm | to_json }}"
+          when: log_level == "debug"
+
+        - name: Patch the watsonxaiifm CR
+          ansible.builtin.shell:
+            cmd: "{{ directories.bin_dir }}/oc patch watsonxaiifm watsonxaiifm-cr -n {{ cpd.instance.namespace }} --type merge --patch '{\"spec\":{\"install_model_list\": {{ cpd.llm | to_json }} } }'"
+          register: response
+
+        - name: Output the patch result
+          ansible.builtin.debug:
+            var: response
+          when: log_level == "debug"
+
+    - name: Wait for CR to update
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get watsonxaiifm watsonxaiifm-cr -n {{ cpd.instance.namespace }} -o jsonpath='{.status.conditions[?(.type==\"Successful\")].status}'"
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "True"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+
+

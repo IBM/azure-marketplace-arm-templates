@@ -1,0 +1,16 @@
+apiVersion: maistra.io/v2
+kind: ServiceMeshControlPlane
+metadata:
+  name: basic
+  namespace: istio-system
+spec:
+  version: v2.6
+  tracing:
+    type: None
+    sampling: 10000
+  addons:
+    kiali:
+      enabled: false
+      name: kiali
+    grafana:
+      enabled: true

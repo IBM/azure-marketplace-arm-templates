@@ -1,0 +1,305 @@
+---
+- name: Configure OpenShift cluster for watsonx
+  hosts: localhost
+  gather_facts: true
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
+    directories:
+      bin_dir: "/usr/local/bin"
+      tmp_dir: "/tmp"
+    default:
+      retries: 30
+      retry_delay: 15
+      cluster_ready: 5m
+
+  tasks:
+
+    - name: Check if oc client is already installed
+      ansible.builtin.stat:
+        path: "{{ directories.bin_dir }}/oc"
+      register: oc_file
+
+    - name: Install oc client if not already installed
+      ansible.builtin.include_tasks:
+        file: install-oc.yaml
+      when: not oc_file.stat.exists
+
+    - name: Check if already logged into cluster
+      ansible.builtin.shell: |
+        set timeout 30
+        {{ directories.bin_dir }}/oc status 2> /dev/null
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+
+    - name: Login to OpenShift cluster if not already logged in
+      ansible.builtin.include_tasks:
+        file: ./oc-login.yaml
+      when: response.stdout == ""
+
+    - name: Create template directory if not already in place
+      ansible.builtin.file:
+        path: ./templates
+        state: directory
+      
+    # Following is required as some implementations download templates and playbooks to a single directory
+    - name: Copy templates to template directory
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: ./templates/
+      with_fileglob:
+        - ./*.j2
+
+    - name: Wait for cluster to be available
+      ansible.builtin.shell: |
+        set timeout 900
+        {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_ready }}
+      args:
+        executable: /bin/bash
+
+    # Configure the worker node sysctl
+
+    - name: Set the machineset type
+      ansible.builtin.set_fact:
+        machineset_type: "worker"
+
+    - name: Set the machineset name
+      ansible.builtin.set_fact:
+        machineset_name: "98-master-worker-sysctl"
+
+    - name: Set the base64 encoded settings
+      ansible.builtin.set_fact:
+        setting_content: "data:text/plain;charset=utf-8;base64,a2VybmVsLnNobWFsbCA9IDMzNTU0NDMyCmtlcm5lbC5zaG1tYXggPSA2ODcxOTQ3NjczNgprZXJuZWwuc2htbW5pID0gMzI3NjgKa2VybmVsLnNlbSA9IDI1MCAxMDI0MDAwIDEwMCAzMjc2OAprZXJuZWwubXNnbWF4ID0gNjU1MzYKa2VybmVsLm1zZ21uYiA9IDY1NTM2Cmtlcm5lbC5tc2dtbmkgPSAzMjc2OAp2bS5tYXhfbWFwX2NvdW50ID0gMjYyMTQ0"
+
+    - name: Set the path to the setting
+      ansible.builtin.set_fact:
+        setting_path: "/etc/sysctl.conf"
+
+    - name: Create worker sysctl definition
+      ansible.builtin.template:
+        src: "./templates/machineconfig.j2"
+        dest: "{{ directories.tmp_dir }}/sysctl-machineconfig.yaml"
+
+    - name: Apply the machineconfig definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/sysctl-machineconfig.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the machineconfig sysctl definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up the sysctl definition file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/sysctl-machineconfig.yaml"
+
+    # Configure worker node security limits
+
+    - name: Set the machineset type
+      ansible.builtin.set_fact:
+        machineset_type: "worker"
+
+    - name: Set the machineset name
+      ansible.builtin.set_fact:
+        machineset_name: "15-security-limits"
+
+    - name: Set the base64 encoded settings
+      ansible.builtin.set_fact:
+        setting_content: "data:text/plain;charset=utf-8;base64,KiAgICAgICAgICAgICAgIGhhcmQgICAgbm9maWxlICAgICAgICAgNjY1NjAKKiAgICAgICAgICAgICAgIHNvZnQgICAgbm9maWxlICAgICAgICAgNjY1NjA="
+
+    - name: Set the path to the setting
+      ansible.builtin.set_fact:
+        setting_path: "/etc/security/limits.conf"
+
+    - name: Create worker security limits definition
+      ansible.builtin.template:
+        src: "./templates/machineconfig.j2"
+        dest: "{{ directories.tmp_dir }}/security-limits-machineconfig.yaml"
+
+    - name: Apply the machineconfig definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/security-limits-machineconfig.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the machineconfig sysctl definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up the security limits definition file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/security-limits-machineconfig.yaml"
+
+    # Configure worker crio
+
+    - name: Set the machineset type
+      ansible.builtin.set_fact:
+        machineset_type: "worker"
+
+    - name: Set the machineset name
+      ansible.builtin.set_fact:
+        machineset_name: "90-worker-crio"
+
+    - name: Set the base64 encoded settings
+      ansible.builtin.set_fact:
+        setting_content: "data:text/plain;charset=utf-8;base64,W2NyaW9dCltjcmlvLmFwaV0Kc3RyZWFtX2FkZHJlc3MgPSAiIgpzdHJlYW1fcG9ydCA9ICIxMDAxMCIKW2NyaW8ucnVudGltZV0KZGVmYXVsdF91bGltaXRzID0gWwogICAgIm5vZmlsZT02NTUzNjo2NTUzNiIKXQpjb25tb24gPSAiL3Vzci9saWJleGVjL2NyaW8vY29ubW9uIgpjb25tb25fY2dyb3VwID0gInBvZCIKYXBwYXJtb3JfcHJvZmlsZSA9ICJjcmlvLWRlZmF1bHQiCmNncm91cF9tYW5hZ2VyID0gInN5c3RlbWQiCmhvb2tzX2RpciA9IFsKICAgICIvZXRjL2NvbnRhaW5lcnMvb2NpL2hvb2tzLmQiLApdCnBpZHNfbGltaXQgPSAxMjI4OApbY3Jpby5pbWFnZV0KZ2xvYmFsX2F1dGhfZmlsZSA9ICIvdmFyL2xpYi9rdWJlbGV0L2NvbmZpZy5qc29uIgpwYXVzZV9pbWFnZSA9ICJxdWF5LmlvL29wZW5zaGlmdC1yZWxlYXNlLWRldi9vY3AtdjQuMC1hcnQtZGV2QHNoYTI1NjoyZGMzYmRjYjJiMGJmMWQ2YzZhZTc0OWJlMDE2M2U2ZDdjYTgxM2VjZmJhNWU1ZjVkODg5NzBjNzNhOWQxMmE5IgpwYXVzZV9pbWFnZV9hdXRoX2ZpbGUgPSAiL3Zhci9saWIva3ViZWxldC9jb25maWcuanNvbiIKcGF1c2VfY29tbWFuZCA9ICIvdXNyL2Jpbi9wb2QiCltjcmlvLm5ldHdvcmtdCm5ldHdvcmtfZGlyID0gIi9ldGMva3ViZXJuZXRlcy9jbmkvbmV0LmQvIgpwbHVnaW5fZGlycyA9IFsKICAgICIvdmFyL2xpYi9jbmkvYmluIiwKXQpbY3Jpby5tZXRyaWNzXQplbmFibGVfbWV0cmljcyA9IHRydWUKbWV0cmljc19wb3J0ID0gOTUzNw=="
+
+    - name: Set the path to the setting
+      ansible.builtin.set_fact:
+        setting_path: "/etc/crio/crio.conf"
+
+    - name: Create worker crio definition
+      ansible.builtin.template:
+        src: "./templates/machineconfig.j2"
+        dest: "{{ directories.tmp_dir }}/crio-machineconfig.yaml"
+
+    - name: Apply the machineconfig definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/crio-machineconfig.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the machineconfig sysctl definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up the crio definition file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/crio-machineconfig.yaml"
+
+    # Configure kubelet
+
+    - name: Create kubelet definition
+      ansible.builtin.template:
+        src: "./templates/kubeletconfig.j2"
+        dest: "{{ directories.tmp_dir }}/kubeletconfig.yaml"
+
+    - name: Apply the kubelet config definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/kubeletconfig.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the kubelet config definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up the kubelet config definition file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/kubeletconfig.yaml"
+
+    # Configure worker machineconfig kubelet
+
+    - name: Set the machineset type
+      ansible.builtin.set_fact:
+        machineset_type: "worker"
+
+    - name: Set the machineset name
+      ansible.builtin.set_fact:
+        machineset_name: "99-worker-kubelet"
+
+    - name: Set the settings content
+      ansible.builtin.set_fact:
+        setting_content: "data:text/plain,%7B%0A%20%20%22kind%22%3A%20%22KubeletConfiguration%22%2C%0A%20%20%22apiVersion%22%3A%20%22kubelet.config.k8s.io%2Fv1beta1%22%2C%0A%20%20%22staticPodPath%22%3A%20%22%2Fetc%2Fkubernetes%2Fmanifests%22%2C%0A%20%20%22syncFrequency%22%3A%20%220s%22%2C%0A%20%20%22fileCheckFrequency%22%3A%20%220s%22%2C%0A%20%20%22httpCheckFrequency%22%3A%20%220s%22%2C%0A%20%20%22tlsCipherSuites%22%3A%20%5B%0A%20%20%20%20%22TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256%22%2C%0A%20%20%20%20%22TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256%22%2C%0A%20%20%20%20%22TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384%22%2C%0A%20%20%20%20%22TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384%22%2C%0A%20%20%20%20%22TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256%22%2C%0A%20%20%20%20%22TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256%22%0A%20%20%5D%2C%0A%20%20%22tlsMinVersion%22%3A%20%22VersionTLS12%22%2C%0A%20%20%22rotateCertificates%22%3A%20true%2C%0A%20%20%22serverTLSBootstrap%22%3A%20true%2C%0A%20%20%22authentication%22%3A%20%7B%0A%20%20%20%20%22x509%22%3A%20%7B%0A%20%20%20%20%20%20%22clientCAFile%22%3A%20%22%2Fetc%2Fkubernetes%2Fkubelet-ca.crt%22%0A%20%20%20%20%7D%2C%0A%20%20%20%20%22webhook%22%3A%20%7B%0A%20%20%20%20%20%20%22cacheTTL%22%3A%20%220s%22%0A%20%20%20%20%7D%2C%0A%20%20%20%20%22anonymous%22%3A%20%7B%0A%20%20%20%20%20%20%22enabled%22%3A%20false%0A%20%20%20%20%7D%0A%20%20%7D%2C%0A%20%20%22authorization%22%3A%20%7B%0A%20%20%20%20%22webhook%22%3A%20%7B%0A%20%20%20%20%20%20%22cacheAuthorizedTTL%22%3A%20%220s%22%2C%0A%20%20%20%20%20%20%22cacheUnauthorizedTTL%22%3A%20%220s%22%0A%20%20%20%20%7D%0A%20%20%7D%2C%0A%20%20%22clusterDomain%22%3A%20%22cluster.local%22%2C%0A%20%20%22clusterDNS%22%3A%20%5B%0A%20%20%20%20%22172.30.0.10%22%0A%20%20%5D%2C%0A%20%20%22streamingConnectionIdleTimeout%22%3A%20%220s%22%2C%0A%20%20%22nodeStatusUpdateFrequency%22%3A%20%220s%22%2C%0A%20%20%22nodeStatusReportFrequency%22%3A%20%220s%22%2C%0A%20%20%22imageMinimumGCAge%22%3A%20%220s%22%2C%0A%20%20%22volumeStatsAggPeriod%22%3A%20%220s%22%2C%0A%20%20%22systemCgroups%22%3A%20%22%2Fsystem.slice%22%2C%0A%20%20%22cgroupRoot%22%3A%20%22%2F%22%2C%0A%20%20%22cgroupDriver%22%3A%20%22systemd%22%2C%0A%20%20%22cpuManagerReconcilePeriod%22%3A%20%220s%22%2C%0A%20%20%22runtimeRequestTimeout%22%3A%20%220s%22%2C%0A%20%20%22maxPods%22%3A%20250%2C%0A%20%20%22kubeAPIQPS%22%3A%2050%2C%0A%20%20%22kubeAPIBurst%22%3A%20100%2C%0A%20%20%22serializeImagePulls%22%3A%20false%2C%0A%20%20%22evictionHard%22%3A%20%7B%0A%20%20%20%20%22imagefs.available%22%3A%20%2215%25%22%2C%0A%20%20%20%20%22memory.available%22%3A%20%22500Mi%22%2C%0A%20%20%20%20%22nodefs.available%22%3A%20%2210%25%22%2C%0A%20%20%20%20%22nodefs.inodesFree%22%3A%20%225%25%22%0A%20%20%7D%2C%0A%20%20%22evictionPressureTransitionPeriod%22%3A%20%220s%22%2C%0A%20%20%22featureGates%22%3A%20%7B%0A%20%20%20%20%22APIPriorityAndFairness%22%3A%20true%2C%0A%20%20%20%20%22DownwardAPIHugePages%22%3A%20true%2C%0A%20%20%20%20%22LegacyNodeRoleBehavior%22%3A%20false%2C%0A%20%20%20%20%22NodeDisruptionExclusion%22%3A%20true%2C%0A%20%20%20%20%22RotateKubeletServerCertificate%22%3A%20true%2C%0A%20%20%20%20%22ServiceNodeExclusion%22%3A%20true%2C%0A%20%20%20%20%22SupportPodPidsLimit%22%3A%20true%0A%20%20%7D%2C%0A%20%20%22containerLogMaxSize%22%3A%20%2250Mi%22%2C%0A%20%20%22systemReserved%22%3A%20%7B%0A%20%20%20%20%22ephemeral-storage%22%3A%20%221Gi%22%0A%20%20%7D%2C%0A%20%20%22allowedUnsafeSysctls%22%3A%20%5B%0A%20%20%20%20%22kernel.msg*%22%2C%0A%20%20%20%20%22kernel.shm*%22%2C%0A%20%20%20%20%22kernel.sem%22%0A%20%20%5D%2C%0A%20%20%22logging%22%3A%20%7B%7D%2C%0A%20%20%22shutdownGracePeriod%22%3A%20%220s%22%2C%0A%20%20%22shutdownGracePeriodCriticalPods%22%3A%20%220s%22%0A%7D%0A"
+
+    - name: Set the path to the setting
+      ansible.builtin.set_fact:
+        setting_path: "/etc/kubernetes/kubelet.conf"
+
+    - name: Create worker kubelet definition
+      ansible.builtin.template:
+        src: "./templates/machineconfig.j2"
+        dest: "{{ directories.tmp_dir }}/kubelet-machineconfig.yaml"
+
+    - name: Apply the kubelet machineconfig definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/kubelet-machineconfig.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+
+    - name: Output the result of applying the machineconfig kubelet definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up the crio definition file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/kubelet-machineconfig.yaml"
+
+    - name: Sleep to let update start
+      ansible.builtin.pause:
+        minutes: 1
+
+    - name: Wait for nodes to be ready
+      ansible.builtin.shell: |
+        set timeout 5
+        {{ directories.bin_dir }}/oc get nodes | grep -E "SchedulingDisabled|NotReady"
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == ""
+      retries: 100
+      delay: 30
+
+    # Increase PID limit
+
+    - name: Set new pid limit value
+      ansible.builtin.set_fact: 
+        pids_limit: 16384
+
+    - name: Create container runtime config definition
+      ansible.builtin.template:
+        src: "./templates/containerruntimeconfig.j2"
+        dest: "{{ directories.tmp_dir }}/containerruntimeconfig.yaml"
+
+    - name: Apply the container runtime config definition
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/containerruntimeconfig.yaml"
+      args:
+        executable: /bin/bash
+      register: result
+    
+    - name: Output the result of applying the runtime config definition
+      ansible.builtin.debug:
+        var: result
+      when: log_level == "debug"
+
+    - name: Clean up the container runtime config definition file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ directories.tmp_dir }}/containerruntimeconfig.yaml"
+
+    - name: Sleep to let update start
+      ansible.builtin.pause:
+        minutes: 1
+
+    - name: Wait for nodes to be ready
+      ansible.builtin.shell: |
+        set timeout 5
+        {{ directories.bin_dir }}/oc get nodes | grep -E "SchedulingDisabled|NotReady"
+        exit 0 
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == ""
+      retries: 100
+      delay: 30

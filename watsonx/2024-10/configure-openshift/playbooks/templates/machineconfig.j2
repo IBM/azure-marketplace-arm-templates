@@ -1,0 +1,17 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: {{ machineset_type }}
+  name: {{ machineset_name }}
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - contents:
+          source: {{ setting_content }}
+        filesystem: root
+        mode: 0644
+        path: {{ setting_path }}

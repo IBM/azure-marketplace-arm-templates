@@ -1,0 +1,22 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  labels:
+    aro.openshift.io/limits: ""
+  name: db2u-kubelet
+spec:
+  kubeletConfig:
+    evictionHard:
+      imagefs.available: 15%
+      memory.available: 500Mi
+      nodefs.available: 10%
+      nodefs.inodesFree: 5%
+    systemReserved:
+      memory: 2000Mi
+    allowedUnsafeSysctls:
+      - "kernel.msg*"
+      - "kernel.shm*"
+      - "kernel.sem"
+  machineConfigPoolSelector:
+    matchLabels:
+      aro.openshift.io/limits: ""

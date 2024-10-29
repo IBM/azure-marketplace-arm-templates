@@ -1,0 +1,208 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "extensionName": {
+            "type": "string",
+            "defaultValue": "createGPUMachineset",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Password",
+                "Token"
+            ],
+            "metadata": {
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
+        "nodeType": {
+            "type": "string",
+            "defaultValue": "Standard_NC24ads_A100_v4",
+            "metadata": {
+                "description": "Type of GPU node to be deployed"
+            }
+        },
+        "nodeQty": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Number of GPU nodes to deploy"
+            }
+        },
+        "nodeStorageType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "metadata": {
+                "description": "Type of managed disk to be attached to the node"
+            }
+        },
+        "nodeDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "metadata": {
+                "description": "Size of the root disk for the GPU node"
+            }
+        },
+        "nodeName": {
+            "type": "string",
+            "defaultValue": "gpu",
+            "metadata": {
+                "description": "Machineset naming identifier"
+            }
+        },
+        "taintNodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether GPU node/s can be used for non-GPU related workloads or not (taint/set true to prevent other workloads)"
+            }
+        },
+        "nodeZone": {
+            "type": "int",
+            "defaultValue": 0,
+            "metadata": {
+                "description": "The Azure availability zone containing the GPU nodes. Set to zero to attempt to determine automatically. Refer to documentation to determine zone"
+            }
+        },
+        "logLevel": {
+            "type": "string",
+            "defaultValue": "info",
+            "allowedValues": [
+                "info",
+                "debug"
+            ],
+            "metadata": {
+                "description": "Log level for Ansible playbook"
+            }
+        },
+        "binDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Location of CLI binaries"
+            }
+        },
+        "gitRepositoryUrl": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
+            "metadata": {
+                "description": "URL for the GitHub repository containing the files to download"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for installation script"
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-10",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
+        "gitRepoBaseDirectory": "/watsonx/",
+        "gitRepoDeploymentDirectory": "/create-gpu-machinesets/",
+        "scriptParameters": {
+            "ansible_python_interpreter": "/usr/bin/python3",
+            "log_level": "[parameters('logLevel')]",
+            "gpu": {
+                "node_type": "[parameters('nodeType')]",
+                "qty": "[parameters('nodeQty')]",
+                "storage_type": "[parameters('nodeStorageType')]",
+                "disk_size": "[parameters('nodeDiskSize')]",
+                "name": "[parameters('nodeName')]",
+                "taint_nodes": "[parameters('taintNodes')]",
+                "zone": "[parameters('nodeZone')]"
+            },
+            "cluster": {
+                "api_server": "[parameters('openShiftApiUrl')]",
+                "username": "[parameters('openShiftUsername')]",
+                "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
+            },
+            "directories": {
+                "bin_dir": "[parameters('binDirectory')]",
+                "tmp_dir": "/tmp"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2023-03-01",
+            "location": "[parameters('location')]",
+            "name": "[concat(parameters('vmName'),'/',parameters('extensionName'))]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "fileUris": [
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/machineset.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/az-login.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/install-oc.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/oc-login.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
+                    ],
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

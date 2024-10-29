@@ -1,0 +1,116 @@
+---
+
+- name: Test the API interface of a watsonx.ai light weight engine
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    log_level: "info"
+    # Set the below to specify a particular model, otherwise the first one available will be used
+    # model_id: "ibm/granite-13b-chat-v2"
+    max_new_tokens: 1000
+    time_limit: 10000
+
+  vars_prompt:
+
+  - name: cpd_url
+    prompt: Enter the base domain for the API interface (e.g. cpd-cpd-instance.apps.mydomain.australiaeast.aroapp.io)
+    private: no
+    confirm: no
+
+  - name: cpd_user
+    prompt: Enter the username
+    private: no
+    confirm: no
+
+  - name: api_key
+    prompt: Enter the API key for the user
+    private: yes
+    confirm: no
+
+  - name: user_prompt
+    prompt: What is the query you wish to make?
+    private: no
+    confirm: no
+  
+  tasks:
+
+  - name: Output the CPD URL
+    debug:
+      msg: "CPD URL is {{ cpd_url }}"
+    when: log_level == "debug"
+
+  - name: Output the api_key
+    debug:
+      msg: "API Key is {{ api_key }}"
+    when: log_level == "debug"
+
+  - name: Get list of foundation models available
+    ansible.builtin.uri:
+      url: "https://{{ cpd_url }}/ml/v1/foundation_model_specs?version=2024-07-23&limit=50"
+      method: GET
+      return_content: true
+    register: model_details
+
+  - name: Set model to the first available 
+    set_fact:
+      model_id: "{{ model_details['json']['resources'][0].model_id }}"
+    when: model_id is not defined
+
+  - name: Output the list of available models
+    debug:
+      var: model_id
+    when: log_level == "debug"
+
+  - name: Get the API token
+    ansible.builtin.uri:
+      url: "https://{{ cpd_url }}/icp4d-api/v1/authorize"
+      method: POST
+      return_content: true
+      body_format: json
+      headers:
+        Content-Type: "application/json"
+      body:
+        username: "{{ cpd_user }}"
+        api_key: "{{ api_key }}"
+    register: api_token_response
+
+  - name: Set the API token fact
+    ansible.builtin.set_fact:
+      api_token: "{{ api_token_response.json.token }}"
+    # Add a check here that post was successful
+
+  - name: Output the API token
+    ansible.builtin.debug:
+      var: api_token
+    when: log_level == "debug"
+
+  - name: Make a query
+    ansible.builtin.uri:
+      url: "https://{{ cpd_url }}/ml/v1/text/generation?version=2024-07-23"
+      method: POST
+      return_content: true
+      body_format: json
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        Authorization: "Bearer {{ api_token }}"
+      body:
+        model_id: "{{ model_id }}"
+        input: "{{ user_prompt }}"
+        parameters:
+          max_new_tokens: "{{ max_new_tokens }}"
+          time_limit: "{{ time_limit }}"
+    register: response
+
+
+  - name: Output the full response
+    ansible.builtin.debug:
+      var: response.json
+    when: log_level == "debug"
+
+  - name: Output the response
+    ansible.builtin.debug:
+      var: response.json.results[0].generated_text
+      
+        
