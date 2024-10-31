@@ -1205,7 +1205,7 @@
             "location": "[location()]",
             "networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
             "vnetName": "[steps('networking').vnet.name]",
-            "vnetCidr": "[first( steps('networking').vnet.addressPrefixes ) ]",
+            "vnetCIDR": "[first( steps('networking').vnet.addressPrefixes ) ]",
             "vnetNewOrExisting": "[steps('networking').vnet.newOrExisting]",
             "enableDdosProtection": "[steps('networking').ddosPlan]",
             "existingDdosPlan": "[equals(steps('networking').existingDdosPlan,'existing')]",
