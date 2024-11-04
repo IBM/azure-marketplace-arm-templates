@@ -22,6 +22,9 @@ if [[ $LICENSE == "accept" ]] && [[ -z $JWT_KEY ]]; then log-error "JWT_KEY is n
 if [[ -z $TMP_DIR ]]; then TMP_DIR="$(pwd)"; fi
 if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="$TMP_DIR"; fi
 if [[ -z $BIN_DIR ]]; then BIN_DIR="/usr/local/bin"; fi
+if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2409.0-amd64"; fi
+if [[ -z $OMS_OPERATOR_VERSION ]]; then OMS_OPERATOR_VERSION="v1.0.10"; fi
+if [[ -z $SIP_OPERATOR_VERSION ]]; then SIP_OPERATOR_VERSION="v1.0.10"; fi
 if [[ -z $OMS_GW_OPERATOR ]]; then OMS_GW_OPERATOR="cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0"; fi
 if [[ -z $SIP_OPERATOR ]]; then SIP_OPERATOR="cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0"; fi
 if [[ -z $OPERATOR_NAMESPACE ]]; then OPERATOR_NAMESPACE="ibm-operators"; fi
@@ -41,7 +44,6 @@ if [[ -z $PVC_SIZE ]]; then PVC_SIZE="10Gi"; fi
 if [[ -z $CP_REPO_BASE ]]; then CP_REPO_BASE="cp/ibm-oms-enterprise"; fi
 if [[ -z $LOG_LEVEL ]]; then LOG_LEVEL="INFO"; fi
 if [[ -z $RH_TAG ]]; then RH_TAG="latest"; fi
-if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2403.1-amd64"; fi
 if [[ -z $SIP_SECRET_NAME ]]; then SIP_SECRET_NAME="sip-secret"; fi
 if [[ -z $CASSANDRA_USERNAME ]]; then CASSANDRA_USERNAME="sipadmin"; fi
 if [[ -z $CASSANDRA_PASSWORD ]]; then CASSANDRA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
@@ -56,6 +58,8 @@ if [[ -z $AZ_SCRIPTS_OUTPUT_PATH ]]; then AZ_SCRIPTS_OUTPUT_PATH="$OUTPUT_DIR/ex
 if [[ -z $MAX_IMAGE_RETRY ]]; then MAX_IMAGE_RETRY=5; fi
 if [[ -z $MAX_READY_MINUTES ]]; then MAX_READY_MINUTES=30; fi
 if [[ -z $HELM_URL ]]; then HELM_URL="https://get.helm.sh/helm-v3.14.3-linux-amd64.tar.gz"; fi
+if [[ -z $OLM_VERSION ]]; then OLM_VERSION="0.28.0"; fi
+if [[ -z $OLM_TIMEOUT ]]; then OLM_TIMEOUT="5m0s"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -238,7 +242,7 @@ az aks get-credentials -n $AKS_CLUSTER -g $RESOURCE_GROUP
 kubectl get pods -n olm | grep olm-operator 2>&1
 if (( $? != 0 )); then
     log-info "Installing OperatorSDK OLM"
-    operator-sdk olm install
+    operator-sdk olm install --version $OLM_VERSION --timeout $OLM_TIMEOUT
 else
     log-info "OperatorSDK OLM already installed"
 fi
@@ -349,6 +353,7 @@ spec:
   name: ibm-oms-gateway
   source: ibm-oms-gateway-catalog
   sourceNamespace: ${OPERATOR_NAMESPACE}
+  startingCSV: ibm-oms-gateway.${OMS_OPERATOR_VERSION}
 EOF
     if (( $? != 0 )); then
         log-error "Unable to create subscription oms-gateway-subscription in namespace ${OPERATOR_NAMESPACE}"
@@ -375,6 +380,7 @@ spec:
   name: ibm-sip
   source: ibm-sip-catalog
   sourceNamespace: ${OPERATOR_NAMESPACE}
+  startingCSV: ibm-sip.${SIP_OPERATOR_VERSION}
 EOF
     if (( $? != 0 )); then
         log-error "Unable to create subscription sip-subscription in namespace ${OPERATOR_NAMESPACE}"

@@ -976,23 +976,37 @@
                 "description": "The base64 encoded JWT public key to be used"
             }
         },
+        "omsCatalogVersion": {
+            "type": "string",
+            "defaultValue": "v1.0",
+            "metadata": {
+                "description": "OMS Gateway catalog version"
+            }
+        },
         "omsGatewayOperatorCatalog": {
             "type": "string",
-            "defaultValue": "cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0",
+            "defaultValue": "[concat('cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:',parameters('omsCatalogVersion'))]",
             "metadata": {
                 "description": "IBM Order Management System gateway operator catalog image"
             }
         },
+        "sipCatalogVersion": {
+            "type": "string",
+            "defaultValue": "v1.0",
+            "metadata": {
+                "description": "SIP Catalog Version"
+            }
+        },
         "sipOperatorCatalog": {
             "type": "string",
-            "defaultValue": "cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0",
+            "defaultValue": "[concat('cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:',parameters('sipCatalogVersion'))]",
             "metadata": {
                 "description": "IBM Sterling Intelligent Promising operator catalog image"
             }
         },
         "sipTag": {
             "type": "string",
-            "defaultValue": "10.0.2403.1-amd64",
+            "defaultValue": "10.0.2409.0-amd64",
             "metadata": {
                 "description": "SIP Application image tag"
             }

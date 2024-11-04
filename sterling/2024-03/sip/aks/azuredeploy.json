@@ -185,6 +185,20 @@
                 "description": "Namespace in AKS for the created instances"
             }
         },
+        "omsOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "OMS Gateway operator starting CSV version"
+            }
+        },
+        "sipOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "SIP operator starting CSV version"
+            }
+        },
         "pvcName": {
             "type": "string",
             "defaultValue": "sip-pvc",
@@ -422,6 +436,14 @@
                     {
                         "name": "SIP_OPERATOR",
                         "value": "[parameters('sipOperatorCatalog')]"
+                    },
+                    {
+                        "name": "OMS_OPERATOR_VERSION",
+                        "value": "[parameters('omsOperatorVersion')]"
+                    },
+                    {
+                        "name": "SIP_OPERATOR_VERSION",
+                        "value": "[parameters('sipOperatorVersion')]"
                     },
                     {
                         "name": "SIP_TAG",
