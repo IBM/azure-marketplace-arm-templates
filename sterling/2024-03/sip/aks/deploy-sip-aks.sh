@@ -557,17 +557,41 @@ if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o js
         # Create JWT issuer cert
         HOSTNAME="sipservice-${SIP_NAMESPACE}.$DOMAIN_NAME"
 
-        if [[ -z $(kubectl get certificatemanager -n $SIP_NAMESPACE | grep "ingress-cert ") ]]; then
-            log-info "Creating ingress certificate"
+        if [[ -z $(kubectl get certificate -n $SIP_NAMESPACE | grep "selfsigned-sip-cert ") ]]; then
+            log-info "Creating bootstrap ingress certificate"
             cat << EOF | kubectl create -f -
-apiVersion: apps.oms.gateway.ibm.com/v1beta1
-kind: CertificateManager
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
 metadata:
-  name: ingress-cert
-  namespace: ${SIP_NAMESPACE}
+  name: selfsigned-issuer
 spec:
-  expiryDays: 365
-  hostName: ${HOSTNAME}
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: selfsigned-sip-cert
+  namespace: ibm-operators
+spec:
+  isCA: true
+  commonName: selfsigned-sip-cert
+  secretName: root-secret
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: sip-ca-issuer
+  namespace: ibm-operators
+spec:
+  ca:
+    secretName: root-secret
 EOF
             if (( $? != 0 )); then
                 log-error "Unable to create ingress certificate"
@@ -774,7 +798,7 @@ EOF
 #       host: $DOMAIN_NAME
 #       ssl:
 #        enabled: true
-#        identitySecretName: ingress-cert
+#        identitySecretName: selfsigned-sip-cert
 #   image:
 #     imagePullSecrets:
 #     - name: ibm-entitlement-key
