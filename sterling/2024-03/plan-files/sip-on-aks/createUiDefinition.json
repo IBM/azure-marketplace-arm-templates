@@ -430,12 +430,12 @@
               "label": "SIP Version",
               "visible": true,
               "toolTip": "Version of SIP to be installed.",
-              "defaultValue": "10.0.2403.1",
+              "defaultValue": "10.0.2409.0",
               "constraints": {
                 "allowedValues": [
                   {
-                    "label": "10.0.2403.1",
-                    "value": "10.0.2403.1-amd64"
+                    "label": "10.0.2409.0",
+                    "value": "10.0.2409.0-amd64"
                   }
                 ]
               }
@@ -809,24 +809,20 @@
               "type": "Microsoft.Common.DropDown",
               "toolTip": "Version of kubernetes to be used for the AKS cluster",
               "label": "Kubernetes Version",
-              "defaultValue": "1.27.x",
+              "defaultValue": "1.30.x",
               "constraints": {
                 "allowedValues": [
                   {
-                    "label": "1.25.x",
-                    "value": "1.25"
-                  },
-                  {
-                    "label": "1.26.x",
-                    "value": "1.26"
-                  },
-                  {
-                    "label": "1.27.x",
-                    "value": "1.27"
-                  },
-                  {
                     "label": "1.28.x",
                     "value": "1.28"
+                  },
+                  {
+                    "label": "1.29.x",
+                    "value": "1.29"
+                  },
+                  {
+                    "label": "1.30.x",
+                    "value": "1.30"
                   }
                 ]
               },
