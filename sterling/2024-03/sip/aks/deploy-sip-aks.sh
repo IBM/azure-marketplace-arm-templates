@@ -238,6 +238,37 @@ fi
 log-info "Logging into AKS Cluster ${AKS_CLUSTER} in resource group $RESOURCE_GROUP"
 az aks get-credentials -n $AKS_CLUSTER -g $RESOURCE_GROUP
 
+# Create the image pull secrets
+if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep ibm-entitlement-key) ]]; then
+    log-info "Creating image pull secret ibm-entitlement-key in namespace $SIP_NAMESPACE"
+    kubectl create secret docker-registry ibm-entitlement-key --docker-server=cp.icr.io --docker-username=cp --docker-password=$IBM_ENTITLEMENT_KEY -n $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Created image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Image pull secret for ibm-entitlement-key already exists in namespace $SIP_NAMESPACE"
+fi
+
+if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep acr-secret) ]]; then
+    log-info "Creating image pull secret acr-secret in namespace $SIP_NAMESPACE"
+    ACR_USERNAME="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'username' -o tsv)"
+    ACR_PASSWORD="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'passwords[0].value' -o tsv)"
+
+    kubectl create secret docker-registry acr-secret --docker-server=$ACR_NAME.azurecr.io --docker-username=$ACR_USERNAME --docker-password=$ACR_PASSWORD -n $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create image pull secret for acr-secret in namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Created image pull secret for acr-secret in namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Image pull secret for acr-secret already exists in namespace $SIP_NAMESPACE"
+fi
+
+
 # Add OLM to the cluster
 kubectl get pods -n olm | grep olm-operator 2>&1
 if (( $? != 0 )); then
@@ -517,38 +548,6 @@ if [[ -z $(helm list --namespace ingress-nginx | grep ingress-nginx ) ]]; then
 else
     log-info "NGINX ingress controller already deployed"
 fi
-
-# Create the image pull secrets
-if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep ibm-entitlement-key) ]]; then
-    log-info "Creating image pull secret ibm-entitlement-key in namespace $SIP_NAMESPACE"
-    kubectl create secret docker-registry ibm-entitlement-key --docker-server=cp.icr.io --docker-username=cp --docker-password=$IBM_ENTITLEMENT_KEY -n $SIP_NAMESPACE
-    if (( $? != 0 )); then
-        log-error "Unable to create image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
-        exit 1
-    else
-        log-info "Created image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
-    fi
-else
-    log-info "Image pull secret for ibm-entitlement-key already exists in namespace $SIP_NAMESPACE"
-fi
-
-if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep acr-secret) ]]; then
-    log-info "Creating image pull secret acr-secret in namespace $SIP_NAMESPACE"
-    ACR_USERNAME="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'username' -o tsv)"
-    ACR_PASSWORD="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'passwords[0].value' -o tsv)"
-
-    kubectl create secret docker-registry acr-secret --docker-server=$ACR_NAME.azurecr.io --docker-username=$ACR_USERNAME --docker-password=$ACR_PASSWORD -n $SIP_NAMESPACE
-    if (( $? != 0 )); then
-        log-error "Unable to create image pull secret for acr-secret in namespace $SIP_NAMESPACE"
-        exit 1
-    else
-        log-info "Created image pull secret for acr-secret in namespace $SIP_NAMESPACE"
-    fi
-else
-    log-info "Image pull secret for acr-secret already exists in namespace $SIP_NAMESPACE"
-fi
-
-
 
 # Deploy SIP instance
 # The below currently skips the instance creation due to changes in the definition between versions
