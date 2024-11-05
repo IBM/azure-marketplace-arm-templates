@@ -17,35 +17,6 @@
                 "description": "Location for deployment container"
             }
         },
-        "ibmEntitlementKey": {
-            "type": "securestring",
-            "metadata": {
-                "description": "Entitlement key for IBM container registry"
-            }
-        },
-        "cp4iVersion": {
-            "type": "string",
-            "metadata": {
-                "description": "Version of CP4I to be installed"
-            }
-        },
-        "cp4iLicense": {
-            "type": "string",
-            "metadata": {
-                "description": "License to be used for CP4I installation"
-            }
-        },
-        "acceptLicense": {
-            "type": "string",
-            "defaultValue": "decline",
-            "allowedValues": [
-                "accept",
-                "decline"
-            ],
-            "metadata": {
-                "description": "Accept IBM License Terms to instantiate software."
-            }
-        },
         "rgRoleGuid": {
             "type": "string",
             "defaultValue": "[newGuid()]",
@@ -74,13 +45,6 @@
                 "description": "Flag to determine whether to create a new managed identity for script execution"
             }
         },
-        "storageClass": {
-            "type": "string",
-            "defaultValue": "ocs-storagecluster-cephfs",
-            "metadata": {
-                "description": "Name of the RWX file storage class on the OpenShift cluster."
-            }
-        },
         "managedIdName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-script-sp')]",
@@ -88,30 +52,32 @@
                 "description": "Name of the managed identity used for deployment scripts"
             }
         },
-        "ocpApiServer": {
+        "aroClusterName": {
             "type": "string",
             "metadata": {
-                "description": "API Server URI for the OpenShift Cluster"
+                "description": "Name of the ARO cluster"
             }
         },
-        "ocpUsername": {
+        "existingNodes": {
             "type": "string",
-            "defaultValue": "kubeadmin",
+            "allowedValues": [
+                "yes",
+                "no"
+            ],
             "metadata": {
-                "description": "Username for the OpenShift cluster administrator"
+                "description": "Whether to create new nodes for ODF storage cluster or use existing nodes"
             }
         },
-        "ocpPassword": {
-            "type": "secureString",
-            "metadata": {
-                "description": "Administrator password for the OpenShift cluster"
-            }
-        },
-        "namespace": {
+        "storageSizePerNode": {
             "type": "string",
-            "defaultValue": "cp4i",
+            "allowedValues": [
+                "1Ti",
+                "2Ti",
+                "3Ti"
+            ],
+            "defaultValue": "2Ti",
             "metadata": {
-                "description": "Namespace for CP4I instance"
+                "description": "Size of the storage to provision on each node for the storage cluster (total cluster size will be 3 times this amount)"
             }
         },
         "branch": {
@@ -125,26 +91,12 @@
     },
     "variables": {
       "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
-      "containerGroupName": "[concat(parameters('namePrefix'), '-cp4i-cg')]",
-      "scriptName": "[concat(parameters('namePrefix'),'-cp4i-script')]",
+      "containerGroupName": "[concat(parameters('namePrefix'), '-odf-cg')]",
+      "scriptName": "[concat(parameters('namePrefix'),'-odf-script')]",
       "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
       "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
     },
     "resources": [
-        { 
-            "apiVersion": "2021-04-01",
-            "name": "pid-863f503a-9654-4ffe-9149-d0bd97ec7280-partnercenter", 
-            "comments": "Resource GUID for Cloud Pak for Integration BYOL marketplace entry",
-            "type": "Microsoft.Resources/deployments",
-            "properties": {
-                "mode": "Incremental",
-                "template": {
-                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-                    "contentVersion": "1.0.0.0",
-                    "resources": []
-                }
-            }
-        },
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
@@ -170,47 +122,27 @@
                 "azCliVersion": "2.45.0",  
                 "environmentVariables": [
                     {
-                        "name": "API_SERVER",
-                        "value": "[parameters('ocpApiServer')]"
+                        "name": "RESOURCE_GROUP",
+                        "value": "[resourceGroup().name]"
                     },
                     {
-                        "name": "OCP_USERNAME",
-                        "value": "[parameters('ocpUsername')]"
+                        "name": "ARO_CLUSTER",
+                        "value": "[parameters('aroClusterName')]"
                     },
                     {
-                        "name": "OCP_PASSWORD",
-                        "secureValue": "[parameters('ocpPassword')]"
+                        "name": "EXISTING_NODES",
+                        "value": "[parameters('existingNodes')]"
                     },
                     {
-                        "name": "STORAGE_CLASS",
-                        "value": "[parameters('storageClass')]"
-                    },
-                    {
-                        "name": "IBM_ENTITLEMENT_KEY",
-                        "secureValue": "[parameters('ibmEntitlementKey')]"
-                    },
-                    {
-                        "name": "VERSION",
-                        "value": "[parameters('cp4iVersion')]"
-                    },
-                    {
-                        "name": "LICENSE_ID",
-                        "value": "[parameters('cp4iLicense')]"
-                    },
-                    {
-                        "name": "LICENSE",
-                        "value": "[parameters('acceptLicense')]"
-                    },
-                    {
-                        "name": "NAMESPACE",
-                        "value": "[parameters('namespace')]"
+                        "name": "STORAGE_SIZE",
+                        "value": "[parameters('storageSizePerNode')]"
                     }
                 ],
-                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/byo-ocp-ipi/scripts/deploy-cp4i.sh'))]",
+                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/2023-06/with-aro/odf/scripts/deploy-odf.sh'))]",
                 "supportingScriptUris": [
-                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/byo-ocp-ipi/scripts/common.sh'))]"
+                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/2023-06/with-aro/odf/scripts/common.sh'))]"
                 ],
-                "timeout": "PT120M",
+                "timeout": "PT90M",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
             },
