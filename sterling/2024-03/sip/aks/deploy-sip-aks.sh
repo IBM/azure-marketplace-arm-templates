@@ -505,29 +505,29 @@ for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
 done
 
 # Create the certificate manager CRD
-if [[ -z $(kubectl get crds | grep certificatemanagers) ]]; then
-    log-info "Installing the certificate manager operator"
-    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml
-    if (( $? != 0 )); then
-        log-error "Unable to install certificate manager operator"
-        exit 1
-    else
-        while [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager " | grep "1/1") ]] \
-            && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-cainjector" | grep "1/1") ]] \
-            && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-webhook" | grep "1/1") ]]; do
-            log-info "Waiting for certificate manager to initialize"
-            i=$(( $i + 1))
-            if (( $i > 10 )); then
-                log-error "Timeout waiting for certificate manager to initialize"
-                exit 1
-            fi
-            sleep 30
-        done
-        log-info "Certificate manager installed and running"
-    fi
-else
-    log-info "Certificate Manager custom resource definition already exists"
-fi
+# if [[ -z $(kubectl get crds | grep certificatemanagers) ]]; then
+#     log-info "Installing the certificate manager operator"
+#     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml
+#     if (( $? != 0 )); then
+#         log-error "Unable to install certificate manager operator"
+#         exit 1
+#     else
+#         while [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager " | grep "1/1") ]] \
+#             && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-cainjector" | grep "1/1") ]] \
+#             && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-webhook" | grep "1/1") ]]; do
+#             log-info "Waiting for certificate manager to initialize"
+#             i=$(( $i + 1))
+#             if (( $i > 10 )); then
+#                 log-error "Timeout waiting for certificate manager to initialize"
+#                 exit 1
+#             fi
+#             sleep 30
+#         done
+#         log-info "Certificate manager installed and running"
+#     fi
+# else
+#     log-info "Certificate Manager custom resource definition already exists"
+# fi
 
 # Create the nginx ingress controller
 if [[ -z $(helm list --namespace ingress-nginx | grep ingress-nginx ) ]]; then
@@ -557,41 +557,17 @@ if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o js
         # Create JWT issuer cert
         HOSTNAME="sipservice-${SIP_NAMESPACE}.$DOMAIN_NAME"
 
-        if [[ -z $(kubectl get certificate -n $SIP_NAMESPACE | grep "selfsigned-sip-cert ") ]]; then
+        if [[ -z $(kubectl get CertificateManager -n $SIP_NAMESPACE | grep "ingress-cert ") ]]; then
             log-info "Creating bootstrap ingress certificate"
             cat << EOF | kubectl create -f -
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
+apiVersion: apps.oms.gateway.ibm.com/v1beta1
+kind: CertificateManager
 metadata:
-  name: selfsigned-issuer
+  name: ingress-cert
+  namespace: ${SIP_NAMESPACE}
 spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: selfsigned-sip-cert
-  namespace: ibm-operators
-spec:
-  isCA: true
-  commonName: selfsigned-sip-cert
-  secretName: root-secret
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  issuerRef:
-    name: selfsigned-issuer
-    kind: ClusterIssuer
-    group: cert-manager.io
----
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: sip-ca-issuer
-  namespace: ibm-operators
-spec:
-  ca:
-    secretName: root-secret
+  expiryDays: 365
+  hostName: "*.${DOMAIN_NAME}"
 EOF
             if (( $? != 0 )); then
                 log-error "Unable to create ingress certificate"
@@ -743,125 +719,129 @@ EOF
             log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
         fi        
 
-#         log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
-#         # cat << EOF | kubectl apply -f -
-#         cat << EOF > ${TMP_DIR}/sip-sipenvironment.yaml
-# apiVersion: apps.sip.ibm.com/v1beta1
-# kind: SIPEnvironment
-# metadata:
-#   name: ${SIP_INSTANCE_NAME}
-#   namespace: ${SIP_NAMESPACE}
-#   annotations:
-#     apps.sip.ibm.com/skip-ibm-entitlement-key-check: 'yes'
-# spec:
-#   license:
-#     accept: true
-#   secret: ${SIP_SECRET_NAME}
-#   serviceAccount: default
-#   upgradeStrategy: RollingUpdate
-#   # This networkPolicy is most open and hence least secure. You have been warned!
-#   networkPolicy:
-#     podSelector:
-#       matchLabels:
-#         none: none
-#     policyTypes:
-#       - Ingress
-#   ivService:
-#     serviceGroup: dev
-#   promisingService:
-#     serviceGroup: dev
-#   utilityService:
-#     serviceGroup: dev
-#   apiDocsService: {}    
-#   omsGateway:
-#     issuerSecret: ${JWT_SECRET_NAME}
-#     replicas: 1
-#     cors:
-#       allowedOrigins: '*'
-#   externalServices:
-#     cassandra:
-#       createDevInstance:
-#         resources:
-#           limits:
-#             cpu: '3'
-#             memory: 8000Mi
-#           requests:
-#             cpu: '1'
-#             memory: 5000Mi
-#       iv_keyspace: inventory_visibility_ks
-#     elasticSearch:
-#       createDevInstance: {}
-#     kafka:
-#       createDevInstance: {}
-#   common:
-#     ingress:
-#       host: $DOMAIN_NAME
-#       ssl:
-#        enabled: true
-#        identitySecretName: selfsigned-sip-cert
-#   image:
-#     imagePullSecrets:
-#     - name: ibm-entitlement-key
-#     - name: acr-secret
-#     repository: ${ACR_NAME}.azurecr.io
-#     tag: ${SIP_TAG}
-#     promisingService:
-#       imageName: sip-promising
-#       tag: ${SIP_TAG}
-#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-#     omsGateway:
-#       tag: ${SIP_TAG}
-#       imageName: oms-gateway
-#       pullPolicy: IfNotPresent
-#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-#     apiDocsService:
-#       tag: ${SIP_TAG}
-#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-#       imageName: sip-api-docs
-#     ivService:
-#       tag: ${SIP_TAG}
-#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-#       appImageName: sip-iv-appserver
-#       backendImageName: sip-iv-backend
-#       onboardImageName: sip-iv-onboard
-#     utilityService:
-#       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
-#       catalog:
-#         tag: ${SIP_TAG}
-#         imageName: sip-catalog
-#         onboardImageName: sip-catalog-onboard
-#       rules:
-#         tag: ${SIP_TAG}
-#         imageName: sip-rules
-#         onboardImageName: sip-rules-onboard
-#       carrier:
-#         tag: ${SIP_TAG}
-#         onboardImageName: sip-carrier-onboard
-#         imageName: sip-carrier
-#       audit:
-#         tag: ${SIP_TAG}
-#         imageName: sip-iv-audit
-#         onboardImageName: sip-iv-audit-onboard
-#       search:
-#         tag: ${SIP_TAG}
-#         imageName: sip-search
-#         onboardImageName: sip-search-onboard 
-#       logstash:
-#         tag: ${SIP_TAG}
-#         imageName: sip-logstash
-#   storage:
-#     accessMode: ReadWriteMany
-#     capacity: 10Gi
-#     name: $PVC_NAME
-#     storageClassName: $SC_NAME
-# EOF
-#         kubectl apply -f ${TMP_DIR}/sip-sipenvironment.yaml
-#         if (( $? != 0 )); then
-#             log-error "Unable to create SIP instance in namespace $SIP_NAMESPACE"
-#             exit 1
-#         else
-#             log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
-#         fi
+        log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
+        # cat << EOF | kubectl apply -f -
+        cat << EOF > ${TMP_DIR}/sip-sipenvironment.yaml
+apiVersion: apps.sip.ibm.com/v1beta1
+kind: SIPEnvironment
+metadata:
+  name: ${SIP_INSTANCE_NAME}
+  namespace: ${SIP_NAMESPACE}
+  annotations:
+    apps.sip.ibm.com/skip-ibm-entitlement-key-check: 'yes'
+spec:
+  license:
+    accept: true
+  secret: ${SIP_SECRET_NAME}
+  serviceAccount: default
+  upgradeStrategy: RollingUpdate
+  # This networkPolicy is most open and hence least secure. You have been warned!
+  networkPolicy:
+    podSelector:
+      matchLabels:
+        none: none
+    policyTypes:
+      - Ingress
+  ivService:
+    serviceGroup: dev
+  promisingService:
+    serviceGroup: dev
+  utilityService:
+    serviceGroup: dev
+  apiDocsService: {}    
+  omsGateway:
+    issuerSecret: ${JWT_SECRET_NAME}
+    replicas: 1
+    cors:
+      allowedOrigins: '*'
+  externalServices:
+    cassandra:
+      createDevInstance:
+        resources:
+          limits:
+            cpu: '3'
+            memory: 8000Mi
+          requests:
+            cpu: '1'
+            memory: 5000Mi
+      iv_keyspace: inventory_visibility_ks
+    elasticSearch:
+      createDevInstance: {}
+    kafka:
+      createDevInstance: {}
+  common:
+    ingress:
+      host: $DOMAIN_NAME
+      ssl:
+       enabled: true
+       identitySecretName: ingress-cert
+  image:
+    imagePullSecrets:
+    - name: ibm-entitlement-key
+    - name: acr-secret
+    repository: ${ACR_NAME}.azurecr.io
+    tag: ${SIP_TAG}
+    promisingService:
+      imageName: sip-promising
+      tag: ${SIP_TAG}
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+    omsGateway:
+      tag: ${SIP_TAG}
+      imageName: oms-gateway
+      pullPolicy: IfNotPresent
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+    apiDocsService:
+      tag: ${SIP_TAG}
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+      imageName: sip-api-docs
+    ivService:
+      tag: ${SIP_TAG}
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+      appImageName: sip-iv-appserver
+      backendImageName: sip-iv-backend
+      onboardImageName: sip-iv-onboard
+    sipUtils:
+      tag: ${SIP_TAG}
+      imageName: sip-utils
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+    utilityService:
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
+      catalog:
+        tag: ${SIP_TAG}
+        imageName: sip-catalog
+        onboardImageName: sip-catalog-onboard
+      rules:
+        tag: ${SIP_TAG}
+        imageName: sip-rules
+        onboardImageName: sip-rules-onboard
+      carrier:
+        tag: ${SIP_TAG}
+        onboardImageName: sip-carrier-onboard
+        imageName: sip-carrier
+      audit:
+        tag: ${SIP_TAG}
+        imageName: sip-iv-audit
+        onboardImageName: sip-iv-audit-onboard
+      search:
+        tag: ${SIP_TAG}
+        imageName: sip-search
+        onboardImageName: sip-search-onboard 
+      logstash:
+        tag: ${SIP_TAG}
+        imageName: sip-logstash
+  storage:
+    accessMode: ReadWriteMany
+    capacity: 40Gi
+    name: $PVC_NAME
+    storageClassName: $SC_NAME
+EOF
+        kubectl apply -f ${TMP_DIR}/sip-sipenvironment.yaml
+        if (( $? != 0 )); then
+            log-error "Unable to create SIP instance in namespace $SIP_NAMESPACE"
+            exit 1
+        else
+            log-info "Successfully created SIP instance in namespace $SIP_NAMESPACE"
+        fi
 
 #         # Create the IVServiceGroup instance
 #         log-info "Creating IVServiceGroup"
