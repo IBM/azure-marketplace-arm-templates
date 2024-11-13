@@ -238,6 +238,20 @@ fi
 log-info "Logging into AKS Cluster ${AKS_CLUSTER} in resource group $RESOURCE_GROUP"
 az aks get-credentials -n $AKS_CLUSTER -g $RESOURCE_GROUP
 
+# Create the operand namespace
+if [[ -z $(kubectl get namespace | grep ${SIP_NAMESPACE}) ]]; then
+    log-info "Creating namespace ${SIP_NAMESPACE}"
+    kubectl create namespace $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Successfully created namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Namespace $SIP_NAMESPACE already exists"
+fi
+
 # Create the image pull secrets
 if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep ibm-entitlement-key) ]]; then
     log-info "Creating image pull secret ibm-entitlement-key in namespace $SIP_NAMESPACE"
@@ -421,20 +435,6 @@ EOF
     fi
 else
     log-info "Subscription sip-subscription already exists in namespace ${OPERATOR_NAMESPACE}"
-fi
-
-# Create the operand namespace
-if [[ -z $(kubectl get namespace | grep ${SIP_NAMESPACE}) ]]; then
-    log-info "Creating namespace ${SIP_NAMESPACE}"
-    kubectl create namespace $SIP_NAMESPACE
-    if (( $? != 0 )); then
-        log-error "Unable to create namespace $SIP_NAMESPACE"
-        exit 1
-    else
-        log-info "Successfully created namespace $SIP_NAMESPACE"
-    fi
-else
-    log-info "Namespace $SIP_NAMESPACE already exists"
 fi
 
 # Upload images to the Azure Container Registry
