@@ -1200,7 +1200,7 @@
                         "value": "[parameters('ocpVersion')]"
                     },
                     "baseUrl": {
-                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/'))]" 
+                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/2023-06/with-ipi/'))]" 
                     },
                     "baseDomainRG": {
                         "value": "[parameters('baseDomainRG')]" 
@@ -1559,7 +1559,7 @@
                 },
                 "parameters": {
                     "baseUrl": {
-                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/'))]"
+                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/2023-06/with-ipi/'))]"
                     },
                     "createManagedIdentity": {
                         "value": false
@@ -1808,7 +1808,7 @@
                         "value": "[parameters('acceptLicense')]"
                     },
                     "baseUrl": {
-                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/with-ipi/'))]"
+                        "value": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/2023-06/with-ipi/'))]"
                     },
                     "cp4iLicense": {
                         "value": "[parameters('cp4iLicense')]"

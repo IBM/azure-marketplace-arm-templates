@@ -88,10 +88,23 @@
                 "description": "Name of the managed identity used for deployment scripts"
             }
         },
-        "aroClusterName": {
+        "ocpApiServer": {
             "type": "string",
             "metadata": {
-                "description": "Name of the ARO cluster"
+                "description": "API Server URI for the OpenShift Cluster"
+            }
+        },
+        "ocpUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the OpenShift cluster administrator"
+            }
+        },
+        "ocpPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Administrator password for the OpenShift cluster"
             }
         },
         "namespace": {
@@ -157,12 +170,16 @@
                 "azCliVersion": "2.45.0",  
                 "environmentVariables": [
                     {
-                        "name": "RESOURCE_GROUP",
-                        "value": "[resourceGroup().name]"
+                        "name": "API_SERVER",
+                        "value": "[parameters('ocpApiServer')]"
                     },
                     {
-                        "name": "ARO_CLUSTER",
-                        "value": "[parameters('aroClusterName')]"
+                        "name": "OCP_USERNAME",
+                        "value": "[parameters('ocpUsername')]"
+                    },
+                    {
+                        "name": "OCP_PASSWORD",
+                        "secureValue": "[parameters('ocpPassword')]"
                     },
                     {
                         "name": "STORAGE_CLASS",
@@ -189,9 +206,9 @@
                         "value": "[parameters('namespace')]"
                     }
                 ],
-                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/cp4i/scripts/deploy-cp4i.sh'))]",
+                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/2023-06/byo-ocp-ipi/scripts/deploy-cp4i.sh'))]",
                 "supportingScriptUris": [
-                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/cp4i/scripts/common.sh'))]"
+                    "[uri(variables('baseUrl'),concat(parameters('branch'),'/cloud-pak-for-integration/2023-06/byo-ocp-ipi/scripts/common.sh'))]"
                 ],
                 "timeout": "PT120M",
                 "cleanupPreference": "OnSuccess",
