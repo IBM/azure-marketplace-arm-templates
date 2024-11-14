@@ -741,14 +741,6 @@
 						"constraints": {
 							"allowedValues": [
 								{
-									"label": "RHEL 8.6",
-									"value": "RHEL 8.6"
-								},
-								{
-									"label": "RHEL 8.7",
-									"value": "RHEL 8.7"
-								},
-								{
 									"label": "RHEL 9.2",
 									"value": "RHEL 9.2"
 								}
