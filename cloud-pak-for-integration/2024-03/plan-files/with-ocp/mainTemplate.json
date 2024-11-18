@@ -837,7 +837,7 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'createSshKeys')]",
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1127,7 +1127,7 @@
             "apiVersion": "2023-07-01",
             "condition": "[and(parameters('deployCP4I'),equals(parameters('deploymentApproach'),'vm'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'scriptPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployNetworkSecurityGroups')]"
             ],
