@@ -9,3 +9,6 @@ spec:
   name: {{ operator.name }}
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+  config:
+    env:
+      - name: "DISABLE_DSC_CONFIG"
