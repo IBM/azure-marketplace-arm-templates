@@ -36,7 +36,8 @@ if [[ -z $IMAGE_LIST_RH_FILENAME ]]; then IMAGE_LIST_RH_FILENAME="image-list-rh"
 if [[ -z $IMAGE_LIST_SIP_FILENAME ]]; then IMAGE_LIST_SIP_FILENAME="image-list-sip"; fi
 if [[ -z $IMAGE_LIST_RH_URL ]]; then IMAGE_LIST_RH_URL="${BASE_URI}/${BRANCH}/sterling/2024-03/sip/${IMAGE_LIST_RH_FILENAME}"; fi
 if [[ -z $IMAGE_LIST_SIP_URL ]]; then IMAGE_LIST_SIP_URL="${BASE_URI}/${BRANCH}/sterling/2024-03/sip/${IMAGE_LIST_SIP_FILENAME}"; fi
-if [[ -z $SC_NAME ]]; then SC_NAME="sip-azurefile"; fi
+# if [[ -z $SC_NAME ]]; then SC_NAME="sip-azurefile"; fi
+SC_NAME="sip-azurefile"
 if [[ -z $PVC_NAME ]]; then PVC_NAME="sip1-pvc"; fi
 if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
 if [[ -z $CERT_MANAGER_VERSION ]]; then CERT_MANAGER_VERSION="v1.14.3"; fi
@@ -554,6 +555,8 @@ fi
 if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]]; then
     if [[ $LICENSE == "accept" ]]; then
 
+    log-info "Creating SIP Environment"
+
     # Create the storage class with required mounting UID
     if [[ -z $(kubectl get sc | grep "$SC_NAME") ]]; then
         log-info "Creating storage class"
@@ -748,9 +751,12 @@ EOF
 #                 done
 #                 log-info "Job volume-pod completed in namespace $SIP_NAMESPACE"
 #             fi
-#         else
-#             log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
-#         fi        
+        else
+            log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
+        fi        
+
+        log-info "Pausing to let prior updates take affect"
+        sleep 60
 
         log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
         # cat << EOF | kubectl apply -f -
@@ -1032,7 +1038,7 @@ EOF
 #             log-info "Ingress instance already exists"
 #         fi
 
-    Wait for services to start
+    # Wait for services to start
     count=0;
     while [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
         && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
@@ -1053,8 +1059,25 @@ else
     log-info "SIP instance already exists in namespace $SIP_NAMESPACE"
 fi
 
-log-info "Script completed"
-
 # Return the ingress IP to update the domain name
 
-# jq -n -c --arg publicIP \"$(cat ./jwtkey.pem | base64 -w 0)\" --arg rawKey \"$(cat ./jwtkey.pem)\" --arg publicKey \"$(cat ./jwtkey.pub | base64 -w 0)\" '{\"jwtKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey , \"rawKey\": $rawKey}}' > $AZ_SCRIPTS_OUTPUT_PATH
+# Wait for ingress to be created
+count=0
+while [[ -z $(kubectl get ingress -n ${SIP_NAMESPACE} sip-apidocs-ingress -o json 2> /dev/null | jq .status.loadBalancer.ingress[0].ip 2> /dev/null) ]] \
+    && [[ -z $(kubectl get ingress -n ${SIP_NAMESPACE} sip-oms-gateway-ingress -o json 2> /dev/null | jq .status.loadBalancer.ingress[0].ip 2> /dev/null) ]]; do
+    log-info "Waiting for ingress to be created"
+    count=$(( $count + 1 ))
+    sleep 60
+    if (( $count > $MAX_READY_MINUTES )); then
+        log-error "Timeout exceeded waiting for services to be available."
+        exit 1
+    fi
+done
+
+# Output public IP for ingress load balancer
+PUBLIC_IP="$(kubectl get ingress -n ${SIP_NAMESPACE} sip-apidocs-ingress -o json | jq -r '.status.loadBalancer.ingress[0].ip')"
+jq -n -c \
+    --arg publicIP $PUBLIC_IP \
+    '{"ingress": {"publicIP": $publicIP}}' > $AZ_SCRIPTS_OUTPUT_PATH
+
+log-info "Script completed"
