@@ -1011,6 +1011,20 @@
                 "description": "SIP Application image tag"
             }
         },
+        "omsOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "OMS Gateway operator starting CSV version"
+            }
+        },
+        "sipOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "SIP operator starting CSV version"
+            }
+        },
         "operatorNamespace": {
             "type": "string",
             "defaultValue": "ibm-operators",
@@ -2152,6 +2166,12 @@
                     },
                     "sipTag": {
                         "value": "[parameters('sipTag')]"
+                    },
+                    "omsOperatorVersion": {
+                        "value": "[parameters('omsOperatorVersion')]"
+                    },
+                    "sipOperatorVersion": {
+                        "value": "[parameters('sipOperatorVersion')]"
                     },
                     "pvcName": {
                         "value": "[parameters('pvcName')]"

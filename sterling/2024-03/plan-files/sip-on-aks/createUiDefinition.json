@@ -430,12 +430,19 @@
               "label": "SIP Version",
               "visible": true,
               "toolTip": "Version of SIP to be installed.",
-              "defaultValue": "10.0.2409.0",
               "constraints": {
                 "allowedValues": [
                   {
                     "label": "10.0.2409.0",
-                    "value": "10.0.2409.0-amd64"
+                    "value": "[parse('{\"tag\":\"10.0.2409.0-amd64\",\"operatorVersion\":\"v1.0.10\"}')]"
+                  },
+                  {
+                    "label": "10.0.2406.2",
+                    "value": "[parse('{\"tag\":\"10.0.2406.2-amd64\",\"operatorVersion\":\"v1.0.9\"}')]"
+                  },
+                  {
+                    "label": "10.0.2406.1",
+                    "value": "[parse('{\"tag\":\"10.0.2406.1-amd64\",\"operatorVersion\":\"v1.0.8\"}')]"
                   }
                 ]
               }
@@ -1146,7 +1153,6 @@
               ],
               "constraints": {
                 "allowedSizes": [
-                    "Standard_D2s_v3",
                     "Standard_D4s_v3",
                     "Standard_D8s_v3",
                     "Standard_D16s_v3"
@@ -1896,7 +1902,9 @@
         "privateDeployment": "[basics('privateDeployment')]",
         "ibmEntitlementKey": "[steps('SIP').ibmEntitlementKey]",
         "trustStorePassword": "[steps('SIP').trustStorePassword]",
-        "sipTag": "[steps('SIP').sipTag]",
+        "sipTag": "[steps('SIP').sipTag.tag]",
+        "sipOperatorVersion": "[steps('SIP').sipTag.operatorVersion]",
+        "omsOperatorVersion": "[steps('SIP').sipTag.operatorVersion]",
         "jwtPublicKey": "[if(not(steps('SIP').jwtKey),steps('SIP').jwtKey,encodeBase64(steps('SIP').jwtKey))]",
         "operatorNamespace": "[steps('SIP').operatorNamespace]",
         "instanceNamespace": "[steps('SIP').instanceNamespace]",
