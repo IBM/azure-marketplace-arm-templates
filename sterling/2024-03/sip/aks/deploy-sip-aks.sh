@@ -555,7 +555,7 @@ fi
 if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]]; then
     if [[ $LICENSE == "accept" ]]; then
 
-    log-info "Creating SIP Environment"
+    log-info "Creating Dev SIP Environment"
 
     # Create the storage class with required mounting UID
     if [[ -z $(kubectl get sc | grep "$SC_NAME") ]]; then
@@ -647,7 +647,7 @@ EOF
           log-info "JWT Issuer secret ${SIP_NAMESPACE}/${JWT_SECRET_NAME} already exists"
         fi
 
-        # Create the truststore password
+        # Create the truststore password secret
         ######### The below needs to be augmented and/or changed for external middleware services if utilised.
         log-info "Creating / updating truststore secret"
         cat << EOF | kubectl apply -f -
@@ -870,7 +870,7 @@ spec:
         imageName: sip-logstash
   storage:
     accessMode: ReadWriteMany
-    capacity: 40Gi
+    capacity: ${PVC_SIZE}
     name: $PVC_NAME
     storageClassName: $SC_NAME
 EOF
