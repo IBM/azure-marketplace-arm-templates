@@ -434,15 +434,15 @@
                 "allowedValues": [
                   {
                     "label": "10.0.2409.0",
-                    "value": "[parse('{\"tag\":\"10.0.2409.0-amd64\",\"operatorVersion\":\"v1.0.10\"}')]"
+                    "value": "[parse('{\"tag\":\"10.0.2409.0-amd64\",\"operatorVersion\":\"v1.0.10\",\"sipImageList\":\"image-list-sip-2409\",\"rhImageList\":\"image-list-rh\"}')]"
                   },
                   {
                     "label": "10.0.2406.2",
-                    "value": "[parse('{\"tag\":\"10.0.2406.2-amd64\",\"operatorVersion\":\"v1.0.9\"}')]"
+                    "value": "[parse('{\"tag\":\"10.0.2406.2-amd64\",\"operatorVersion\":\"v1.0.9\",\"sipImageList\":\"image-list-sip\",\"rhImageList\":\"image-list-rh\"}')]"
                   },
                   {
                     "label": "10.0.2406.1",
-                    "value": "[parse('{\"tag\":\"10.0.2406.1-amd64\",\"operatorVersion\":\"v1.0.8\"}')]"
+                    "value": "[parse('{\"tag\":\"10.0.2406.1-amd64\",\"operatorVersion\":\"v1.0.8\",\"sipImageList\":\"image-list-sip\",\"rhImageList\":\"image-list-rh\"}')]"
                   }
                 ]
               }
@@ -1893,6 +1893,8 @@
         "sipTag": "[steps('SIP').sipTag.tag]",
         "sipOperatorVersion": "[steps('SIP').sipTag.operatorVersion]",
         "omsOperatorVersion": "[steps('SIP').sipTag.operatorVersion]",
+        "imageListSIPFileName": "[steps('SIP').sipTag.sipImageList]",
+        "imageListRHFileName": "[steps('SIP').sipTag.rhImageList]",
         "jwtPublicKey": "[if(not(steps('SIP').jwtKey),steps('SIP').jwtKey,encodeBase64(steps('SIP').jwtKey))]",
         "operatorNamespace": "[steps('SIP').operatorNamespace]",
         "instanceNamespace": "[steps('SIP').instanceNamespace]",
