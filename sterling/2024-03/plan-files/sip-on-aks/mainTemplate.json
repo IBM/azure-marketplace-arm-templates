@@ -56,6 +56,13 @@
                 "description": "Identifier for SSH key creation script. Script will only re-run if changed."
             }
         },
+        "registerDeployment": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to register the deployment (for debug only)"
+            }
+        },
         "deployPrereqs": {
             "type": "bool",
             "defaultValue": true,
@@ -110,6 +117,13 @@
             "defaultValue": true,
             "metadata": {
                 "description": "Flag to determine whether to deploy SIP (debug only)"
+            }
+        },
+        "updateDNS": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to update the DNS with the ingress IP (debug only)"
             }
         },
         "workspaceName": {
@@ -1039,6 +1053,20 @@
                 "description": "Namespace in AKS for the created instances"
             }
         },
+        "imageListRHFileName": {
+            "type": "string",
+            "defaultValue": "image-list-rh",
+            "metadata": {
+                "description": "URL to the file containing the list of Red Hat images to pull"
+            }
+        },
+        "imageListSIPFileName": {
+            "type": "string",
+            "defaultValue": "image-list-sip",
+            "metadata": {
+                "description": "URL to the file containing the list of SIP images to pull"
+            }
+        },
         "pvcName": {
             "type": "string",
             "defaultValue": "sip-pvc",
@@ -1056,7 +1084,13 @@
         "domainName": {
             "type": "string",
             "metadata": {
-                "description": "FQDN of the suffix for the ingress"
+                "description": "DNS Zone of the domain name to update with the SIP ingress IP"
+            }
+        },
+        "domainResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Resource group containing the DNS zone to update"
             }
         },
         "license": {
@@ -1095,7 +1129,9 @@
     "variables": {
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+        "imageListRHUrl": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/',parameters('imageListRHFileName')))]",
+        "imageListSIPUrl": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/',parameters('imageListSIPFileName')))]"
     },
     "resources": [
         { 
@@ -1103,6 +1139,7 @@
             "comments": "This is the deployment identifier for BYOL SIP",
             "name": "pid-b31512fe-f20c-4c07-8425-ab895dfa6db9-partnercenter", 
             "type": "Microsoft.Resources/deployments",
+            "condition": "[parameters('registerDeployment')]",
             "properties": {
                 "mode": "Incremental",
                 "template": {
@@ -2173,6 +2210,12 @@
                     "sipOperatorVersion": {
                         "value": "[parameters('sipOperatorVersion')]"
                     },
+                    "imageListRHUrl": {
+                        "value": "[variables('imageListRHUrl')]"
+                    },
+                    "imageListSIPUrl": {
+                        "value": "[variables('imageListSIPUrl')]"
+                    },
                     "pvcName": {
                         "value": "[parameters('pvcName')]"
                     },
@@ -2196,6 +2239,63 @@
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/azuredeploy.json'))]"
                 }
             } 
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('updateDNS')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deploySip')]"
+            ],
+            "name": "updateDNSZone",
+            "resourceGroup": "[parameters('domainResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "zoneName": {
+                        "value": "[parameters('domainName')]"
+                    },
+                    "domainPrefix": {
+                        "value": "[concat('sipservice-',parameters('instanceNamespace'))]"
+                    },
+                    "ipAddress": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploySip'),'2023-07-01').outputs['publicIP'].value]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "zoneName": {
+                            "type": "string"
+                        },
+                        "domainPrefix": {
+                            "type": "string"
+                        },
+                        "ipAddress": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/dnsZones/A",
+                            "apiVersion": "2018-05-01",
+                            "name": "[format('{0}/{1}', parameters('zoneName'), parameters('domainPrefix'))]",
+                            "properties": {
+                                "TTL": 3600,
+                                "ARecords": [
+                                    {
+                                        "ipv4Address": "[parameters('ipAddress')]"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
         }
     ]
 }
