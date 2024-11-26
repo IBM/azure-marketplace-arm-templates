@@ -36,7 +36,7 @@ if [[ -z $IMAGE_LIST_RH_FILENAME ]]; then IMAGE_LIST_RH_FILENAME="image-list-rh"
 if [[ -z $IMAGE_LIST_SIP_FILENAME ]]; then IMAGE_LIST_SIP_FILENAME="image-list-sip"; fi
 if [[ -z $IMAGE_LIST_RH_URL ]]; then IMAGE_LIST_RH_URL="${BASE_URI}/${BRANCH}/sterling/2024-03/sip/${IMAGE_LIST_RH_FILENAME}"; fi
 if [[ -z $IMAGE_LIST_SIP_URL ]]; then IMAGE_LIST_SIP_URL="${BASE_URI}/${BRANCH}/sterling/2024-03/sip/${IMAGE_LIST_SIP_FILENAME}"; fi
-if [[ -z $SC_NAME ]]; then SC_NAME="azurefile"; fi
+if [[ -z $SC_NAME ]]; then SC_NAME="sip-azurefile"; fi
 if [[ -z $PVC_NAME ]]; then PVC_NAME="sip1-pvc"; fi
 if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
 if [[ -z $CERT_MANAGER_VERSION ]]; then CERT_MANAGER_VERSION="v1.14.3"; fi
@@ -554,6 +554,39 @@ fi
 if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]]; then
     if [[ $LICENSE == "accept" ]]; then
 
+    # Create the storage class with required mounting UID
+    if [[ -z $(kubectl get sc | grep "$SC_NAME") ]]; then
+        log-info "Creating storage class"
+        cat << EOF | kubectl create -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: $SC_NAME
+provisioner: file.csi.azure.com
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nobrl
+  - cache=none
+parameters:
+  skuName: Standard_LRS
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+EOF
+        if (( $? != 0 )); then
+            log-error "Unable to create ingress certificate"
+            exit 1
+        else
+            log-info "Storage class $SC_NAME created"
+        fi
+    else
+        log-info "Storage class $SC_NAME already exists"
+    fi
+
         # Create JWT issuer cert
         HOSTNAME="sipservice-${SIP_NAMESPACE}.$DOMAIN_NAME"
 
@@ -664,60 +697,60 @@ EOF
                 log-info "Created PVC $PVC_NAME in namespace $SIP_NAMESPACE"
             fi
 
-            log-info "Running job to mount volume and force PV creation"
-            # Remove any existing job
-            if [[ $(kubectl get jobs -n $SIP_NAMESPACE | grep volume-pod ) ]]; then
-                log-info "Deleting existing volume-pod job in namespace $SIP_NAMESPACE"
-                kubectl delete job -n $SIP_NAMESPACE volume-pod
-                if (( $? != 0 )); then
-                    log-error "Unable to delete volume-pod job in namespace $SIP_NAMESPACE"
-                    exit 1
-                else
-                    log-info "Deleted volume-pod job in namespace $SIP_NAMESPACE"
-                fi
-            fi
-            cat << EOF | kubectl create -f -
-kind: Job
-apiVersion: batch/v1
-metadata: 
-  name: volume-pod
-  namespace: $SIP_NAMESPACE
-spec:
-  template:
-    spec:
-      volumes:
-        - name: sip-volume
-          persistentVolumeClaim:
-            claimName: $PVC_NAME
-      containers:
-        - name: nginx
-          image: nginx:latest
-          command: [ "/bin/bash", "-c", "--" ]
-          args: [ "echo done" ]
-          volumeMounts:
-            - name: sip-volume
-              mountPath: /mnt
-      restartPolicy: OnFailure
-  backoffLimit: 4
-EOF
-            if (( $? != 0 )); then
-                log-error "Unable to create batch job to mount volume"
-                exit 1
-            else
-                while [[ -z $(kubectl get job volume-pod -n $SIP_NAMESPACE | grep "1/1") ]]; do
-                    log-info "Waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
-                    i=$(( $i + 1 ))
-                    if (( $i > 10 )); then
-                        log-error "Timeout waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
-                        exit 1
-                    fi
-                    sleep 30
-                done
-                log-info "Job volume-pod completed in namespace $SIP_NAMESPACE"
-            fi
-        else
-            log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
-        fi        
+#             log-info "Running job to mount volume and force PV creation"
+#             # Remove any existing job
+#             if [[ $(kubectl get jobs -n $SIP_NAMESPACE | grep volume-pod ) ]]; then
+#                 log-info "Deleting existing volume-pod job in namespace $SIP_NAMESPACE"
+#                 kubectl delete job -n $SIP_NAMESPACE volume-pod
+#                 if (( $? != 0 )); then
+#                     log-error "Unable to delete volume-pod job in namespace $SIP_NAMESPACE"
+#                     exit 1
+#                 else
+#                     log-info "Deleted volume-pod job in namespace $SIP_NAMESPACE"
+#                 fi
+#             fi
+#             cat << EOF | kubectl create -f -
+# kind: Job
+# apiVersion: batch/v1
+# metadata: 
+#   name: volume-pod
+#   namespace: $SIP_NAMESPACE
+# spec:
+#   template:
+#     spec:
+#       volumes:
+#         - name: sip-volume
+#           persistentVolumeClaim:
+#             claimName: $PVC_NAME
+#       containers:
+#         - name: nginx
+#           image: nginx:latest
+#           command: [ "/bin/bash", "-c", "--" ]
+#           args: [ "echo done" ]
+#           volumeMounts:
+#             - name: sip-volume
+#               mountPath: /mnt
+#       restartPolicy: OnFailure
+#   backoffLimit: 4
+# EOF
+#             if (( $? != 0 )); then
+#                 log-error "Unable to create batch job to mount volume"
+#                 exit 1
+#             else
+#                 while [[ -z $(kubectl get job volume-pod -n $SIP_NAMESPACE | grep "1/1") ]]; do
+#                     log-info "Waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
+#                     i=$(( $i + 1 ))
+#                     if (( $i > 10 )); then
+#                         log-error "Timeout waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
+#                         exit 1
+#                     fi
+#                     sleep 30
+#                 done
+#                 log-info "Job volume-pod completed in namespace $SIP_NAMESPACE"
+#             fi
+#         else
+#             log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
+#         fi        
 
         log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
         # cat << EOF | kubectl apply -f -
@@ -999,19 +1032,19 @@ EOF
 #             log-info "Ingress instance already exists"
 #         fi
 
-    # Wait for services to start
-    # count=0;
-    # while [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
-    #     && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
-    #     && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
-    #     log-info "Waiting for services to be available. Waited $count minutes. Will wait up to $MAX_READY_MINUTES"
-    #     count=$(( $count + 1 ))
-    #     sleep 60
-    #     if (( $count > $MAX_READY_MINUTES )); then
-    #         log-error "Timeout exceeded waiting for services to be available."
-    #         exit 1
-    #     fi
-    # done
+    Wait for services to start
+    count=0;
+    while [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="SIPEnvironmentAvailable") | .status' -r | grep True) ]] \
+        && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="OMSGatewayAvailable") | .status' -r | grep True) ]] \
+        && [[ -z $(kubectl get sipenvironment -n ${SIP_NAMESPACE} ${SIP_INSTANCE_NAME} -o json | jq '.status.conditions[] | select(.type=="PromisingServiceAvailable") | .status' -r | grep True) ]]; do
+        log-info "Waiting for services to be available. Waited $count minutes. Will wait up to $MAX_READY_MINUTES"
+        count=$(( $count + 1 ))
+        sleep 60
+        if (( $count > $MAX_READY_MINUTES )); then
+            log-error "Timeout exceeded waiting for services to be available."
+            exit 1
+        fi
+    done
 
     else
         log-info "License not accepted. Instance not created"
@@ -1021,3 +1054,7 @@ else
 fi
 
 log-info "Script completed"
+
+# Return the ingress IP to update the domain name
+
+# jq -n -c --arg publicIP \"$(cat ./jwtkey.pem | base64 -w 0)\" --arg rawKey \"$(cat ./jwtkey.pem)\" --arg publicKey \"$(cat ./jwtkey.pub | base64 -w 0)\" '{\"jwtKey\": {\"privateKey\": $privateKey, \"publicKey\": $publicKey , \"rawKey\": $rawKey}}' > $AZ_SCRIPTS_OUTPUT_PATH
