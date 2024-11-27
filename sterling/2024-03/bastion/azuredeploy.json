@@ -161,6 +161,36 @@
         "publicIpAddressName": "[concat(parameters('namePrefix'), '-bastion-public-ip')]",
         "bastionHostName": "[concat(parameters('namePrefix'), '-bastion-vm')]",
         "bastionSubnetName": "AzureBastionSubnet",
+        "bastionIpConfig": [
+                    {
+                        "name": "IpConf",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetId')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]"
+                            }
+                        }
+                    }
+                ],
+        "bastionParameters": {
+            "Basic": {
+                "dnsName": "[if(equals(parameters('dnsName'),''),json('null'),parameters('dnsName'))]",
+                "enableKerberos": "[parameters('enableKerberos')]",
+                "ipConfigurations": "[variables('bastionIpConfig')]"
+            },
+            "Standard": {
+                "disableCopyPaste": "[parameters('disableCopyPaste')]",
+                "dnsName": "[if(equals(parameters('dnsName'),''),json('null'),parameters('dnsName'))]",
+                "enableFileCopy": "[parameters('enableFileCopy')]",
+                "enableIpConnect": "[parameters('enableIpConnect')]",
+                "enableKerberos": "[parameters('enableKerberos')]",
+                "enableShareableLink": "[parameters('enableShareableLink')]",
+                "enableTunneling": "[parameters('enableTunneling')]",
+                "ipConfigurations": "[variables('bastionIpConfig')]"
+            }
+        },
         "vnetId": {
             "new": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
             "existing": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]"
@@ -257,28 +287,7 @@
                 "name": "[parameters('sku')]"
             },
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/bastionHosts'), parameters('tagsByResource')['Microsoft.Network/bastionHosts'], json('{}')) ]",
-            "properties": {
-                "disableCopyPaste": "[if(equals(parameters('sku'),'Standard'),parameters('disableCopyPaste'),json('null'))]",
-                "dnsName": "[if(equals(parameters('dnsName'),''),json('null'),parameters('dnsName'))]",
-                "enableFileCopy": "[if(equals(parameters('sku'),'Standard'),parameters('enableFileCopy'),json('null'))]",
-                "enableIpConnect": "[if(equals(parameters('sku'),'Standard'),parameters('enableIpConnect'),json('null'))]",
-                "enableKerberos": "[if(equals(parameters('sku'),'Standard'),parameters('enableKerberos'),json('null'))]",
-                "enableShareableLink": "[if(equals(parameters('sku'),'Standard'),parameters('enableShareableLink'),json('null'))]",
-                "enableTunneling": "[if(equals(parameters('sku'),'Standard'),parameters('enableTunneling'),json('null'))]",
-                "ipConfigurations": [
-                    {
-                        "name": "IpConf",
-                        "properties": {
-                            "subnet": {
-                                "id": "[variables('subnetId')]"
-                            },
-                            "publicIPAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]"
-                            }
-                        }
-                    }
-                ]
-            },
+            "properties": "[variables('bastionParameters')[parameters('sku')]]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]",
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'configureBastionSubnet')]"
