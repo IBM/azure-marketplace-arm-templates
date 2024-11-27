@@ -14,9 +14,9 @@ log-info "Script started"
 # Check required parameters
 if [[ -z $RESOURCE_GROUP ]]; then log-error "RESOURCE_GROUP not defined"; exit 1; fi
 if [[ -z $IBM_ENTITLEMENT_KEY ]]; then log-error "IBM_ENTITLEMENT_KEY not defined"; exit 1; fi
-if [[ -z $TRUSTSTORE_PASSWORD ]]; then log-error "TRUSTSTORE_PASSWORD not defined"; exit 1; fi
-if [[ -z $DOMAIN_NAME ]]; then log-error "DOMAIN_NAME is not defined"; fi
-if [[ $LICENSE == "accept" ]] && [[ -z $JWT_KEY ]]; then log-error "JWT_KEY is not defined"; fi
+if [[ $LICENSE == "accept" ]] && [[ $CREATE_DEV_INSTANCE == "True" ]] && [[ -z $TRUSTSTORE_PASSWORD ]]; then log-error "TRUSTSTORE_PASSWORD not defined"; exit 1; fi
+if [[ $LICENSE == "accept" ]] && [[ $CREATE_DEV_INSTANCE == "True" ]] && [[ -z $DOMAIN_NAME ]]; then log-error "DOMAIN_NAME is not defined"; fi
+if [[ $LICENSE == "accept" ]] && [[ $CREATE_DEV_INSTANCE == "True" ]] && [[ -z $JWT_KEY ]]; then log-error "JWT_KEY is not defined"; fi
 
 # Set default values
 if [[ -z $TMP_DIR ]]; then TMP_DIR="$(pwd)"; fi
@@ -61,6 +61,7 @@ if [[ -z $MAX_READY_MINUTES ]]; then MAX_READY_MINUTES=30; fi
 if [[ -z $HELM_URL ]]; then HELM_URL="https://get.helm.sh/helm-v3.14.3-linux-amd64.tar.gz"; fi
 if [[ -z $OLM_VERSION ]]; then OLM_VERSION="0.28.0"; fi
 if [[ -z $OLM_TIMEOUT ]]; then OLM_TIMEOUT="5m0s"; fi
+if [[ -z $CREATE_DEV_INSTANCE ]]; then CREATE_DEV_INSTANCE="True"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -552,7 +553,8 @@ fi
 
 # Deploy SIP instance
 # The below currently skips the instance creation due to changes in the definition between versions
-if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]]; then
+if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]] \
+    && [[ $CREATE_DEV_INSTANCE == "True" ]]; then
     if [[ $LICENSE == "accept" ]]; then
 
     log-info "Creating Dev SIP Environment"

@@ -224,6 +224,13 @@
                 "description": "Accept the license terms. Required to create an instance."
             }
         },
+        "createDevInstance": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an SIP CR development instance"
+            }
+        },
         "jwtPublicKey": {
             "type": "string",
             "metadata": {
@@ -464,6 +471,10 @@
                     {
                         "name": "LICENSE",
                         "value": "[parameters('license')]"
+                    },
+                    {
+                        "name": "CREATE_DEV_INSTANCE",
+                        "value": "[if(parameters('createDevInstance'),'True','False')]"
                     },
                     {
                         "name": "CERT_MANAGER_VERSION",

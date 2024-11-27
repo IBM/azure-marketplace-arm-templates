@@ -979,6 +979,7 @@
         },
         "trustStorePassword": {
             "type": "securestring",
+            "defaultValue": "",
             "metadata": {
                 "description": "Password to be used for the trust store"
             }
@@ -1083,12 +1084,14 @@
         },
         "domainName": {
             "type": "string",
+            "defaultValue": "",
             "metadata": {
                 "description": "DNS Zone of the domain name to update with the SIP ingress IP"
             }
         },
         "domainResourceGroup": {
             "type": "string",
+            "defaultValue": "",
             "metadata": {
                 "description": "Resource group containing the DNS zone to update"
             }
@@ -1102,6 +1105,13 @@
             "defaultValue": "decline",
             "metadata": {
                 "description": "Accept the license terms. Required to create an instance."
+            }
+        },
+        "createDevInstance": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an SIP CR development instance"
             }
         },
         "tagsByResource": {
@@ -1509,7 +1519,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "deployKeyVault",
-            "condition": "[if(equals(parameters('publicSshKey'), ''),true(),parameters('deployKeyVault'))]",
+            "condition": "[if(or(equals(parameters('publicSshKey'), ''),and(equals(parameters('jwtPublicKey'),''),parameters('createDevInstance'))),true(),parameters('deployKeyVault'))]",
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
@@ -1621,7 +1631,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2022-09-01",
             "name": "createJwtKey",
-            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPublicKey'),''))]",
+            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPublicKey'),''),parameters('createDevInstance'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
@@ -2199,7 +2209,7 @@
                         "value": "[parameters('instanceNamespace')]"
                     },
                     "jwtPublicKey": {
-                        "value": "[if(equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['publicKey'].value,parameters('jwtPublicKey'))]"
+                        "value": "[if( parameters('createDevInstance'),if( equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['publicKey'].value,parameters('jwtPublicKey')),'')]"
                     },
                     "sipTag": {
                         "value": "[parameters('sipTag')]"
@@ -2225,6 +2235,9 @@
                     "license": {
                         "value": "[parameters('license')]"
                     },
+                    "createDevInstance": {
+                        "value": "[parameters('createDevInstance')]"
+                    },
                     "branch": {
                         "value": "[parameters('branch')]"
                     },
@@ -2243,7 +2256,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('updateDNS')]",
+            "condition": "[and(parameters('updateDNS'),parameters('createDevInstance'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deploySip')]"
             ],
