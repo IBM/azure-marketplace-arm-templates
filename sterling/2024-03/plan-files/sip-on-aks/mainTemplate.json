@@ -1395,19 +1395,19 @@
                         "value": "[parameters('bastionDnsName')]"
                     },
                     "enableFileCopy": {
-                        "value": "[parameters('bastionEnableFileCopy')]"
+                        "value": "[if(equals(parameters('bastionEnableFileCopy'),json('null')),parameters('bastionEnableFileCopy'),json('false'))]"
                     },
                     "enableIpConnect": {
-                        "value": "[parameters('bastionEnableIpConnect')]"
+                        "value": "[if(equals(parameters('bastionEnableIpConnect'),json('null')),parameters('bastionEnableIpConnect'),json('false'))]"
                     },
                     "enableKerberos": {
-                        "value": "[parameters('bastionEnableKerberos')]"
+                        "value": "[if(equals(parameters('bastionEnableKerberos'),json('null')),parameters('bastionEnableKerberos'),json('false'))]"
                     },
                     "enableShareableLink": {
-                        "value": "[parameters('bastionEnableShareableLink')]"
+                        "value": "[if(equals(parameters('bastionEnableShareableLink'),json('null')),parameters('bastionEnableShareableLink'),json('false'))]"
                     },
                     "enableTunneling": {
-                        "value": "[parameters('bastionEnableTunneling')]"
+                        "value": "[if(equals(parameters('bastionEnableTunneling'),json('null')),parameters('bastionEnableTunneling'),json('false'))]"
                     },
                     "bastionSubnetCIDR": {
                         "value": "[parameters('bastionSubnetCidr')]"
@@ -1479,7 +1479,8 @@
             "name": "deployPrerequisites",
             "condition": "[parameters('deployPrereqs')]",
             "dependsOn": [
-                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployBastion')]"
             ],
             "properties": {
                 "mode": "Incremental",
