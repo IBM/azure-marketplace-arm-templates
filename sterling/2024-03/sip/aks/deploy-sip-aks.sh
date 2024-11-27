@@ -73,7 +73,7 @@ else
         exit 1
     else
         log-info "Downloading Red Hat image list"
-        wget -q -P $WORKSPACE_DIR $IMAGE_LIST_RH_URL
+        wget -q -P $WORKSPACE_DIR -O $IMAGE_LIST_RH_FILENAME $IMAGE_LIST_RH_URL
         if (( $? != 0 )); then
             log-error "Unable to download Red Hat image list from ${IMAGE_LIST_RH_URL}"
             exit 1
@@ -92,7 +92,7 @@ else
         exit 1
     else
         log-info "Downloading SIP image list"
-        wget -q -P $WORKSPACE_DIR $IMAGE_LIST_SIP_URL 
+        wget -q -P $WORKSPACE_DIR -O $IMAGE_LIST_SIP_FILENAME $IMAGE_LIST_SIP_URL 
         if (( $? != 0 )); then
             log-error "Unable to download SIP image list from ${IMAGE_LIST_SIP_URL}"
             exit 1
@@ -559,6 +559,9 @@ if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o js
 
     log-info "Creating Dev SIP Environment"
 
+    log-info "Pausing to allow updates"
+    sleep 60
+
     # Create the storage class with required mounting UID
     if [[ -z $(kubectl get sc | grep "$SC_NAME") ]]; then
         log-info "Creating storage class"
@@ -583,7 +586,7 @@ volumeBindingMode: Immediate
 allowVolumeExpansion: true
 EOF
         if (( $? != 0 )); then
-            log-error "Unable to create ingress certificate"
+            log-error "Unable to create storage class $SC_NAME"
             exit 1
         else
             log-info "Storage class $SC_NAME created"
