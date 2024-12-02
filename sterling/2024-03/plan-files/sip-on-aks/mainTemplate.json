@@ -347,7 +347,7 @@
         },
         "aksKubernetesVersion": {
             "type": "string",
-            "defaultValue": "1.27",
+            "defaultValue": "1.30",
             "metadata": {
                 "description": "Version of kubneretes to be used for the AKS cluster"
             }
@@ -1145,7 +1145,7 @@
     },
     "resources": [
         { 
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "comments": "This is the deployment identifier for BYOL SIP",
             "name": "pid-b31512fe-f20c-4c07-8425-ab895dfa6db9-partnercenter", 
             "type": "Microsoft.Resources/deployments",
@@ -1179,7 +1179,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "virtualNetwork",
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "dependsOn": [
@@ -1241,7 +1241,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.Network/virtualNetworks",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-03-01",
                             "name": "[parameters('vnetName')]",
                             "condition": "[not(parameters('existingVnet'))]",
                             "location": "[parameters('location')]",
@@ -1272,7 +1272,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployNatGateway",
             "condition": "[equals(parameters('outboundRouting'),'NAT Gateway')]",
             "properties": {
@@ -1360,7 +1360,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployBastion",
             "condition": "[parameters('deployBastion')]",
             "dependsOn": [
@@ -1434,7 +1434,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployMonitoring",
             "condition": "[parameters('deployLogAnalytics')]",
             "dependsOn": [
@@ -1476,7 +1476,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployPrerequisites",
             "condition": "[parameters('deployPrereqs')]",
             "dependsOn": [
@@ -1518,7 +1518,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployKeyVault",
             "condition": "[if(or(equals(parameters('publicSshKey'), ''),and(equals(parameters('jwtPublicKey'),''),parameters('createDevInstance'))),true(),parameters('deployKeyVault'))]",
             "dependsOn": [
@@ -1580,7 +1580,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "createSshKey",
             "comments": "Creates a new SSH key and stores in keyvault if no public key is provided",
             "condition": "[equals(parameters('publicSshKey'), '')]",
@@ -1630,7 +1630,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "createJwtKey",
             "condition": "[and(parameters('deploySip'),equals(parameters('jwtPublicKey'),''),parameters('createDevInstance'))]",
             "dependsOn": [
@@ -1682,7 +1682,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployRegistry",
             "condition": "[parameters('deployAcr')]",
             "dependsOn": [
@@ -1756,7 +1756,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployAks",
             "condition": "[parameters('deployAks')]",
             "dependsOn": [
@@ -1866,7 +1866,7 @@
                         "value": "[parameters('aksAdminUserName')]"
                     },
                     "aksSshPublicKey": {
-                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2022-09-01').outputs['publicKey'].value,parameters('publicSshKey'))]"       
+                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2024-03-01').outputs['publicKey'].value,parameters('publicSshKey'))]"       
                     },
                     "aksAutoScalerScanInterval": {
                         "value": "[parameters('aksAutoScalerScanInterval')]"
@@ -2034,7 +2034,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployManagementVm",
             "condition": "[parameters('deployManagementVm')]",
             "dependsOn": [
@@ -2131,7 +2131,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deploySip",
             "condition": "[parameters('deploySip')]",
             "dependsOn": [
@@ -2209,7 +2209,7 @@
                         "value": "[parameters('instanceNamespace')]"
                     },
                     "jwtPublicKey": {
-                        "value": "[if( parameters('createDevInstance'),if( equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['publicKey'].value,parameters('jwtPublicKey')),'')]"
+                        "value": "[if( parameters('createDevInstance'),if( equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2024-03-01').outputs['publicKey'].value,parameters('jwtPublicKey')),'')]"
                     },
                     "sipTag": {
                         "value": "[parameters('sipTag')]"
@@ -2255,7 +2255,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2023-07-01",
+            "apiVersion": "2024-03-01",
             "condition": "[and(parameters('updateDNS'),parameters('createDevInstance'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deploySip')]"
@@ -2275,7 +2275,7 @@
                         "value": "[concat('sipservice-',parameters('instanceNamespace'))]"
                     },
                     "ipAddress": {
-                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploySip'),'2023-07-01').outputs['publicIP'].value]"
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploySip'),'2024-03-01').outputs['publicIP'].value]"
                     }
                 },
                 "template": {

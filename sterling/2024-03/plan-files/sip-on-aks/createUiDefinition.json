@@ -407,11 +407,12 @@
               "visible": true
             },
             {
-              "name": "sipTag",
+              "name": "sipVersion",
               "type": "Microsoft.Common.DropDown",
               "label": "SIP Version",
               "visible": true,
               "toolTip": "Version of SIP to be installed.",
+              "defaultValue": "[parse('{\"tag\":\"10.0.2409.0-amd64\",\"operatorVersion\":\"v1.0.10\",\"sipImageList\":\"image-list-sip-2409\",\"rhImageList\":\"image-list-rh\"}')]",
               "constraints": {
                 "allowedValues": [
                   {
@@ -1898,11 +1899,11 @@
         "privateDeployment": "[basics('privateDeployment')]",
         "ibmEntitlementKey": "[steps('SIP').ibmEntitlementKey]",
         "trustStorePassword": "[steps('SIP').trustStorePassword]",
-        "sipTag": "[steps('SIP').sipTag.tag]",
-        "sipOperatorVersion": "[steps('SIP').sipTag.operatorVersion]",
-        "omsOperatorVersion": "[steps('SIP').sipTag.operatorVersion]",
-        "imageListSIPFileName": "[steps('SIP').sipTag.sipImageList]",
-        "imageListRHFileName": "[steps('SIP').sipTag.rhImageList]",
+        "sipTag": "[steps('SIP').sipVersion.tag]",
+        "sipOperatorVersion": "[steps('SIP').sipVersion.operatorVersion]",
+        "omsOperatorVersion": "[steps('SIP').sipVersion.operatorVersion]",
+        "imageListSIPFileName": "[steps('SIP').sipVersion.sipImageList]",
+        "imageListRHFileName": "[steps('SIP').sipVersion.rhImageList]",
         "jwtPublicKey": "[if(not(steps('SIP').jwtKey),steps('SIP').jwtKey,encodeBase64(steps('SIP').jwtKey))]",
         "operatorNamespace": "[steps('SIP').operatorNamespace]",
         "instanceNamespace": "[steps('SIP').instanceNamespace]",
