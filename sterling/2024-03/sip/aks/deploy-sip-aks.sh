@@ -14,14 +14,17 @@ log-info "Script started"
 # Check required parameters
 if [[ -z $RESOURCE_GROUP ]]; then log-error "RESOURCE_GROUP not defined"; exit 1; fi
 if [[ -z $IBM_ENTITLEMENT_KEY ]]; then log-error "IBM_ENTITLEMENT_KEY not defined"; exit 1; fi
-if [[ -z $TRUSTSTORE_PASSWORD ]]; then log-error "TRUSTSTORE_PASSWORD not defined"; exit 1; fi
-if [[ -z $DOMAIN_NAME ]]; then log-error "DOMAIN_NAME is not defined"; fi
-if [[ $LICENSE == "accept" ]] && [[ -z $JWT_KEY ]]; then log-error "JWT_KEY is not defined"; fi
+if [[ $LICENSE == "accept" ]] && [[ $CREATE_DEV_INSTANCE == "True" ]] && [[ -z $TRUSTSTORE_PASSWORD ]]; then log-error "TRUSTSTORE_PASSWORD not defined"; exit 1; fi
+if [[ $LICENSE == "accept" ]] && [[ $CREATE_DEV_INSTANCE == "True" ]] && [[ -z $DOMAIN_NAME ]]; then log-error "DOMAIN_NAME is not defined"; fi
+if [[ $LICENSE == "accept" ]] && [[ $CREATE_DEV_INSTANCE == "True" ]] && [[ -z $JWT_KEY ]]; then log-error "JWT_KEY is not defined"; fi
 
 # Set default values
 if [[ -z $TMP_DIR ]]; then TMP_DIR="$(pwd)"; fi
 if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="$TMP_DIR"; fi
 if [[ -z $BIN_DIR ]]; then BIN_DIR="/usr/local/bin"; fi
+if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2409.0-amd64"; fi
+if [[ -z $OMS_OPERATOR_VERSION ]]; then OMS_OPERATOR_VERSION="v1.0.10"; fi
+if [[ -z $SIP_OPERATOR_VERSION ]]; then SIP_OPERATOR_VERSION="v1.0.10"; fi
 if [[ -z $OMS_GW_OPERATOR ]]; then OMS_GW_OPERATOR="cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0"; fi
 if [[ -z $SIP_OPERATOR ]]; then SIP_OPERATOR="cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0"; fi
 if [[ -z $OPERATOR_NAMESPACE ]]; then OPERATOR_NAMESPACE="ibm-operators"; fi
@@ -33,7 +36,8 @@ if [[ -z $IMAGE_LIST_RH_FILENAME ]]; then IMAGE_LIST_RH_FILENAME="image-list-rh"
 if [[ -z $IMAGE_LIST_SIP_FILENAME ]]; then IMAGE_LIST_SIP_FILENAME="image-list-sip"; fi
 if [[ -z $IMAGE_LIST_RH_URL ]]; then IMAGE_LIST_RH_URL="${BASE_URI}/${BRANCH}/sterling/2024-03/sip/${IMAGE_LIST_RH_FILENAME}"; fi
 if [[ -z $IMAGE_LIST_SIP_URL ]]; then IMAGE_LIST_SIP_URL="${BASE_URI}/${BRANCH}/sterling/2024-03/sip/${IMAGE_LIST_SIP_FILENAME}"; fi
-if [[ -z $SC_NAME ]]; then SC_NAME="azurefile"; fi
+# if [[ -z $SC_NAME ]]; then SC_NAME="sip-azurefile"; fi
+SC_NAME="sip-azurefile"
 if [[ -z $PVC_NAME ]]; then PVC_NAME="sip1-pvc"; fi
 if [[ -z $LICENSE ]]; then LICENSE="decline"; fi
 if [[ -z $CERT_MANAGER_VERSION ]]; then CERT_MANAGER_VERSION="v1.14.3"; fi
@@ -41,7 +45,6 @@ if [[ -z $PVC_SIZE ]]; then PVC_SIZE="10Gi"; fi
 if [[ -z $CP_REPO_BASE ]]; then CP_REPO_BASE="cp/ibm-oms-enterprise"; fi
 if [[ -z $LOG_LEVEL ]]; then LOG_LEVEL="INFO"; fi
 if [[ -z $RH_TAG ]]; then RH_TAG="latest"; fi
-if [[ -z $SIP_TAG ]]; then SIP_TAG="10.0.2403.1-amd64"; fi
 if [[ -z $SIP_SECRET_NAME ]]; then SIP_SECRET_NAME="sip-secret"; fi
 if [[ -z $CASSANDRA_USERNAME ]]; then CASSANDRA_USERNAME="sipadmin"; fi
 if [[ -z $CASSANDRA_PASSWORD ]]; then CASSANDRA_PASSWORD="$TRUSTSTORE_PASSWORD"; fi
@@ -56,6 +59,9 @@ if [[ -z $AZ_SCRIPTS_OUTPUT_PATH ]]; then AZ_SCRIPTS_OUTPUT_PATH="$OUTPUT_DIR/ex
 if [[ -z $MAX_IMAGE_RETRY ]]; then MAX_IMAGE_RETRY=5; fi
 if [[ -z $MAX_READY_MINUTES ]]; then MAX_READY_MINUTES=30; fi
 if [[ -z $HELM_URL ]]; then HELM_URL="https://get.helm.sh/helm-v3.14.3-linux-amd64.tar.gz"; fi
+if [[ -z $OLM_VERSION ]]; then OLM_VERSION="0.28.0"; fi
+if [[ -z $OLM_TIMEOUT ]]; then OLM_TIMEOUT="5m0s"; fi
+if [[ -z $CREATE_DEV_INSTANCE ]]; then CREATE_DEV_INSTANCE="True"; fi
 
 # Download the image lists
 if [[ -f ${WORKSPACE_DIR}/${IMAGE_LIST_RH_FILENAME} ]]; then
@@ -67,7 +73,7 @@ else
         exit 1
     else
         log-info "Downloading Red Hat image list"
-        wget -q -P $WORKSPACE_DIR $IMAGE_LIST_RH_URL
+        wget -q -P $WORKSPACE_DIR -O $IMAGE_LIST_RH_FILENAME $IMAGE_LIST_RH_URL
         if (( $? != 0 )); then
             log-error "Unable to download Red Hat image list from ${IMAGE_LIST_RH_URL}"
             exit 1
@@ -86,7 +92,7 @@ else
         exit 1
     else
         log-info "Downloading SIP image list"
-        wget -q -P $WORKSPACE_DIR $IMAGE_LIST_SIP_URL 
+        wget -q -P $WORKSPACE_DIR -O $IMAGE_LIST_SIP_FILENAME $IMAGE_LIST_SIP_URL 
         if (( $? != 0 )); then
             log-error "Unable to download SIP image list from ${IMAGE_LIST_SIP_URL}"
             exit 1
@@ -234,11 +240,56 @@ fi
 log-info "Logging into AKS Cluster ${AKS_CLUSTER} in resource group $RESOURCE_GROUP"
 az aks get-credentials -n $AKS_CLUSTER -g $RESOURCE_GROUP
 
+# Create the operand namespace
+if [[ -z $(kubectl get namespace | grep ${SIP_NAMESPACE}) ]]; then
+    log-info "Creating namespace ${SIP_NAMESPACE}"
+    kubectl create namespace $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Successfully created namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Namespace $SIP_NAMESPACE already exists"
+fi
+
+# Create the image pull secrets
+if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep ibm-entitlement-key) ]]; then
+    log-info "Creating image pull secret ibm-entitlement-key in namespace $SIP_NAMESPACE"
+    kubectl create secret docker-registry ibm-entitlement-key --docker-server=cp.icr.io --docker-username=cp --docker-password=$IBM_ENTITLEMENT_KEY -n $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Created image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Image pull secret for ibm-entitlement-key already exists in namespace $SIP_NAMESPACE"
+fi
+
+if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep acr-secret) ]]; then
+    log-info "Creating image pull secret acr-secret in namespace $SIP_NAMESPACE"
+    ACR_USERNAME="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'username' -o tsv)"
+    ACR_PASSWORD="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'passwords[0].value' -o tsv)"
+
+    kubectl create secret docker-registry acr-secret --docker-server=$ACR_NAME.azurecr.io --docker-username=$ACR_USERNAME --docker-password=$ACR_PASSWORD -n $SIP_NAMESPACE
+    if (( $? != 0 )); then
+        log-error "Unable to create image pull secret for acr-secret in namespace $SIP_NAMESPACE"
+        exit 1
+    else
+        log-info "Created image pull secret for acr-secret in namespace $SIP_NAMESPACE"
+    fi
+else
+    log-info "Image pull secret for acr-secret already exists in namespace $SIP_NAMESPACE"
+fi
+
+
 # Add OLM to the cluster
 kubectl get pods -n olm | grep olm-operator 2>&1
 if (( $? != 0 )); then
     log-info "Installing OperatorSDK OLM"
-    operator-sdk olm install
+    operator-sdk olm install --version $OLM_VERSION --timeout $OLM_TIMEOUT
 else
     log-info "OperatorSDK OLM already installed"
 fi
@@ -349,6 +400,7 @@ spec:
   name: ibm-oms-gateway
   source: ibm-oms-gateway-catalog
   sourceNamespace: ${OPERATOR_NAMESPACE}
+  startingCSV: ibm-oms-gateway.${OMS_OPERATOR_VERSION}
 EOF
     if (( $? != 0 )); then
         log-error "Unable to create subscription oms-gateway-subscription in namespace ${OPERATOR_NAMESPACE}"
@@ -375,6 +427,7 @@ spec:
   name: ibm-sip
   source: ibm-sip-catalog
   sourceNamespace: ${OPERATOR_NAMESPACE}
+  startingCSV: ibm-sip.${SIP_OPERATOR_VERSION}
 EOF
     if (( $? != 0 )); then
         log-error "Unable to create subscription sip-subscription in namespace ${OPERATOR_NAMESPACE}"
@@ -384,20 +437,6 @@ EOF
     fi
 else
     log-info "Subscription sip-subscription already exists in namespace ${OPERATOR_NAMESPACE}"
-fi
-
-# Create the operand namespace
-if [[ -z $(kubectl get namespace | grep ${SIP_NAMESPACE}) ]]; then
-    log-info "Creating namespace ${SIP_NAMESPACE}"
-    kubectl create namespace $SIP_NAMESPACE
-    if (( $? != 0 )); then
-        log-error "Unable to create namespace $SIP_NAMESPACE"
-        exit 1
-    else
-        log-info "Successfully created namespace $SIP_NAMESPACE"
-    fi
-else
-    log-info "Namespace $SIP_NAMESPACE already exists"
 fi
 
 # Upload images to the Azure Container Registry
@@ -468,29 +507,29 @@ for image in $(cat ${WORKSPACE_DIR}/${IMAGE_LIST_SIP_FILENAME}); do
 done
 
 # Create the certificate manager CRD
-if [[ -z $(kubectl get crds | grep certificatemanagers) ]]; then
-    log-info "Installing the certificate manager operator"
-    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml
-    if (( $? != 0 )); then
-        log-error "Unable to install certificate manager operator"
-        exit 1
-    else
-        while [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager " | grep "1/1") ]] \
-            && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-cainjector" | grep "1/1") ]] \
-            && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-webhook" | grep "1/1") ]]; do
-            log-info "Waiting for certificate manager to initialize"
-            i=$(( $i + 1))
-            if (( $i > 10 )); then
-                log-error "Timeout waiting for certificate manager to initialize"
-                exit 1
-            fi
-            sleep 30
-        done
-        log-info "Certificate manager installed and running"
-    fi
-else
-    log-info "Certificate Manager custom resource definition already exists"
-fi
+# if [[ -z $(kubectl get crds | grep certificatemanagers) ]]; then
+#     log-info "Installing the certificate manager operator"
+#     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml
+#     if (( $? != 0 )); then
+#         log-error "Unable to install certificate manager operator"
+#         exit 1
+#     else
+#         while [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager " | grep "1/1") ]] \
+#             && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-cainjector" | grep "1/1") ]] \
+#             && [[ -z $(kubectl get deployments -n cert-manager | grep "cert-manager-webhook" | grep "1/1") ]]; do
+#             log-info "Waiting for certificate manager to initialize"
+#             i=$(( $i + 1))
+#             if (( $i > 10 )); then
+#                 log-error "Timeout waiting for certificate manager to initialize"
+#                 exit 1
+#             fi
+#             sleep 30
+#         done
+#         log-info "Certificate manager installed and running"
+#     fi
+# else
+#     log-info "Certificate Manager custom resource definition already exists"
+# fi
 
 # Create the nginx ingress controller
 if [[ -z $(helm list --namespace ingress-nginx | grep ingress-nginx ) ]]; then
@@ -512,47 +551,55 @@ else
     log-info "NGINX ingress controller already deployed"
 fi
 
-# Create the image pull secrets
-if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep ibm-entitlement-key) ]]; then
-    log-info "Creating image pull secret ibm-entitlement-key in namespace $SIP_NAMESPACE"
-    kubectl create secret docker-registry ibm-entitlement-key --docker-server=cp.icr.io --docker-username=cp --docker-password=$IBM_ENTITLEMENT_KEY -n $SIP_NAMESPACE
-    if (( $? != 0 )); then
-        log-error "Unable to create image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
-        exit 1
-    else
-        log-info "Created image pull secret for ibm-entitlement-key in namespace $SIP_NAMESPACE"
-    fi
-else
-    log-info "Image pull secret for ibm-entitlement-key already exists in namespace $SIP_NAMESPACE"
-fi
-
-if [[ -z $(kubectl get secrets -n $SIP_NAMESPACE | grep acr-secret) ]]; then
-    log-info "Creating image pull secret acr-secret in namespace $SIP_NAMESPACE"
-    ACR_USERNAME="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'username' -o tsv)"
-    ACR_PASSWORD="$(az acr credential show -n $ACR_NAME -g $RESOURCE_GROUP --query 'passwords[0].value' -o tsv)"
-
-    kubectl create secret docker-registry acr-secret --docker-server=$ACR_NAME.azurecr.io --docker-username=$ACR_USERNAME --docker-password=$ACR_PASSWORD -n $SIP_NAMESPACE
-    if (( $? != 0 )); then
-        log-error "Unable to create image pull secret for acr-secret in namespace $SIP_NAMESPACE"
-        exit 1
-    else
-        log-info "Created image pull secret for acr-secret in namespace $SIP_NAMESPACE"
-    fi
-else
-    log-info "Image pull secret for acr-secret already exists in namespace $SIP_NAMESPACE"
-fi
-
-
-
 # Deploy SIP instance
-if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]]; then
+# The below currently skips the instance creation due to changes in the definition between versions
+if [[ -z $(kubectl get sipenvironment -n $SIP_NAMESPACE $SIP_INSTANCE_NAME -o json 2> /dev/null) ]] \
+    && [[ $CREATE_DEV_INSTANCE == "True" ]]; then
     if [[ $LICENSE == "accept" ]]; then
+
+    log-info "Creating Dev SIP Environment"
+
+    log-info "Pausing to allow updates"
+    sleep 60
+
+    # Create the storage class with required mounting UID
+    if [[ -z $(kubectl get sc | grep "$SC_NAME") ]]; then
+        log-info "Creating storage class"
+        cat << EOF | kubectl create -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: $SC_NAME
+provisioner: file.csi.azure.com
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nobrl
+  - cache=none
+parameters:
+  skuName: Standard_LRS
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+EOF
+        if (( $? != 0 )); then
+            log-error "Unable to create storage class $SC_NAME"
+            exit 1
+        else
+            log-info "Storage class $SC_NAME created"
+        fi
+    else
+        log-info "Storage class $SC_NAME already exists"
+    fi
 
         # Create JWT issuer cert
         HOSTNAME="sipservice-${SIP_NAMESPACE}.$DOMAIN_NAME"
 
-        if [[ -z $(kubectl get certificatemanager -n $SIP_NAMESPACE | grep "ingress-cert ") ]]; then
-            log-info "Creating ingress certificate"
+        if [[ -z $(kubectl get CertificateManager -n $SIP_NAMESPACE | grep "ingress-cert ") ]]; then
+            log-info "Creating bootstrap ingress certificate"
             cat << EOF | kubectl create -f -
 apiVersion: apps.oms.gateway.ibm.com/v1beta1
 kind: CertificateManager
@@ -561,7 +608,7 @@ metadata:
   namespace: ${SIP_NAMESPACE}
 spec:
   expiryDays: 365
-  hostName: ${HOSTNAME}
+  hostName: "*.${DOMAIN_NAME}"
 EOF
             if (( $? != 0 )); then
                 log-error "Unable to create ingress certificate"
@@ -605,7 +652,7 @@ EOF
           log-info "JWT Issuer secret ${SIP_NAMESPACE}/${JWT_SECRET_NAME} already exists"
         fi
 
-        # Create the truststore password
+        # Create the truststore password secret
         ######### The below needs to be augmented and/or changed for external middleware services if utilised.
         log-info "Creating / updating truststore secret"
         cat << EOF | kubectl apply -f -
@@ -658,60 +705,63 @@ EOF
                 log-info "Created PVC $PVC_NAME in namespace $SIP_NAMESPACE"
             fi
 
-            log-info "Running job to mount volume and force PV creation"
-            # Remove any existing job
-            if [[ $(kubectl get jobs -n $SIP_NAMESPACE | grep volume-pod ) ]]; then
-                log-info "Deleting existing volume-pod job in namespace $SIP_NAMESPACE"
-                kubectl delete job -n $SIP_NAMESPACE volume-pod
-                if (( $? != 0 )); then
-                    log-error "Unable to delete volume-pod job in namespace $SIP_NAMESPACE"
-                    exit 1
-                else
-                    log-info "Deleted volume-pod job in namespace $SIP_NAMESPACE"
-                fi
-            fi
-            cat << EOF | kubectl create -f -
-kind: Job
-apiVersion: batch/v1
-metadata: 
-  name: volume-pod
-  namespace: $SIP_NAMESPACE
-spec:
-  template:
-    spec:
-      volumes:
-        - name: sip-volume
-          persistentVolumeClaim:
-            claimName: $PVC_NAME
-      containers:
-        - name: nginx
-          image: nginx:latest
-          command: [ "/bin/bash", "-c", "--" ]
-          args: [ "echo done" ]
-          volumeMounts:
-            - name: sip-volume
-              mountPath: /mnt
-      restartPolicy: OnFailure
-  backoffLimit: 4
-EOF
-            if (( $? != 0 )); then
-                log-error "Unable to create batch job to mount volume"
-                exit 1
-            else
-                while [[ -z $(kubectl get job volume-pod -n $SIP_NAMESPACE | grep "1/1") ]]; do
-                    log-info "Waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
-                    i=$(( $i + 1 ))
-                    if (( $i > 10 )); then
-                        log-error "Timeout waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
-                        exit 1
-                    fi
-                    sleep 30
-                done
-                log-info "Job volume-pod completed in namespace $SIP_NAMESPACE"
-            fi
+#             log-info "Running job to mount volume and force PV creation"
+#             # Remove any existing job
+#             if [[ $(kubectl get jobs -n $SIP_NAMESPACE | grep volume-pod ) ]]; then
+#                 log-info "Deleting existing volume-pod job in namespace $SIP_NAMESPACE"
+#                 kubectl delete job -n $SIP_NAMESPACE volume-pod
+#                 if (( $? != 0 )); then
+#                     log-error "Unable to delete volume-pod job in namespace $SIP_NAMESPACE"
+#                     exit 1
+#                 else
+#                     log-info "Deleted volume-pod job in namespace $SIP_NAMESPACE"
+#                 fi
+#             fi
+#             cat << EOF | kubectl create -f -
+# kind: Job
+# apiVersion: batch/v1
+# metadata: 
+#   name: volume-pod
+#   namespace: $SIP_NAMESPACE
+# spec:
+#   template:
+#     spec:
+#       volumes:
+#         - name: sip-volume
+#           persistentVolumeClaim:
+#             claimName: $PVC_NAME
+#       containers:
+#         - name: nginx
+#           image: nginx:latest
+#           command: [ "/bin/bash", "-c", "--" ]
+#           args: [ "echo done" ]
+#           volumeMounts:
+#             - name: sip-volume
+#               mountPath: /mnt
+#       restartPolicy: OnFailure
+#   backoffLimit: 4
+# EOF
+#             if (( $? != 0 )); then
+#                 log-error "Unable to create batch job to mount volume"
+#                 exit 1
+#             else
+#                 while [[ -z $(kubectl get job volume-pod -n $SIP_NAMESPACE | grep "1/1") ]]; do
+#                     log-info "Waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
+#                     i=$(( $i + 1 ))
+#                     if (( $i > 10 )); then
+#                         log-error "Timeout waiting for volume-pod job in namespace $SIP_NAMESPACE to complete"
+#                         exit 1
+#                     fi
+#                     sleep 30
+#                 done
+#                 log-info "Job volume-pod completed in namespace $SIP_NAMESPACE"
+#             fi
         else
             log-info "PVC $PVC_NAME already exists in namespace $SIP_NAMESPACE"
         fi        
+
+        log-info "Pausing to let prior updates take affect"
+        sleep 60
 
         log-info "Creating SIP instance in namespace $SIP_NAMESPACE"
         # cat << EOF | kubectl apply -f -
@@ -794,6 +844,10 @@ spec:
       appImageName: sip-iv-appserver
       backendImageName: sip-iv-backend
       onboardImageName: sip-iv-onboard
+    sipUtils:
+      tag: ${SIP_TAG}
+      imageName: sip-utils
+      repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
     utilityService:
       repository: $ACR_NAME.azurecr.io/$CP_REPO_BASE
       catalog:
@@ -821,7 +875,7 @@ spec:
         imageName: sip-logstash
   storage:
     accessMode: ReadWriteMany
-    capacity: 10Gi
+    capacity: ${PVC_SIZE}
     name: $PVC_NAME
     storageClassName: $SC_NAME
 EOF
@@ -1009,5 +1063,26 @@ EOF
 else
     log-info "SIP instance already exists in namespace $SIP_NAMESPACE"
 fi
+
+# Return the ingress IP to update the domain name
+
+# Wait for ingress to be created
+count=0
+while [[ -z $(kubectl get ingress -n ${SIP_NAMESPACE} sip-apidocs-ingress -o json 2> /dev/null | jq .status.loadBalancer.ingress[0].ip 2> /dev/null) ]] \
+    && [[ -z $(kubectl get ingress -n ${SIP_NAMESPACE} sip-oms-gateway-ingress -o json 2> /dev/null | jq .status.loadBalancer.ingress[0].ip 2> /dev/null) ]]; do
+    log-info "Waiting for ingress to be created"
+    count=$(( $count + 1 ))
+    sleep 60
+    if (( $count > $MAX_READY_MINUTES )); then
+        log-error "Timeout exceeded waiting for services to be available."
+        exit 1
+    fi
+done
+
+# Output public IP for ingress load balancer
+PUBLIC_IP="$(kubectl get ingress -n ${SIP_NAMESPACE} sip-apidocs-ingress -o json | jq -r '.status.loadBalancer.ingress[0].ip')"
+jq -n -c \
+    --arg publicIP $PUBLIC_IP \
+    '{"ingress": {"publicIP": $publicIP}}' > $AZ_SCRIPTS_OUTPUT_PATH
 
 log-info "Script completed"

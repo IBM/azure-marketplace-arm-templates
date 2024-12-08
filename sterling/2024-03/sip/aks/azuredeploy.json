@@ -185,6 +185,20 @@
                 "description": "Namespace in AKS for the created instances"
             }
         },
+        "omsOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "OMS Gateway operator starting CSV version"
+            }
+        },
+        "sipOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "SIP operator starting CSV version"
+            }
+        },
         "pvcName": {
             "type": "string",
             "defaultValue": "sip-pvc",
@@ -208,6 +222,13 @@
             "defaultValue": "decline",
             "metadata": {
                 "description": "Accept the license terms. Required to create an instance."
+            }
+        },
+        "createDevInstance": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an SIP CR development instance"
             }
         },
         "jwtPublicKey": {
@@ -424,6 +445,14 @@
                         "value": "[parameters('sipOperatorCatalog')]"
                     },
                     {
+                        "name": "OMS_OPERATOR_VERSION",
+                        "value": "[parameters('omsOperatorVersion')]"
+                    },
+                    {
+                        "name": "SIP_OPERATOR_VERSION",
+                        "value": "[parameters('sipOperatorVersion')]"
+                    },
+                    {
                         "name": "SIP_TAG",
                         "value": "[parameters('sipTag')]"
                     },
@@ -442,6 +471,10 @@
                     {
                         "name": "LICENSE",
                         "value": "[parameters('license')]"
+                    },
+                    {
+                        "name": "CREATE_DEV_INSTANCE",
+                        "value": "[if(parameters('createDevInstance'),'True','False')]"
                     },
                     {
                         "name": "CERT_MANAGER_VERSION",
@@ -512,5 +545,11 @@
                 "principalType": "ServicePrincipal"
             }
         }
-    ]
+    ],
+    "outputs": {
+        "publicIP": {
+            "type": "string",
+            "value": "[ reference( resourceId( 'Microsoft.Resources/deploymentScripts', variables('scriptName') ) ).outputs.ingress.publicIP ]"
+        }
+    }
 }

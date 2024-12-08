@@ -56,6 +56,13 @@
                 "description": "Identifier for SSH key creation script. Script will only re-run if changed."
             }
         },
+        "registerDeployment": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to register the deployment (for debug only)"
+            }
+        },
         "deployPrereqs": {
             "type": "bool",
             "defaultValue": true,
@@ -110,6 +117,13 @@
             "defaultValue": true,
             "metadata": {
                 "description": "Flag to determine whether to deploy SIP (debug only)"
+            }
+        },
+        "updateDNS": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to update the DNS with the ingress IP (debug only)"
             }
         },
         "workspaceName": {
@@ -333,7 +347,7 @@
         },
         "aksKubernetesVersion": {
             "type": "string",
-            "defaultValue": "1.27",
+            "defaultValue": "1.30",
             "metadata": {
                 "description": "Version of kubneretes to be used for the AKS cluster"
             }
@@ -965,6 +979,7 @@
         },
         "trustStorePassword": {
             "type": "securestring",
+            "defaultValue": "",
             "metadata": {
                 "description": "Password to be used for the trust store"
             }
@@ -976,25 +991,52 @@
                 "description": "The base64 encoded JWT public key to be used"
             }
         },
+        "omsCatalogVersion": {
+            "type": "string",
+            "defaultValue": "v1.0",
+            "metadata": {
+                "description": "OMS Gateway catalog version"
+            }
+        },
         "omsGatewayOperatorCatalog": {
             "type": "string",
-            "defaultValue": "cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0",
+            "defaultValue": "[concat('cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:',parameters('omsCatalogVersion'))]",
             "metadata": {
                 "description": "IBM Order Management System gateway operator catalog image"
             }
         },
+        "sipCatalogVersion": {
+            "type": "string",
+            "defaultValue": "v1.0",
+            "metadata": {
+                "description": "SIP Catalog Version"
+            }
+        },
         "sipOperatorCatalog": {
             "type": "string",
-            "defaultValue": "cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0",
+            "defaultValue": "[concat('cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:',parameters('sipCatalogVersion'))]",
             "metadata": {
                 "description": "IBM Sterling Intelligent Promising operator catalog image"
             }
         },
         "sipTag": {
             "type": "string",
-            "defaultValue": "10.0.2403.1-amd64",
             "metadata": {
                 "description": "SIP Application image tag"
+            }
+        },
+        "omsOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "OMS Gateway operator starting CSV version"
+            }
+        },
+        "sipOperatorVersion": {
+            "type": "string",
+            "defaultValue": "v1.0.10",
+            "metadata": {
+                "description": "SIP operator starting CSV version"
             }
         },
         "operatorNamespace": {
@@ -1009,6 +1051,20 @@
             "defaultValue": "sip",
             "metadata": {
                 "description": "Namespace in AKS for the created instances"
+            }
+        },
+        "imageListRHFileName": {
+            "type": "string",
+            "defaultValue": "image-list-rh",
+            "metadata": {
+                "description": "URL to the file containing the list of Red Hat images to pull"
+            }
+        },
+        "imageListSIPFileName": {
+            "type": "string",
+            "defaultValue": "image-list-sip",
+            "metadata": {
+                "description": "URL to the file containing the list of SIP images to pull"
             }
         },
         "pvcName": {
@@ -1027,8 +1083,16 @@
         },
         "domainName": {
             "type": "string",
+            "defaultValue": "",
             "metadata": {
-                "description": "FQDN of the suffix for the ingress"
+                "description": "DNS Zone of the domain name to update with the SIP ingress IP"
+            }
+        },
+        "domainResourceGroup": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Resource group containing the DNS zone to update"
             }
         },
         "license": {
@@ -1040,6 +1104,13 @@
             "defaultValue": "decline",
             "metadata": {
                 "description": "Accept the license terms. Required to create an instance."
+            }
+        },
+        "createDevInstance": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create an SIP CR development instance"
             }
         },
         "tagsByResource": {
@@ -1067,14 +1138,17 @@
     "variables": {
         "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]"
+        "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
+        "imageListRHUrl": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/',parameters('imageListRHFileName')))]",
+        "imageListSIPUrl": "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/',parameters('imageListSIPFileName')))]"
     },
     "resources": [
         { 
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "comments": "This is the deployment identifier for BYOL SIP",
             "name": "pid-b31512fe-f20c-4c07-8425-ab895dfa6db9-partnercenter", 
             "type": "Microsoft.Resources/deployments",
+            "condition": "[parameters('registerDeployment')]",
             "properties": {
                 "mode": "Incremental",
                 "template": {
@@ -1104,7 +1178,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "virtualNetwork",
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "dependsOn": [
@@ -1166,7 +1240,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.Network/virtualNetworks",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-03-01",
                             "name": "[parameters('vnetName')]",
                             "condition": "[not(parameters('existingVnet'))]",
                             "location": "[parameters('location')]",
@@ -1197,7 +1271,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployNatGateway",
             "condition": "[equals(parameters('outboundRouting'),'NAT Gateway')]",
             "properties": {
@@ -1285,12 +1359,13 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployBastion",
             "condition": "[parameters('deployBastion')]",
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]"
+                "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
+                "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -1320,19 +1395,19 @@
                         "value": "[parameters('bastionDnsName')]"
                     },
                     "enableFileCopy": {
-                        "value": "[parameters('bastionEnableFileCopy')]"
+                        "value": "[if(equals(parameters('bastionEnableFileCopy'),json('null')),parameters('bastionEnableFileCopy'),json('false'))]"
                     },
                     "enableIpConnect": {
-                        "value": "[parameters('bastionEnableIpConnect')]"
+                        "value": "[if(equals(parameters('bastionEnableIpConnect'),json('null')),parameters('bastionEnableIpConnect'),json('false'))]"
                     },
                     "enableKerberos": {
-                        "value": "[parameters('bastionEnableKerberos')]"
+                        "value": "[if(equals(parameters('bastionEnableKerberos'),json('null')),parameters('bastionEnableKerberos'),json('false'))]"
                     },
                     "enableShareableLink": {
-                        "value": "[parameters('bastionEnableShareableLink')]"
+                        "value": "[if(equals(parameters('bastionEnableShareableLink'),json('null')),parameters('bastionEnableShareableLink'),json('false'))]"
                     },
                     "enableTunneling": {
-                        "value": "[parameters('bastionEnableTunneling')]"
+                        "value": "[if(equals(parameters('bastionEnableTunneling'),json('null')),parameters('bastionEnableTunneling'),json('false'))]"
                     },
                     "bastionSubnetCIDR": {
                         "value": "[parameters('bastionSubnetCidr')]"
@@ -1358,7 +1433,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployMonitoring",
             "condition": "[parameters('deployLogAnalytics')]",
             "dependsOn": [
@@ -1400,7 +1475,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployPrerequisites",
             "condition": "[parameters('deployPrereqs')]",
             "dependsOn": [
@@ -1442,9 +1517,9 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployKeyVault",
-            "condition": "[if(equals(parameters('publicSshKey'), ''),true(),parameters('deployKeyVault'))]",
+            "condition": "[if(or(equals(parameters('publicSshKey'), ''),and(equals(parameters('jwtPublicKey'),''),parameters('createDevInstance'))),true(),parameters('deployKeyVault'))]",
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
@@ -1504,7 +1579,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "createSshKey",
             "comments": "Creates a new SSH key and stores in keyvault if no public key is provided",
             "condition": "[equals(parameters('publicSshKey'), '')]",
@@ -1554,9 +1629,9 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "createJwtKey",
-            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPublicKey'),''))]",
+            "condition": "[and(parameters('deploySip'),equals(parameters('jwtPublicKey'),''),parameters('createDevInstance'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
@@ -1606,14 +1681,13 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployRegistry",
             "condition": "[parameters('deployAcr')]",
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'), 'Microsoft.Resources/deployments', 'virtualNetwork')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployMonitoring')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployPrerequisites')]",
-                "[resourceId('Microsoft.Resources/deployments', 'deployBastion')]",
                 "[resourceId('Microsoft.Resources/deployments', 'deployKeyVault')]"
             ],
             "properties": {
@@ -1681,7 +1755,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployAks",
             "condition": "[parameters('deployAks')]",
             "dependsOn": [
@@ -1791,7 +1865,7 @@
                         "value": "[parameters('aksAdminUserName')]"
                     },
                     "aksSshPublicKey": {
-                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2022-09-01').outputs['publicKey'].value,parameters('publicSshKey'))]"       
+                        "value": "[if(equals(parameters('publicSshKey'),''),reference(resourceId('Microsoft.Resources/deployments','createSshKey'),'2024-03-01').outputs['publicKey'].value,parameters('publicSshKey'))]"       
                     },
                     "aksAutoScalerScanInterval": {
                         "value": "[parameters('aksAutoScalerScanInterval')]"
@@ -1959,7 +2033,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deployManagementVm",
             "condition": "[parameters('deployManagementVm')]",
             "dependsOn": [
@@ -2056,7 +2130,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-03-01",
             "name": "deploySip",
             "condition": "[parameters('deploySip')]",
             "dependsOn": [
@@ -2134,10 +2208,22 @@
                         "value": "[parameters('instanceNamespace')]"
                     },
                     "jwtPublicKey": {
-                        "value": "[if(equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2022-09-01').outputs['publicKey'].value,parameters('jwtPublicKey'))]"
+                        "value": "[if( parameters('createDevInstance'),if( equals(parameters('jwtPublicKey'),''),reference(resourceId('Microsoft.Resources/deployments','createJwtKey'),'2024-03-01').outputs['publicKey'].value,parameters('jwtPublicKey')),'')]"
                     },
                     "sipTag": {
                         "value": "[parameters('sipTag')]"
+                    },
+                    "omsOperatorVersion": {
+                        "value": "[parameters('omsOperatorVersion')]"
+                    },
+                    "sipOperatorVersion": {
+                        "value": "[parameters('sipOperatorVersion')]"
+                    },
+                    "imageListRHUrl": {
+                        "value": "[variables('imageListRHUrl')]"
+                    },
+                    "imageListSIPUrl": {
+                        "value": "[variables('imageListSIPUrl')]"
                     },
                     "pvcName": {
                         "value": "[parameters('pvcName')]"
@@ -2147,6 +2233,9 @@
                     },
                     "license": {
                         "value": "[parameters('license')]"
+                    },
+                    "createDevInstance": {
+                        "value": "[parameters('createDevInstance')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -2162,6 +2251,63 @@
                     "uri": "[uri(variables('baseUrl'), concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/sip/aks/azuredeploy.json'))]"
                 }
             } 
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2024-03-01",
+            "condition": "[and(parameters('updateDNS'),parameters('createDevInstance'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deploySip')]"
+            ],
+            "name": "updateDNSZone",
+            "resourceGroup": "[parameters('domainResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "zoneName": {
+                        "value": "[parameters('domainName')]"
+                    },
+                    "domainPrefix": {
+                        "value": "[concat('sipservice-',parameters('instanceNamespace'))]"
+                    },
+                    "ipAddress": {
+                        "value": "[reference(resourceId('Microsoft.Resources/deployments','deploySip'),'2024-03-01').outputs['publicIP'].value]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "zoneName": {
+                            "type": "string"
+                        },
+                        "domainPrefix": {
+                            "type": "string"
+                        },
+                        "ipAddress": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/dnsZones/A",
+                            "apiVersion": "2018-05-01",
+                            "name": "[format('{0}/{1}', parameters('zoneName'), parameters('domainPrefix'))]",
+                            "properties": {
+                                "TTL": 3600,
+                                "ARecords": [
+                                    {
+                                        "ipv4Address": "[parameters('ipAddress')]"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
         }
     ]
 }

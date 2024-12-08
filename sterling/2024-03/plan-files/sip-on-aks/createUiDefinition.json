@@ -407,70 +407,25 @@
               "visible": true
             },
             {
-              "name": "trustStorePassword",
-              "type": "Microsoft.Common.PasswordBox",
-              "label": {
-                "password": "Trust Store Password",
-                "confirmPassword": "Re-enter trust store password"
-              },
-              "toolTip": "The trust store password is used to create the final trust store where you can add or import certificates.",
-              "constraints": {
-                "required": true,
-                "regex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
-                "validationMessage": "Password must be atleast 8 characters long, contain only numbers and letters"
-              },
-              "options": {
-                "hideConfirmation": false
-              },
-              "visible": true
-            },
-            {
-              "name": "sipTag",
+              "name": "sipVersion",
               "type": "Microsoft.Common.DropDown",
               "label": "SIP Version",
               "visible": true,
               "toolTip": "Version of SIP to be installed.",
-              "defaultValue": "10.0.2403.1",
+              "defaultValue": "[parse('{\"tag\":\"10.0.2409.0-amd64\",\"operatorVersion\":\"v1.0.10\",\"sipImageList\":\"image-list-sip-2409\",\"rhImageList\":\"image-list-rh\"}')]",
               "constraints": {
                 "allowedValues": [
                   {
-                    "label": "10.0.2403.1",
-                    "value": "10.0.2403.1-amd64"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "provideJwtKey",
-              "type": "Microsoft.Common.CheckBox",
-              "label": "Provide JWT Public Key",
-              "toolTip": "Select to provide an existing public key for JWT. If not selected, will create a new key."
-            },
-            {
-              "name": "jwtKeyInfo",
-              "type": "Microsoft.Common.TextBlock",
-              "options": {
-                "text": "If using an existing JWT public key, it must conform to the format required.",
-                "link": {
-                  "uri": "https://www.ibm.com/docs/en/intelligent-promising?topic=pisipbuc-creating-jwt-issuer-secret-by-using-public-key",
-                  "label": "Learn more"
-                }
-              },
-              "visible": "[steps('SIP').provideJwtKey]"
-            },
-            {
-              "name": "jwtKey",
-              "type": "Microsoft.Common.TextBox",
-              "label": "JWT Public Key",
-              "toolTip": "Use an existing JWT Public Key",
-              "multiLine": true,
-              "visible": "[steps('SIP').provideJwtKey]",
-              "constraints": {
-                "required": "[steps('SIP').provideJwtKey]",
-                "validations": [
+                    "label": "10.0.2409.0",
+                    "value": "[parse('{\"tag\":\"10.0.2409.0-amd64\",\"operatorVersion\":\"v1.0.10\",\"sipImageList\":\"image-list-sip-2409\",\"rhImageList\":\"image-list-rh\"}')]"
+                  },
                   {
-                    "regex": "(-----BEGIN PUBLIC KEY-----)(\n|\r|\r\n)([0-9a-zA-Z+/=]{64}(\n|\r|\r\n))*([0-9a-zA-Z+/=]{1,63}(\n|\r|\r\n))?(-----END PUBLIC KEY-----)",
-                    "message": "Must be a valid public key"
+                    "label": "10.0.2406.2",
+                    "value": "[parse('{\"tag\":\"10.0.2406.2-amd64\",\"operatorVersion\":\"v1.0.9\",\"sipImageList\":\"image-list-sip\",\"rhImageList\":\"image-list-rh\"}')]"
+                  },
+                  {
+                    "label": "10.0.2406.1",
+                    "value": "[parse('{\"tag\":\"10.0.2406.1-amd64\",\"operatorVersion\":\"v1.0.8\",\"sipImageList\":\"image-list-sip\",\"rhImageList\":\"image-list-rh\"}')]"
                   }
                 ]
               }
@@ -493,94 +448,6 @@
               }
             },
             {
-              "name": "instanceNamespace",
-              "type": "Microsoft.Common.TextBox",
-              "label": "Instance Namespace",
-              "visible": "true",
-              "toolTip": "The AKS namespace to be utilised by the operands",
-              "defaultValue": "sip",
-              "constraints": {
-                "required": true,
-                "validations": [
-                  {
-                    "regex": "^(?!kube-)[a-z][a-z0-9-]{1,59}[a-z]$",
-                    "message": "Must not start with kube and must start and end with a letter, be between 3 and 61 characters in length and contain only alphanumeric and '-' characters."
-                  }
-                ]
-              }
-            },
-            {
-              "name": "pvcName",
-              "type": "Microsoft.Common.TextBox",
-              "label": "PVC Name",
-              "visible": "true",
-              "toolTip": "Persistent Volume Claim (PVC) name for the SIP persistent volume",
-              "defaultValue": "sip-pvc",
-              "constraints": {
-                "required": true,
-                "validations": [
-                  {
-                    "regex": "^[a-z][a-z0-9-]{3,61}[a-z]$",
-                    "message": "Must start and end with a letter, be between 3 and 61 characters in length and contain only alphanumeric and '-' characters."
-                  }
-                ]
-              }
-            },
-            {
-              "name": "pvcSize",
-              "type": "Microsoft.Common.Slider",
-              "min": 10,
-              "max": 1000,
-              "label": "PVC Size",
-              "toolTip": "Size of the PVC for the SIP persistent volume",
-              "visible": true
-            },
-            {
-              "name": "domainName",
-              "type": "Microsoft.Common.TextBox",
-              "label": "Domain Name",
-              "visible": true,
-              "constraints": {
-                "required": true,
-                "validations": [
-                  {
-                    "regex": "^[a-z][a-z0-9-._]{3,30}[a-z0-9]$",
-                    "message": "Domain name must be between 4 and 32 characters long. Lowercase alphanumeric (first character must be a letter), dashes and underscores only. Must end in an alphanumeric character."
-                  }
-                ]
-              },
-              "toolTip": "FQDN of the suffix for the ingress",
-              "defaultValue": "",
-              "placeholder": "mydomain.net"
-            },
-            {
-              "name": "sipDomainInfo",
-              "type": "Microsoft.Common.InfoBox",
-              "visible": "[ not( equals( steps('SIP').domainName, '' ) ) ]",
-              "options": {
-                "icon": "Info",
-                "text": "[concat('The SIP service will be created at https://sipservice-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName)]"
-              }
-            },
-            {
-              "name": "sipApiDocsDomainInfo",
-              "type": "Microsoft.Common.InfoBox",
-              "visible": "[ not( equals( steps('SIP').domainName, '' ) ) ]",
-              "options": {
-                "icon": "Info",
-                "text": "[concat('The SIP API-Docs service will be created at https://sip-service-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName,'/api-docs/')]"
-              }
-            },
-            {
-              "name": "sipDomainNotice",
-              "type": "Microsoft.Common.InfoBox",
-              "visible": "[ not( equals( steps('SIP').domainName, '' ) ) ]",
-              "options": {
-                "icon": "Warning",
-                "text": "[concat('Your DNS must be updated post deployment to use the created public IP created for the ingress of sipservice-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName)]"
-              }
-            },
-            {
               "name": "license",
               "type": "Microsoft.Common.DropDown",
               "label": "License",
@@ -597,6 +464,144 @@
                     "value": "decline"
                   }
                 ]
+              }
+            },
+            {
+              "name": "devInstance",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Create Dev Instance",
+              "toolTip": "Create a development instance SIP custom resource",
+              "visible": "[equals(steps('SIP').license, 'accept')]"
+            },
+            {
+              "name": "instanceNamespace",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Instance Namespace",
+              "visible": "[and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance)]",
+              "toolTip": "The AKS namespace to be utilised by the operands",
+              "defaultValue": "sip-instance",
+              "constraints": {
+                "required": false,
+                "validations": [
+                  {
+                    "regex": "^(?!kube-)[a-z][a-z0-9-]{1,59}[a-z]$",
+                    "message": "Must not start with kube and must start and end with a letter, be between 3 and 61 characters in length and contain only alphanumeric and '-' characters."
+                  }
+                ]
+              }
+            },
+            {
+              "name": "trustStorePassword",
+              "type": "Microsoft.Common.PasswordBox",
+              "label": {
+                "password": "Trust Store Password",
+                "confirmPassword": "Re-enter trust store password"
+              },
+              "toolTip": "The trust store password is used to create the final trust store where you can add or import certificates.",
+              "constraints": {
+                "required": false,
+                "regex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                "validationMessage": "Password must be atleast 8 characters long, contain only numbers and letters"
+              },
+              "options": {
+                "hideConfirmation": false
+              },
+              "visible": "[and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance)]"
+            },
+            {
+              "name": "provideJwtKey",
+              "type": "Microsoft.Common.CheckBox",
+              "label": "Provide JWT Public Key",
+              "toolTip": "Select to provide an existing public key for JWT. If not selected, will create a new key.",
+              "visible": "[and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance)]"
+            },
+            {
+              "name": "jwtKeyInfo",
+              "type": "Microsoft.Common.TextBlock",
+              "options": {
+                "text": "If using an existing JWT public key, it must conform to the format required.",
+                "link": {
+                  "uri": "https://www.ibm.com/docs/en/intelligent-promising?topic=pisipbuc-creating-jwt-issuer-secret-by-using-public-key",
+                  "label": "Learn more"
+                }
+              },
+              "visible": "[and(steps('SIP').provideJwtKey, and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance))]"
+            },
+            {
+              "name": "jwtKey",
+              "type": "Microsoft.Common.TextBox",
+              "label": "JWT Public Key",
+              "toolTip": "Use an existing JWT Public Key",
+              "multiLine": true,
+              "visible": "[and(steps('SIP').provideJwtKey, and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance))]",
+              "constraints": {
+                "required": "[steps('SIP').provideJwtKey]",
+                "validations": [
+                  {
+                    "regex": "(-----BEGIN PUBLIC KEY-----)(\n|\r|\r\n)([0-9a-zA-Z+/=]{64}(\n|\r|\r\n))*([0-9a-zA-Z+/=]{1,63}(\n|\r|\r\n))?(-----END PUBLIC KEY-----)",
+                    "message": "Must be a valid public key"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "pvcName",
+              "type": "Microsoft.Common.TextBox",
+              "label": "PVC Name",
+              "visible": "[and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance)]",
+              "toolTip": "Persistent Volume Claim (PVC) name for the SIP persistent volume",
+              "defaultValue": "sip-pvc",
+              "constraints": {
+                "required": false,
+                "validations": [
+                  {
+                    "regex": "^[a-z][a-z0-9-]{3,61}[a-z]$",
+                    "message": "Must start and end with a letter, be between 3 and 61 characters in length and contain only alphanumeric and '-' characters."
+                  }
+                ]
+              }
+            },
+            {
+              "name": "pvcSize",
+              "type": "Microsoft.Common.Slider",
+              "min": 10,
+              "max": 1000,
+              "label": "PVC Size",
+              "toolTip": "Size of the PVC for the SIP persistent volume",
+              "visible": "[and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance)]"
+            },
+            {
+              "name": "domainName",
+              "type": "Microsoft.Solutions.ResourceSelector",
+              "label": "DNS Zone for SIP Ingress",
+              "toolTip": "DNS Zone with base domain name for the SIP ingress controller",
+              "visible": "[and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance)]",
+              "resourceType": "Microsoft.Network/dnsZones",
+              "constraints": {
+                "required": false
+              },
+              "options": {
+                "filter": {
+                  "subscription": "onBasics"
+                }
+              }
+            },
+            {
+              "name": "sipDomainInfo",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": "[ and( not( equals( steps('SIP').domainName.name, '' ) ) , and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance) )]",
+              "options": {
+                "icon": "Info",
+                "text": "[concat('The SIP service will be created at https://sipservice-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName.name)]"
+              }
+            },
+            {
+              "name": "sipApiDocsDomainInfo",
+              "type": "Microsoft.Common.InfoBox",
+              "visible": "[ and( not( equals( steps('SIP').domainName.name, '' ) ) , and(equals(steps('SIP').license, 'accept'),steps('SIP').devInstance) )]",
+              "options": {
+                "icon": "Info",
+                "text": "[concat('The SIP API-Docs service will be created at https://sipservice-',steps('SIP').instanceNamespace,'.',steps('SIP').domainName.name,'/api-docs/')]"
               }
             }
           ]
@@ -809,29 +814,24 @@
               "type": "Microsoft.Common.DropDown",
               "toolTip": "Version of kubernetes to be used for the AKS cluster",
               "label": "Kubernetes Version",
-              "defaultValue": "1.27.x",
+              "defaultValue": "1.30.x",
               "constraints": {
                 "allowedValues": [
                   {
-                    "label": "1.25.x",
-                    "value": "1.25"
-                  },
-                  {
-                    "label": "1.26.x",
-                    "value": "1.26"
-                  },
-                  {
-                    "label": "1.27.x",
-                    "value": "1.27"
-                  },
-                  {
                     "label": "1.28.x",
                     "value": "1.28"
+                  },
+                  {
+                    "label": "1.29.x",
+                    "value": "1.29"
+                  },
+                  {
+                    "label": "1.30.x",
+                    "value": "1.30"
                   }
                 ]
               },
               "multiselect": false,
-              "toolTip": "Version of kubernetes to be used for the aks cluster",
               "visible": true
             },
             {
@@ -1150,7 +1150,6 @@
               ],
               "constraints": {
                 "allowedSizes": [
-                    "Standard_D2s_v3",
                     "Standard_D4s_v3",
                     "Standard_D8s_v3",
                     "Standard_D16s_v3"
@@ -1900,13 +1899,18 @@
         "privateDeployment": "[basics('privateDeployment')]",
         "ibmEntitlementKey": "[steps('SIP').ibmEntitlementKey]",
         "trustStorePassword": "[steps('SIP').trustStorePassword]",
-        "sipTag": "[steps('SIP').sipTag]",
+        "sipTag": "[steps('SIP').sipVersion.tag]",
+        "sipOperatorVersion": "[steps('SIP').sipVersion.operatorVersion]",
+        "omsOperatorVersion": "[steps('SIP').sipVersion.operatorVersion]",
+        "imageListSIPFileName": "[steps('SIP').sipVersion.sipImageList]",
+        "imageListRHFileName": "[steps('SIP').sipVersion.rhImageList]",
         "jwtPublicKey": "[if(not(steps('SIP').jwtKey),steps('SIP').jwtKey,encodeBase64(steps('SIP').jwtKey))]",
         "operatorNamespace": "[steps('SIP').operatorNamespace]",
         "instanceNamespace": "[steps('SIP').instanceNamespace]",
         "pvcName": "[steps('SIP').pvcName]",
         "pvcSize": "[concat(string(steps('SIP').pvcSize), 'Gi')]",
-        "domainName": "[steps('SIP').domainName]",
+        "domainName": "[steps('SIP').domainName.name]",
+        "domainResourceGroup": "[last(take(split(steps('SIP').domainName.id,'/'),5))]",
         "license": "[steps('SIP').license]",
         "tagsByResource": "[steps('tags').tagsByResource]"
       }
