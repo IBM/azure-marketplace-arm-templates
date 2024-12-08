@@ -19,6 +19,7 @@
         --unit-initial-admin-password {{ instana.admin_password }} \
         --core-base-domain {{ instana.domain }} \
         --core-tls-generate-cert \
+        --instana-release {{ instana.release }} \
         --quiet
       exit 0
     args:
