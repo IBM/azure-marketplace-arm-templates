@@ -1,0 +1,581 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Virtual network name"
+            }
+        },
+        "virtualNetworkNewOrExisting":{
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to indicate whether a new virtual network should be created (true), or use an existing one (false)."
+            }
+        },
+        "virtualNetworkResourceGroupName": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Name of the resource group for the existing virtual network"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for the virtual network if being created."
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Subnet name to attach to VM"
+            }
+        },
+        "subnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "CIDR for the developer subnet"
+            }
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine."
+            }
+        },
+        "authType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "securityType": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "vmNsgSecurityRules": {
+            "type": "array",
+            "defaultValue": [
+                {
+                    "name": "SSH",
+                    "properties": {
+                        "priority": 300,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "22"
+                    }
+                }
+            ]
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2s",
+            "allowedValues": [
+                "Standard_B2s",
+                "Standard_D2s_v3",
+                "Standard_D4s_v3"
+            ],
+            "metadata": {
+                "description": "Size of Virtual Machine"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 9.2",
+            "allowedValues": [
+                "RHEL 9.2",
+                "RHEL 9.4"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "createPublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be used."
+            }
+        },
+        "publicIpNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to determine whether the public IP is existing or not"
+            }
+        },
+        "publicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group for public IP address if using an existing one"
+            }
+        },
+        "publicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "deploySIP": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to run the VM extension that installs SIP (Debug Only)"
+            }
+        },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Password",
+                "Token"
+            ],
+            "metadata": {
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
+        "sipVersion": {
+            "type": "string",
+            "defaultValue": "1.0",
+            "metadata": {
+                "description": "Version of IBM SIP operator to install"
+            }
+        },
+        "entitlementKey": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "IBM Entitlement Key for access to download container images"
+            }
+        },
+        "operatorScope": {
+            "type": "string",
+            "defaultValue": "namespace",
+            "allowedValues": [
+                "cluster",
+                "namespace"
+            ],
+            "metadata": {
+                "description": "Scope of the operator installation"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "ibmint",
+            "metadata": {
+                "description": "Namespace to be utilized for the operators if namespace scoped"
+            }
+        },
+        "logLevel": {
+            "type": "string",
+            "defaultValue": "info",
+            "allowedValues": [
+                "info",
+                "debug"
+            ],
+            "metadata": {
+                "description": "Log level for Ansible playbook"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for installation script"
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-09",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for resources"
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+        "nsgName": "[concat(parameters('namePrefix'), '-nsg')]",
+        "nicName": "[concat(parameters('namePrefix'),'-nic')]",
+        "linuxConfigSSH": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                        "keyData": "[parameters('adminPassword')]"
+                    }
+                ]
+            }
+        },
+        "linuxConfigPWD": {
+            "disablePasswordAuthentication": false
+        },
+        "imageReference": {
+            "RHEL 9.2": {
+                "publisher": "RedHat",
+                "offer": "RHEL",
+                "sku": "9_2",
+                "version": "latest"
+            },
+             "RHEL 9.4": {
+                "publisher": "RedHat",
+                "offer": "RHEL",
+                "sku": "9_4",
+                "version": "latest"
+            }
+        },
+        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- python3.11\n- python3.11-pip\nruncmd:\n- python3.11 -m pip install ansible-core==2.16.3')]",
+        "securityProfile": {
+            "uefiSettings": {
+                "secureBootEnabled": false,
+                "vTpmEnabled": false
+            },
+            "securityType": "[parameters('securityType')]"
+        },
+        "publicIpId": {
+            "new": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            },
+            "existing": {
+                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            }
+        },
+        "vnetId": {
+            "new": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
+            "existing": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]"
+        },
+        "subnetId": "[concat(variables('vnetId')[parameters('virtualNetworkNewOrExisting')],'/subnets/',parameters('subnetName'))]",
+        "scriptParameters": {
+            "ansible_python_interpreter": "/usr/bin/python3",
+            "log_level": "[parameters('logLevel')]",
+            "entitlementKey": "[if(equals(parameters('entitlementKey'),''),json('null'),parameters('entitlementKey'))]",
+            "create_secret": "[not(equals(parameters('entitlementKey'),''))]",
+            "sip": {
+                "version": "[parameters('sipVersion')]",
+                "branch": "[parameters('branch')]",
+                "version_uri": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
+                "version_path": "sterling/version-files"
+            },
+            "operator": {
+                "scope": "[parameters('operatorScope')]",
+                "namespace": "[parameters('operatorNamespace')]"
+            },
+            "cluster": {
+                "api_server": "[parameters('openShiftApiUrl')]",
+                "username": "[parameters('openShiftUsername')]",
+                "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2023-11-01",
+            "condition": "[equals(parameters('virtualNetworkNewOrExisting'),'new')]",
+            "comments": "Create a new virtual network if requested.",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+            "name": "[parameters('vnetName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2023-11-01",
+            "condition": "[equals(parameters('virtualNetworkNewOrExisting'),'new')]",
+            "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
+            "properties": {
+                "addressPrefix": "[parameters('subnetCIDR')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2023-11-01",
+            "condition": "[and(parameters('createPublicIP'),equals(parameters('publicIpNewOrExisting'),'new'))]",
+            "name": "[parameters('publicIPName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
+            "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+            },
+            "zones": [
+                "1",
+                "2",
+                "3"
+            ],
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "deleteOption": "Delete",
+                "publicIPAddressVersion": "IPv4",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('domainName')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2023-11-01",
+            "name": "[variables('nicName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkInterfaces'), parameters('tagsByResource')['Microsoft.Network/networkInterfaces'], json('{}')) ]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetId')]"
+                            },
+                            "publicIPAddress": "[if(parameters('createPublicIP'),variables('publicIpId')[parameters('publicIpNewOrExisting')],json('null'))]",
+                            "privateIPAllocationMethod": "Dynamic"
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2023-11-01",
+            "name": "[variables('nsgName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
+            "properties": {
+                "securityRules": "[parameters('vmNsgSecurityRules')]"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2023-09-01",
+            "name": "[parameters('vmName')]",
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/virtualMachines'), parameters('tagsByResource')['Microsoft.Compute/virtualMachines'], json('{}')) ]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('vmDiskType')]"
+                        }
+                    },
+                    "imageReference": "[variables('imageReference')[parameters('vmOSVersion')]]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmName')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "customData": "[base64(variables('vmBootstrap'))]",
+                    "linuxConfiguration": "[if(equals(parameters('authType'), 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
+                },
+                "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'),variables('securityProfile'),json('null'))]",
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            },
+            "zones": [
+                "[parameters('vmZone')]"
+            ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2023-09-01",
+            "location": "[parameters('location')]",
+            "name": "[concat(parameters('vmName'),'/','installSIP')]",
+            "condition": "[parameters('deploySIP')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "fileUris": [
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/templates/catalogsource.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/templates/operatorgroup.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/templates/subscription-cluster.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/templates/subscription-namespace.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/create-catalog.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/create-og.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/create-subscription.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/create-secret.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/oc-login.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/install-oc.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/playbooks/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/sterling/',parameters('deploymentVersion'),'/deploy-sip/wait-for-cloud-init.sh'))]"
+                    ],
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "vmName": {
+            "type": "string",
+            "value": "[parameters('vmName')]"
+        },
+        "internalIP": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2022-07-01').ipConfigurations[0].properties.privateIPAddress]"
+        },
+        "publicIP": {
+            "condition": "[parameters('createPublicIP')]",
+            "type": "string",
+            "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
+        }
+    }
+}

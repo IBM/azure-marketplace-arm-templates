@@ -1,0 +1,526 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for deployment container"
+            }
+        },
+        "registerDeployment": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Excludes the deployment registration to the partner portal if set to false (debug only)"
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Entitlement key for IBM container registry"
+            }
+        },
+        "sipVersion": {
+            "type": "string",
+            "defaultValue": "1.0",
+            "metadata": {
+                "description": "Version of SIP to be installed"
+            }
+        },
+        "openshiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API endpoint for OpenShift cluster"
+            }
+        },
+        "openshiftAdminUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Administrator username for OpenShift"
+            }
+        },
+        "openshiftAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Administrator password for OpenShift"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Token",
+                "Password"
+            ],
+            "metadata": {
+                "description": "Whether the supplied authentication variable is a token or password."
+            }
+        },
+        "operatorScope": {
+            "type": "string",
+            "defaultValue": "namespace",
+            "allowedValues": [
+                "cluster",
+                "namespace"
+            ],
+            "metadata": {
+                "description": "Scope of the operator installation"
+            }
+        },
+        "operatorNamespace": {
+            "type": "string",
+            "defaultValue": "sip-operators",
+            "metadata": {
+                "description": "Namespace to be utilized for the operators if namespace scoped"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group holding the VNet. Used for private vnet."
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network containing the subnet to attach to. Used for private vnet."
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "Address prefix for the new or existing virtual network"
+            }
+        },
+        "vnetNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Determines whether the VNet needs to be created or using an existing one"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "script-subnet",
+            "metadata": {
+                "description": "Name of the subnet to attach the deployment script container to. Used for private vnet."
+            }
+        },
+        "subnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/27",
+            "metadata": {
+                "description": "Network address of the subnet to attach the deployment script container to"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "vmAdminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "vmAdminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine."
+            }
+        },
+        "vmAuthType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "vmSecurityType": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2s",
+            "allowedValues": [
+                "Standard_B2s",
+                "Standard_D2s_v3",
+                "Standard_D4s_v3"
+            ],
+            "metadata": {
+                "description": "Size of Virtual Machine"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 9.2",
+            "allowedValues": [
+                "RHEL 9.2",
+                "RHEL 9.4"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "vmCreatePublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "vmPublicIpNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to determine whether the public IP is existing or not"
+            }
+        },
+        "vmPublicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group for public IP address if using an existing one"
+            }
+        },
+        "vmPublicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "vmDomainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for the resources"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "GitHub branch for linked deployments."
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-09",
+            "metadata": {
+                "description": "Deployment version to use (Internal)"
+            }
+        },
+        "logLevel": {
+            "type": "string",
+            "defaultValue": "info",
+            "allowedValues": [
+                "info",
+                "debug"
+            ],
+            "metadata": {
+                "description": "Log level for Ansible playbook"
+            }
+        }
+        
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]"
+    },
+    "resources": [
+        { 
+            "apiVersion": "2023-07-01",
+            "name": "pid-4d60017d-bed7-4768-94ba-843339df40b3-partnercenter", 
+            "condition": "[parameters('registerDeployment')]",
+            "comments": "Resource GUID for IBM sip marketplace entry",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "name": "virtualNetwork",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "vnetCIDR": {
+                        "value": "[parameters('vnetCIDR')]" 
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCIDR": {
+                        "value": "[parameters('subnetCidr')]"
+                    },
+                    "existingVnet": {
+                        "value": "[equals(parameters('vnetNewOrExisting'), 'existing')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "vnetCIDR": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCIDR": {
+                            "type": "string"
+                        },
+                        "existingVnet": {
+                            "type": "bool"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2023-11-01",
+                            "name": "[parameters('vnetName')]",
+                            "condition": "[not(parameters('existingVnet'))]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "[parameters('vnetCIDR')]"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                            ],
+                            "name": "[concat(parameters('vnetName'), '/' ,parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCIDR')]"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]"
+            ],
+            "name": "deploymentVM",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), '/sterling/',parameters('deploymentVersion'),'/deploy-sip/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkNewOrExisting": {
+                        "value": "existing"
+                    },
+                    "virtualNetworkResourceGroupName": {
+                        "value": "[parameters('networkResourceGroup')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('vmAdminUserName')]" 
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('vmAdminPassword')]" 
+                    },
+                    "authType": {
+                        "value": "[parameters('vmAuthType')]" 
+                    },
+                    "securityType": {
+                        "value": "[parameters('vmSecurityType')]" 
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]" 
+                    },
+                    "vmDiskType": {
+                        "value": "[parameters('vmDiskType')]" 
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]" 
+                    },
+                    "vmOSVersion": {
+                        "value": "[parameters('vmOSVersion')]" 
+                    },
+                    "createPublicIP": {
+                        "value": "[parameters('vmCreatePublicIP')]" 
+                    },
+                    "publicIpNewOrExisting": {
+                        "value": "[parameters('vmPublicIpNewOrExisting')]" 
+                    },
+                    "publicIpResourceGroup": {
+                        "value": "[parameters('vmPublicIpResourceGroup')]" 
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('vmPublicIPName')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('vmDomainName')]" 
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openshiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openshiftAdminUsername')]" 
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openshiftAdminPassword')]"
+                    },
+                    "sipVersion": {
+                        "value": "[parameters('sipVersion')]"
+                    },
+                    "entitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "operatorScope": {
+                        "value": "[parameters('operatorScope')]" 
+                    },
+                    "operatorNamespace": {
+                        "value": "[parameters('operatorNamespace')]" 
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {    
+    }
+}
