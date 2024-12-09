@@ -1,0 +1,17 @@
+---
+
+- name: Create the operator group definition
+  ansible.builtin.template:
+    src: "../templates/operatorgroup.j2"
+    dest: "{{ directories.tmp_dir }}/operatorgroup.yaml"
+
+- name: Apply operator group definition
+  ansible.builtin.shell:
+    cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/operatorgroup.yaml"
+  args:
+    executable: /bin/bash
+
+- name: Clean up operator group definition
+  ansible.builtin.file:
+    state: absent
+    path: "{{ directories.tmp_dir }}/operatorgroup.yaml"
