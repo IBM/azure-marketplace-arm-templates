@@ -64,6 +64,13 @@
                 "description": "FQDN for the public IP"
             }
         },
+        "instanaRelease": {
+            "type": "string",
+            "defaultValue": "285",
+            "metadata": {
+                "description": "Release of Instana to install"
+            }
+        },
         "acceptLicense": {
             "type": "bool",
             "defaultValue": false,
@@ -156,7 +163,8 @@
                 "accept_license": "[parameters('acceptLicense')]",
                 "admin_password": "[parameters('instanaPassword')]",
                 "install_type": "[parameters('installType')]",
-                "domain": "[parameters('instanaDomain')]"
+                "domain": "[parameters('instanaDomain')]",
+                "release": "[parameters('instanaRelease')]"
             },
             "tls": {
                 "cert": "",
