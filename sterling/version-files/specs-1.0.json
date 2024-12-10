@@ -1,0 +1,51 @@
+{
+  "version": "v1.0",
+  "defaults": {
+    "namespace": "openshift-operators",
+    "clusterScoped": false
+  },
+  "catalogSources": [
+    {
+      "name": "ibm-oms-operator-catalogsource",
+      "displayName": "IBM OMS Gateway Catalog",
+      "image": "cp.icr.io/cpopen/ibm-oms-gateway-operator-catalog:v1.0",
+      "publisher": "IBM",
+      "sourceType": "grpc",
+      "registryUpdate": "30m0s"
+    },
+    {
+      "name": "ibm-sip-operator-catalogsource",
+      "displayName": "IBM SIP Catalog",
+      "image": "cp.icr.io/cpopen/ibm-oms-sip-operator-catalog:v1.0",
+      "publisher": "IBM",
+      "sourceType": "grpc",
+      "registryUpdate": "30m0s"
+    }
+  ],
+  "subscriptions": [
+    {
+      "name": "IBM OMS",
+      "metadata": {
+        "name": "ibm-oms-gateway"
+      },
+      "spec": {
+        "name": "ibm-oms-gateway",
+        "channel": "v1.0",
+        "source": "ibm-oms-operator-catalogsource",
+        "installPlanApproval": "Automatic"
+      }
+    },
+    {
+      "name": "IBM SIP",
+      "metadata": {
+        "name": "ibm-sip"
+      },
+      "spec": {
+        "name": "ibm-sip",
+        "channel": "v1.0",
+        "source": "ibm-sip-operator-catalogsource",
+        "installPlanApproval": "Automatic"
+      }
+    }
+  ]
+}
