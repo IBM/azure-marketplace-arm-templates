@@ -1,0 +1,70 @@
+---
+
+- name: Output name of subscription to be created
+  debug:
+    msg: "Creating subscription for {{ item.metadata.name }}"
+
+- name: Create the subscription definition (namespace scoped)
+  ansible.builtin.template:
+    src: "./templates/subscription-namespace.j2"
+    dest: "{{ directories.tmp_dir }}/{{ item.metadata.name }}-subscription.yaml"
+  when: operator.scope == "namespace"
+
+- name: Create subscription definition (cluster scoped)
+  ansible.builtin.template:
+    src: "./templates/subscription-cluster.j2"
+    dest: "{{ directories.tmp_dir }}/{{ item.metadata.name }}-subscription.yaml"
+  when: operator.scope != "namespace"
+
+- name: Apply the subscription definition
+  ansible.builtin.shell:
+    cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/{{ item.metadata.name }}-subscription.yaml"
+  args:
+    executable: /bin/bash
+  register: result
+
+- name: Output result if debug
+  ansible.builtin.debug:
+    var: result
+  when: log_level == "debug"
+
+- name: Wait for subscription to be available (namespace scoped)
+  ansible.builtin.shell: |
+    set timeout 60
+    CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ operator.namespace }} {{ item.metadata.name }} -o jsonpath='{.status.currentCSV}' )
+    if [[ "$CSV" == "null" ]]; then
+      echo "PendingCSV"
+    else
+      echo $({{ directories.bin_dir }}/oc get csv -n {{ operator.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+    fi
+    exit 0
+  args:
+    executable: /bin/bash
+  register: response
+  until: response.stdout == "Succeeded"
+  retries: "{{ default.retries }}"
+  delay: "{{ default.retry_delay }}"
+  when: operator.scope == "namespace"
+
+- name: Wait for subscription to be available (cluster scoped)
+  ansible.builtin.shell: |
+    set timeout 60
+    CSV=$({{ directories.bin_dir }}/oc get subscription -n openshift-operators {{ item.metadata.name }} -o jsonpath='{.status.currentCSV}')
+    if [[ "$CSV" == "null" ]]; then
+      echo "PendingCSV"
+    else
+      echo $({{ directories.bin_dir }}/oc get csv -n openshift-operators ${CSV} -o jsonpath='{.status.phase}')
+    fi
+    exit 0
+  args:
+    executable: /bin/bash
+  register: response
+  until: response.stdout == "Succeeded"
+  retries: "{{ default.retries }}"
+  delay: "{{ default.retry_delay }}"
+  when: operator.scope != "namespace"
+
+- name: Clean up definition file
+  ansible.builtin.file:
+    state: absent
+    path: "{{ directories.tmp_dir }}/{{ item.metadata.name }}-subscription.yaml"
