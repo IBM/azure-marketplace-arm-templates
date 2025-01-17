@@ -109,7 +109,7 @@
             "type": "array",
             "defaultValue": [
                 {
-                    "name": "SSH",
+                    "name": "AllowInboundAnySSH",
                     "properties": {
                         "priority": 300,
                         "protocol": "TCP",
@@ -294,7 +294,7 @@
         },
         "deploymentVersion": {
             "type": "string",
-            "defaultValue": "2024-03",
+            "defaultValue": "2025-01",
             "metadata": {
                 "description": "Deployment version to use"
             }

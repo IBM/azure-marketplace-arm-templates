@@ -103,4 +103,8 @@ else
     log-error "License not accepted. Software not installed"
 fi
 
+# Clean up the install script
+log-info "Removing the installer script"
+rm ${WORK_DIR}/${SCRIPT_NAME}
+
 log-info "Install completed"
