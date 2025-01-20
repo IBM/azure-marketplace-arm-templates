@@ -1,0 +1,329 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for deployment container"
+            }
+        },
+        "rgRoleGuid": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "forceUpdateTag property, used to force the execution of the script resource when no other properties have changed."
+            }
+        },
+        "createStorageAccount": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create a new storage account"
+            }
+        },
+        "deployOnVnet": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy with a private VNet connection."
+            }
+        },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to create a new virtual network (false) or use existing (true)"
+            }
+        },
+        "vnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "The address prefix for the new VNet if being created."
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "The name of the new or existing VNet"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "script-subnet",
+            "metadata": {
+                "description": "Name of the subnet the script will attach to"
+            }
+        },
+        "subnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/27",
+            "metadata": {
+                "description": "Address prefix for the script subnet"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'), 'script',substring(uniqueString(resourceGroup().id),1,7))]",
+            "metadata": {
+                "description": "Name for the storage account for the script execution"
+            }            
+        },
+        "azureCliVersion": {
+            "type": "string",
+            "defaultValue": "2.64.0",
+            "metadata": {
+                "description": "Container image version to pull. Refer https://mcr.microsoft.com/v2/azure-cli/tags/list for list of available versions."
+            }
+        },
+        "acceptLicense": {
+            "type": "string",
+            "defaultValue": "decline",
+            "allowedValues": [
+                "accept",
+                "decline"
+            ],
+            "metadata": {
+                "description": "Accept IBM License Terms to install software."
+            }
+        },
+        "nameSpace": {
+            "type": "string",
+            "defaultValue": "kubecost",
+            "metadata": {
+                "description": "Namespace on the cluster to install kubecost into (will be created if it does not exist)"
+            }
+        },
+        "ocVersion": {
+            "type": "string",
+            "defaultValue": "4.17",
+            "metadata": {
+                "description": "Version of the oc client to use"
+            }
+        },
+        "helmVersion": {
+            "type": "string",
+            "defaultValue": "v3.4.1",
+            "metadata": {
+                "description": "Version of helm client to use"
+            }
+        },
+        "apiServer": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "API server URL for the OpenShift cluster"
+            }
+        },
+        "ocpAdministrator": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "OpenShift administrator username"
+            }
+        },
+        "ocpPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "OpenShift administrator password if not using KeyVault to store"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "GitHub branch for linked deployments."
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-03",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        }
+        
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+        "containerGroupName": "[concat(parameters('namePrefix'), '-cg')]",
+        "scriptName": "[concat(parameters('namePrefix'),'-script')]",
+        "subnetIds": [
+            {
+                "id": "[resourceId(parameters('networkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+            }
+        ]
+    },
+    "resources": [
+        {  
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-07-01",
+            "name": "[parameters('vnetName')]",
+            "condition": "[and(not(parameters('existingVnet')),parameters('deployOnVnet'))]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "name": "scriptSubnet",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "condition": "[parameters('deployOnVnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('subnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('subnetCidr')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2023-04-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCidr')]",
+                                "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
+                                ],
+                                "delegations": [
+                                    {
+                                        "name": "Microsoft.ContainerInstance.containerGroups",
+                                        "properties": {
+                                            "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "comments": "Deploys a test container",
+            "name": "[variables('scriptName')]",
+            "location": "[parameters('location')]",
+            "kind": "AzureCLI",
+            "properties": {
+                "forceUpdateTag": "[parameters('rgRoleGuid')]",
+                "containerSettings": {
+                    "containerGroupName": "[variables('containerGroupName')]",
+                    "subnetIds": "[if(parameters('deployOnVnet'),variables('subnetIds'),json('null'))]"
+                },
+                "storageAccountSettings": {
+                    "storageAccountName": "[parameters('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                },
+                "azCliVersion": "[parameters('azureCliVersion')]",  
+                "environmentVariables": [
+                    {
+                        "name": "LICENSE",
+                        "value": "[parameters('acceptLicense')]"
+                    },
+                    {
+                        "name": "OC_VERSION",
+                        "value": "[parameters('ocVersion')]"
+                    },
+                    {
+                        "name": "HELM_VERSION",
+                        "value": "[parameters('helmVersion')]"
+                    },
+                    {
+                        "name": "NAMESPACE",
+                        "value": "[parameters('nameSpace')]"
+                    },
+                    {
+                        "name": "API_SERVER",
+                        "value": "[parameters('apiServer')]"
+                    },
+                    {
+                        "name": "OCP_USERNAME",
+                        "value": "[parameters('ocpAdministrator')]"
+                    },
+                    {
+                        "name": "OCP_PASSWORD",
+                        "value": "[parameters('ocpPassword')]"
+                    }
+                ],
+                "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/kubecost/',parameters('deploymentVersion'),'/deploy-kubecost-ocp/deploy-kubecost.sh'))]",
+                "timeout": "PT120M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            },
+            "dependsOn": [
+                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'scriptSubnet')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2023-01-01",
+            "condition": "[parameters('createStorageAccount')]",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot"
+            }
+        }
+    ]
+}
