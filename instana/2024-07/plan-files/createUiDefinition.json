@@ -1,0 +1,1218 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "config": {
+            "isWizard": false,
+            "basics": {
+                "resourceGroup": {
+                    "constraints": {
+                        "validations": [
+                            {
+                                "isValid": "Microsoft.Network/ddosProtectionPlans/create",
+                                "message": "Must be able to create a DDoS protection plan"
+                            },
+                            {
+                                "isValid": "Microsoft.Network/virtualNetworks/create",
+                                "message": "Must be able to create and/or modify a virtual network"
+                            },
+                            {
+                                "isValid": "Microsoft.Network/networkSecurityGroups/create",
+                                "message": "Must be able to create a network security group"
+                            },
+                            {
+                                "isValid": "Microsoft.Network/networkInterfaces/create",
+                                "message": "Must be able to create new network interfaces"
+                            },
+                            {
+                                "isValid": "Microsoft.Network/publicIPAddresses/create",
+                                "message": "Must be able to create new public IP addresses"
+                            },
+                            {
+                                "isValid": "Microsoft.Compute/virtualMachines/create",
+                                "message": "Must be able to create new virtual machines"
+                            },
+                            {
+                                "isValid": "Microsoft.Compute/virtualMachines/extensions/create",
+                                "message": "Must be able to create new virtual machine extensions"
+                            }
+                        ],
+                        "allowExisting": true
+                    },
+                    "location": {
+                        "visible": true,
+                        "resourceTypes": [
+                            "Microsoft.Network/ddosProtectionPlans",
+                            "Microsoft.Network/virtualNetworks",
+                            "Microsoft.Network/networkSecurityGroups",
+                            "Microsoft.Network/networkInterfaces",
+                            "Microsoft.Network/publicIPAddresses",
+                            "Microsoft.Compute/virtualMachines",
+                            "Microsoft.Compute/virtualMachines/extensions"
+                        ]
+                    }
+                }
+            }
+        },
+        "basics": [
+            {
+                "name": "namePrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Azure resource prefix",
+                "defaultValue": "instana",
+                "toolTip": "Prefix for Azure installation resources.",
+				"constraints":{
+					"required": true,
+					"validations": [
+						{
+							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+						}
+					]
+				}
+            },
+            {
+                "name": "installType",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Installation Type",
+                "toolTip": "Type of Instana installation, demonstration or production",
+                "visible": true,
+                "defaultValue": ["Production"],
+                "multiselect": false,
+                "filter": false,
+                "multiLine": false,
+                "constraints": {
+                    "required": true,
+                    "allowedValues": [
+                        {
+                            "label": "Demo",
+                            "value": "demo"
+                        },
+                        {
+                            "label": "Production",
+                            "value": "production"
+                        }
+                    ]
+                }
+            }
+         ],
+        "steps": [
+            {
+                "name": "networking",
+                "label": "Network Settings",
+                "elements": [
+                    {
+                        "name": "vnet",
+                        "type": "Microsoft.Network.VirtualNetworkCombo",
+                        "label": {
+                            "virtualNetwork": "Virtual network",
+                            "subnets": "Subnets"
+                        },
+                        "toolTip": {
+                            "virtualNetwork": "Select an existing VNet or enter the name of a new one",
+                            "subnets": "The name and CIDR for the subnet"
+                        },
+                        "defaultValue": {
+                            "name": "[concat(basics('namePrefix'),'-vnet')]",
+                            "addressPrefixSize": "/24"
+                        },
+                        "constraints": {
+                            "minAddressPrefixSize": "/27"
+                        },
+                        "options": {
+                            "hideExisting": false
+                        },
+                        "subnets": {
+                            "vmSubnet": {
+                                "label": "Virtual Machine Subnet",
+                                "defaultValue": {
+                                    "name": "instana-subnet",
+                                    "addressPrefixSize": "/27"
+                                },
+                                "constraints": {
+                                    "minAddressPrefixSize": "/30",
+                                    "minAddressCount": 1,
+                                    "requireContiguousAddresses": false
+                                }
+                            }
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "ddosPlan",
+                        "type": "Microsoft.Common.CheckBox",
+                        "label": "Enable DDoS Protection",
+                        "toolTip": "Enables DDoS protection on VNet and all interfaces in VNet"
+                    },
+                    {
+                        "name": "existingDdosPlan",
+                        "type": "Microsoft.Common.OptionsGroup",
+                        "label": "Existing or New DDoS Plan",
+                        "defaultValue": "Existing DDoS Plan",
+                        "toolTip": "Select either an existing or create a new DDoS Plan",
+                        "visible": "[steps('networking').ddosPlan]",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Existing DDoS Plan",
+                                    "value": "existing"
+                                },
+                                {
+                                    "label": "New DDoS Plan",
+                                    "value": "new"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "ddosPlanSelector",
+                        "type": "Microsoft.Solutions.ResourceSelector",
+                        "label": "Select the existing DDoS plan",
+                        "toolTip": "Either create a new DDoS plan or use an existing one. Plans can support multiple public IP resources.",
+                        "resourceType": "Microsoft.Network/ddosProtectionPlans",
+                        "visible": "[equals(steps('networking').existingDdosPlan,'existing')]",
+                        "options": {
+                            "filter": {
+                                "subscription": "all",
+                                "location": "all"
+                            }
+                        }
+                    },
+                    {
+                        "name": "ddosPlanName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Name of the new DDoS Plan",
+                        "toolTip": "Name for the new DDoS plan",
+                        "defaultValue": "[concat(basics('namePrefix'),'-DDoS-Plan')]",
+                        "visible": "[equals(steps('networking').existingDdosPlan,'new')]",
+                        "constraints":{
+                            "required": false,
+                            "validations": [
+                                {
+                                    "regex": "^[a-z0-9A-Z_.-]{1,80}$",
+                                    "message": "Must be between 1-80 charactors and have only alphanumeric, underscores, letters, periods and hyphens."
+                                }
+                            ]
+                        }
+                    },
+					{
+						"name": "dnsZone",
+						"type": "Microsoft.Solutions.ResourceSelector",
+						"label": "DNS Zone for Cluster",
+						"toolTip": "DNS Zone with base domain name for the cluster",
+						"resourceType": "Microsoft.Network/dnsZones",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"filter": {
+								"subscription": "onBasics"
+							}
+						}
+					}
+                ]
+            },
+            {
+                "name": "virtualMachine",
+                "label": "Virtual Machine",
+                "elements": [
+                    {
+                        "name": "vmName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Name for the Instana virtual machine",
+                        "toolTip": "The resource and hostname for the virtual machine",
+                        "defaultValue": "[concat(basics('namePrefix'),'-vm')]",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "validations": [
+                                {
+                                    "regex": "^[a-z0-9A-Z-]{1,64}$",
+                                    "message": "Must be between 1-64 charactors and have only alphanumeric and hyphens."
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "adminUserName",
+                        "type": "Microsoft.Compute.UserNameTextBox",
+                        "label": "Administrator Username",
+                        "toolTip": "This will be the primary admin user and login on the created virtual machine",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9]{1,30}$",
+                            "validationMessage": "Only alphanumeric characters are allowed, and the value must be between 1-30 characters in length."
+                        },
+                        "osPlatform": "Linux"
+                    },
+                    {
+                        "name": "adminPassword",
+                        "type": "Microsoft.Compute.CredentialsCombo",
+                        "osPlatform": "Linux",
+                        "label": {
+                            "authenticationType": "Authentication Type",
+                            "password": "Password",
+                            "confirmPassword": "Confirm Password",
+                            "sshPublicKey": "SSH Public Key"
+                        },
+                        "toolTip": {
+                            "authenticationType": "SSH public key is recommended",
+                            "password": "Password for the administrator user",
+                            "sshPublicKey": "SSH public key to be used for access to the administrator user"
+                        },
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                            "customValidationMessage": "Password must be alphanumeric, contain at least 12 characters and have at least 1 letter and 1 number"
+                        },
+                        "options": {
+                            "hideConfirmation": false,
+                            "hidePassword": false
+                        }
+                    },
+                    {
+                        "name": "vmSizeProd",
+                        "type": "Microsoft.Compute.SizeSelector",
+                        "label": "Virtual Machine Size",
+                        "toolTip": "Must be at least 24 vCPU and 64GB Memory",
+                        "recommendedSizes": [
+                            "Standard_D32ds_v5"
+                        ],
+                        "constraints": {
+                            "allowedSizes": [
+                                "Standard_L32as_v3",
+                                "Standard_L48as_v3",
+                                "Standard_L64as_v3",
+                                "Standard_L80as_v3",
+                                "Standard_D32a_v4",
+                                "Standard_D48a_v4",
+                                "Standard_D64a_v4",
+                                "Standard_D96a_v4",
+                                "Standard_D32as_v4",
+                                "Standard_D48as_v4",
+                                "Standard_D64as_v4",
+                                "Standard_D96as_v4",
+                                "Standard_E32a_v4",
+                                "Standard_E48a_v4",
+                                "Standard_E64a_v4",
+                                "Standard_E96a_v4",
+                                "Standard_E32as_v4",
+                                "Standard_E48as_v4",
+                                "Standard_E64-32as_v4",
+                                "Standard_E64as_v4",
+                                "Standard_E96-24as_v4",
+                                "Standard_E96-48as_v4",
+                                "Standard_E96as_v4",
+                                "Standard_D32ads_v5",
+                                "Standard_D48ads_v5",
+                                "Standard_D64ads_v5",
+                                "Standard_D96ads_v5",
+                                "Standard_E32ads_v5",
+                                "Standard_E48ads_v5",
+                                "Standard_E64-32ads_v5",
+                                "Standard_E64ads_v5",
+                                "Standard_E96-24ads_v5",
+                                "Standard_E96-48ads_v5",
+                                "Standard_E96ads_v5",
+                                "Standard_D32_v3",
+                                "Standard_D48_v3",
+                                "Standard_D64_v3",
+                                "Standard_E32_v3",
+                                "Standard_E48_v3",
+                                "Standard_E64_v3",
+                                "Standard_D32s_v3",
+                                "Standard_D48s_v3",
+                                "Standard_D64s_v3",
+                                "Standard_E32s_v3",
+                                "Standard_E48s_v3",
+                                "Standard_E64-32s_v3",
+                                "Standard_E64s_v3",
+                                "Standard_E32d_v4",
+                                "Standard_E48d_v4",
+                                "Standard_E64d_v4",
+                                "Standard_E32ds_v4",
+                                "Standard_E48ds_v4",
+                                "Standard_E64-32ds_v4",
+                                "Standard_E64ds_v4",
+                                "Standard_E80ids_v4",
+                                "Standard_D32d_v4",
+                                "Standard_D48d_v4",
+                                "Standard_D64d_v4",
+                                "Standard_D32ds_v4",
+                                "Standard_D48ds_v4",
+                                "Standard_D64ds_v4",
+                                "Standard_F32s_v2",
+                                "Standard_F48s_v2",
+                                "Standard_F64s_v2",
+                                "Standard_F72s_v2",
+                                "Standard_E112iads_v5",
+                                "Standard_M64",
+                                "Standard_M64m",
+                                "Standard_M128",
+                                "Standard_M128m",
+                                "Standard_M32ls",
+                                "Standard_M32ms",
+                                "Standard_M32ts",
+                                "Standard_M64-32ms",
+                                "Standard_M64ls",
+                                "Standard_M64ms",
+                                "Standard_M64s",
+                                "Standard_M128-32ms",
+                                "Standard_M128-64ms",
+                                "Standard_M128ms",
+                                "Standard_M128s",
+                                "Standard_M32dms_v2",
+                                "Standard_M64dms_v2",
+                                "Standard_M64ds_v2",
+                                "Standard_M128dms_v2",
+                                "Standard_M128ds_v2",
+                                "Standard_M192idms_v2",
+                                "Standard_M192ids_v2",
+                                "Standard_DC32ads_v5",
+                                "Standard_DC48ads_v5",
+                                "Standard_DC64ads_v5",
+                                "Standard_DC96ads_v5",
+                                "Standard_EC32ads_v5",
+                                "Standard_EC48ads_v5",
+                                "Standard_EC64ads_v5",
+                                "Standard_EC96ads_v5",
+                                "Standard_EC96iads_v5",
+                                "Standard_DC32ads_cc_v5",
+                                "Standard_DC48ads_cc_v5",
+                                "Standard_DC64ads_cc_v5",
+                                "Standard_DC96ads_cc_v5",
+                                "Standard_EC32ads_cc_v5",
+                                "Standard_EC48ads_cc_v5",
+                                "Standard_EC64ads_cc_v5",
+                                "Standard_EC96ads_cc_v5",
+                                "Standard_E96ias_v4",
+                                "Standard_D32ds_v5",
+                                "Standard_D48ds_v5",
+                                "Standard_D64ds_v5",
+                                "Standard_D96ds_v5",
+                                "Standard_D32d_v5",
+                                "Standard_D48d_v5",
+                                "Standard_D64d_v5",
+                                "Standard_D96d_v5",
+                                "Standard_E32ds_v5",
+                                "Standard_E48ds_v5",
+                                "Standard_E64ds_v5",
+                                "Standard_E96-24ds_v5",
+                                "Standard_E96-48ds_v5",
+                                "Standard_E96ds_v5",
+                                "Standard_E104ids_v5",
+                                "Standard_E32d_v5",
+                                "Standard_E48d_v5",
+                                "Standard_E64d_v5",
+                                "Standard_E96d_v5",
+                                "Standard_E104id_v5",
+                                "Standard_E32bds_v5",
+                                "Standard_E48bds_v5",
+                                "Standard_E64bds_v5",
+                                "Standard_E96bds_v5",
+                                "Standard_E112ibds_v5",
+                                "Standard_D32lds_v5",
+                                "Standard_D48lds_v5",
+                                "Standard_D64lds_v5",
+                                "Standard_D96lds_v5",
+                                "Standard_E64i_v3",
+                                "Standard_E64is_v3",
+                                "Standard_M208ms_v2",
+                                "Standard_M208s_v2",
+                                "Standard_M416-208s_v2",
+                                "Standard_M416s_v2",
+                                "Standard_M416-208ms_v2",
+                                "Standard_M416ms_v2",
+                                "Standard_M416s_8_v2",
+                                "Standard_NV24",
+                                "Standard_NV24_Promo",
+                                "Standard_L32s_v3",
+                                "Standard_L48s_v3",
+                                "Standard_L64s_v3",
+                                "Standard_L80s_v3",
+                                "Standard_NC64as_T4_v3",
+                                "Standard_NV24s_v2",
+                                "Standard_NV24s_v3",
+                                "Standard_NV48s_v3",
+                                "Standard_HB120-32rs_v2",
+                                "Standard_HB120-64rs_v2",
+                                "Standard_HB120-96rs_v2",
+                                "Standard_HB120rs_v2",
+                                "Standard_D32plds_v5",
+                                "Standard_D48plds_v5",
+                                "Standard_D64plds_v5",
+                                "Standard_D32pds_v5",
+                                "Standard_D48pds_v5",
+                                "Standard_D64pds_v5",
+                                "Standard_E32pds_v5",
+                                "Standard_NC24rs_v2",
+                                "Standard_NC24s_v2",
+                                "Standard_NC24ads_A100_v4",
+                                "Standard_NC48ads_A100_v4",
+                                "Standard_NC96ads_A100_v4",
+                                "Standard_NC24",
+                                "Standard_NC24r",
+                                "Standard_NC24_Promo",
+                                "Standard_NC24r_Promo",
+                                "Standard_L32s_v2",
+                                "Standard_L48s_v2",
+                                "Standard_L64s_v2",
+                                "Standard_L80s_v2",
+                                "Standard_NV18ads_A10_v5",
+                                "Standard_NV36adms_A10_v5",
+                                "Standard_NV36ads_A10_v5",
+                                "Standard_NV72ads_A10_v5",
+                                "Standard_ND40rs_v2",
+                                "Standard_FX24mds",
+                                "Standard_FX36mds",
+                                "Standard_FX48mds",
+                                "Standard_NP40s",
+                                "Standard_NC24rs_v3",
+                                "Standard_NC24s_v3",
+                                "Standard_ND96amsr_A100_v4",
+                                "Standard_NV32as_v4",
+                                "Standard_DC24ds_v3",
+                                "Standard_DC32ds_v3",
+                                "Standard_DC48ds_v3",
+                                "Standard_HB120-32rs_v3",
+                                "Standard_HB120-64rs_v3",
+                                "Standard_HB120-96rs_v3",
+                                "Standard_HB120rs_v3",
+                                "Standard_HC44-32rs",
+                                "Standard_HC44rs",
+                                "Standard_ND24rs",
+                                "Standard_ND24s",
+                                "Standard_HB60-30rs",
+                                "Standard_HB60-45rs",
+                                "Standard_HB60rs",
+                                "Standard_ND96asr_v4",
+                                "Standard_ND40s_v3",
+                                "Standard_HX176-24rs",
+                                "Standard_HX176-48rs",
+                                "Standard_HX176-96rs",
+                                "Standard_HX176-144rs",
+                                "Standard_HX176rs",
+                                "Standard_HB176-24rs_v4",
+                                "Standard_HB176-48rs_v4",
+                                "Standard_HB176-96rs_v4",
+                                "Standard_HB176-144rs_v4",
+                                "Standard_HB176rs_v4",
+                                "Standard_NC32ads_A10_v4"
+                            ]
+                        },
+                        "osPlatform": "Linux",
+                        "imageReference": {
+                            "publisher": "RedHat",
+                            "offer": "RHEL",
+                            "sku": "9_2"
+                        },
+                        "count": 1,
+                        "visible": "[equals(basics('installType'),'production')]"
+                    },
+                    {
+                        "name": "vmSizeDemo",
+                        "type": "Microsoft.Compute.SizeSelector",
+                        "label": "Virtual Machine Size",
+                        "toolTip": "Must be at least 16 vCPU",
+                        "recommendedSizes": [
+                            "Standard_B16ms",
+                            "Standard_D16s_v3",
+                            "Standard_D16as_v4",
+                            "Standard_D16ds_v5",
+                            "Standard_D32ds_v5"
+                        ],
+                        "constraints": {
+                            "allowedSizes": [
+                                "Standard_L16as_v3",
+                                "Standard_L32as_v3",
+                                "Standard_L48as_v3",
+                                "Standard_L64as_v3",
+                                "Standard_L80as_v3",
+                                "Standard_D16a_v4",
+                                "Standard_D32a_v4",
+                                "Standard_D48a_v4",
+                                "Standard_D64a_v4",
+                                "Standard_D96a_v4",
+                                "Standard_D16as_v4",
+                                "Standard_D32as_v4",
+                                "Standard_D48as_v4",
+                                "Standard_D64as_v4",
+                                "Standard_D96as_v4",
+                                "Standard_E16a_v4",
+                                "Standard_E20a_v4",
+                                "Standard_E32a_v4",
+                                "Standard_E48a_v4",
+                                "Standard_E64a_v4",
+                                "Standard_E96a_v4",
+                                "Standard_E16as_v4",
+                                "Standard_E20as_v4",
+                                "Standard_E32-16as_v4",
+                                "Standard_E32as_v4",
+                                "Standard_E48as_v4",
+                                "Standard_E64-16as_v4",
+                                "Standard_E64-32as_v4",
+                                "Standard_E64as_v4",
+                                "Standard_E96-24as_v4",
+                                "Standard_E96-48as_v4",
+                                "Standard_E96as_v4",
+                                "Standard_D16ads_v5",
+                                "Standard_D32ads_v5",
+                                "Standard_D48ads_v5",
+                                "Standard_D64ads_v5",
+                                "Standard_D96ads_v5",
+                                "Standard_E16ads_v5",
+                                "Standard_E20ads_v5",
+                                "Standard_E32-8ads_v5",
+                                "Standard_E32-16ads_v5",
+                                "Standard_E32ads_v5",
+                                "Standard_E48ads_v5",
+                                "Standard_E64-16ads_v5",
+                                "Standard_E64-32ads_v5",
+                                "Standard_E64ads_v5",
+                                "Standard_E96-24ads_v5",
+                                "Standard_E96-48ads_v5",
+                                "Standard_E96ads_v5",
+                                "Standard_B16ms",
+                                "Standard_B20ms",
+                                "Standard_D16_v3",
+                                "Standard_D32_v3",
+                                "Standard_D48_v3",
+                                "Standard_D64_v3",
+                                "Standard_E16_v3",
+                                "Standard_E20_v3",
+                                "Standard_E32_v3",
+                                "Standard_E48_v3",
+                                "Standard_E64_v3",
+                                "Standard_D16s_v3",
+                                "Standard_D32s_v3",
+                                "Standard_D48s_v3",
+                                "Standard_D64s_v3",
+                                "Standard_E16-4s_v3",
+                                "Standard_E16-8s_v3",
+                                "Standard_E16s_v3",
+                                "Standard_E20s_v3",
+                                "Standard_E32-8s_v3",
+                                "Standard_E32-16s_v3",
+                                "Standard_E32s_v3",
+                                "Standard_E48s_v3",
+                                "Standard_E64-16s_v3",
+                                "Standard_E64-32s_v3",
+                                "Standard_E64s_v3",
+                                "Standard_E16d_v4",
+                                "Standard_E20d_v4",
+                                "Standard_E32d_v4",
+                                "Standard_E48d_v4",
+                                "Standard_E64d_v4",
+                                "Standard_E16ds_v4",
+                                "Standard_E20ds_v4",
+                                "Standard_E32-16ds_v4",
+                                "Standard_E32ds_v4",
+                                "Standard_E48ds_v4",
+                                "Standard_E64-16ds_v4",
+                                "Standard_E64-32ds_v4",
+                                "Standard_E64ds_v4",
+                                "Standard_E80ids_v4",
+                                "Standard_D16d_v4",
+                                "Standard_D32d_v4",
+                                "Standard_D48d_v4",
+                                "Standard_D64d_v4",
+                                "Standard_D16ds_v4",
+                                "Standard_D32ds_v4",
+                                "Standard_D48ds_v4",
+                                "Standard_D64ds_v4",
+                                "Standard_F32s_v2",
+                                "Standard_F48s_v2",
+                                "Standard_F64s_v2",
+                                "Standard_F72s_v2",
+                                "Standard_E112iads_v5",
+                                "Standard_M64",
+                                "Standard_M64m",
+                                "Standard_M128",
+                                "Standard_M128m",
+                                "Standard_M16ms",
+                                "Standard_M32-16ms",
+                                "Standard_M32ls",
+                                "Standard_M32ms",
+                                "Standard_M32ts",
+                                "Standard_M64-16ms",
+                                "Standard_M64-32ms",
+                                "Standard_M64ls",
+                                "Standard_M64ms",
+                                "Standard_M64s",
+                                "Standard_M128-32ms",
+                                "Standard_M128-64ms",
+                                "Standard_M128ms",
+                                "Standard_M128s",
+                                "Standard_M32dms_v2",
+                                "Standard_M64dms_v2",
+                                "Standard_M64ds_v2",
+                                "Standard_M128dms_v2",
+                                "Standard_M128ds_v2",
+                                "Standard_M192idms_v2",
+                                "Standard_M192ids_v2",
+                                "Standard_DC16ads_v5",
+                                "Standard_DC32ads_v5",
+                                "Standard_DC48ads_v5",
+                                "Standard_DC64ads_v5",
+                                "Standard_DC96ads_v5",
+                                "Standard_EC16ads_v5",
+                                "Standard_EC20ads_v5",
+                                "Standard_EC32ads_v5",
+                                "Standard_EC48ads_v5",
+                                "Standard_EC64ads_v5",
+                                "Standard_EC96ads_v5",
+                                "Standard_EC96iads_v5",
+                                "Standard_DC16ads_cc_v5",
+                                "Standard_DC32ads_cc_v5",
+                                "Standard_DC48ads_cc_v5",
+                                "Standard_DC64ads_cc_v5",
+                                "Standard_DC96ads_cc_v5",
+                                "Standard_EC16ads_cc_v5",
+                                "Standard_EC20ads_cc_v5",
+                                "Standard_EC32ads_cc_v5",
+                                "Standard_EC48ads_cc_v5",
+                                "Standard_EC64ads_cc_v5",
+                                "Standard_EC96ads_cc_v5",
+                                "Standard_E96ias_v4",
+                                "Standard_D16ds_v5",
+                                "Standard_D32ds_v5",
+                                "Standard_D48ds_v5",
+                                "Standard_D64ds_v5",
+                                "Standard_D96ds_v5",
+                                "Standard_D16d_v5",
+                                "Standard_D32d_v5",
+                                "Standard_D48d_v5",
+                                "Standard_D64d_v5",
+                                "Standard_D96d_v5",
+                                "Standard_E16ds_v5",
+                                "Standard_E20ds_v5",
+                                "Standard_E32-16ds_v5",
+                                "Standard_E32ds_v5",
+                                "Standard_E48ds_v5",
+                                "Standard_E64-16ds_v5",
+                                "Standard_E64-32ds_v5",
+                                "Standard_E64ds_v5",
+                                "Standard_E96-24ds_v5",
+                                "Standard_E96-48ds_v5",
+                                "Standard_E96ds_v5",
+                                "Standard_E104ids_v5",
+                                "Standard_E16d_v5",
+                                "Standard_E20d_v5",
+                                "Standard_E32d_v5",
+                                "Standard_E48d_v5",
+                                "Standard_E64d_v5",
+                                "Standard_E96d_v5",
+                                "Standard_E104id_v5",
+                                "Standard_E16bds_v5",
+                                "Standard_E32bds_v5",
+                                "Standard_E48bds_v5",
+                                "Standard_E64bds_v5",
+                                "Standard_E96bds_v5",
+                                "Standard_E112ibds_v5",
+                                "Standard_D32lds_v5",
+                                "Standard_D48lds_v5",
+                                "Standard_D64lds_v5",
+                                "Standard_D96lds_v5",
+                                "Standard_E64i_v3",
+                                "Standard_E64is_v3",
+                                "Standard_M208ms_v2",
+                                "Standard_M208s_v2",
+                                "Standard_M416-208s_v2",
+                                "Standard_M416s_v2",
+                                "Standard_M416-208ms_v2",
+                                "Standard_M416ms_v2",
+                                "Standard_NV24",
+                                "Standard_L16s_v3",
+                                "Standard_L32s_v3",
+                                "Standard_L48s_v3",
+                                "Standard_L64s_v3",
+                                "Standard_L80s_v3",
+                                "Standard_NC16as_T4_v3",
+                                "Standard_NC64as_T4_v3",
+                                "Standard_NV24s_v2",
+                                "Standard_NV24s_v3",
+                                "Standard_NV48s_v3",
+                                "Standard_HB120-16rs_v2",
+                                "Standard_HB120-32rs_v2",
+                                "Standard_HB120-64rs_v2",
+                                "Standard_HB120-96rs_v2",
+                                "Standard_HB120rs_v2",
+                                "Standard_D32plds_v5",
+                                "Standard_D48plds_v5",
+                                "Standard_D64plds_v5",
+                                "Standard_D16pds_v5",
+                                "Standard_D32pds_v5",
+                                "Standard_D48pds_v5",
+                                "Standard_D64pds_v5",
+                                "Standard_E16pds_v5",
+                                "Standard_E20pds_v5",
+                                "Standard_E32pds_v5",
+                                "Standard_NC24rs_v2",
+                                "Standard_NC24s_v2",
+                                "Standard_NC24ads_A100_v4",
+                                "Standard_NC48ads_A100_v4",
+                                "Standard_NC96ads_A100_v4",
+                                "Standard_NC24",
+                                "Standard_NC24r",
+                                "Standard_NC24_Promo",
+                                "Standard_NC24r_Promo",
+                                "Standard_L16s_v2",
+                                "Standard_L32s_v2",
+                                "Standard_L48s_v2",
+                                "Standard_L64s_v2",
+                                "Standard_L80s_v2",
+                                "Standard_NV18ads_A10_v5",
+                                "Standard_NV36adms_A10_v5",
+                                "Standard_NV36ads_A10_v5",
+                                "Standard_NV72ads_A10_v5",
+                                "Standard_ND40rs_v2",
+                                "Standard_FX24mds",
+                                "Standard_FX36mds",
+                                "Standard_FX48mds",
+                                "Standard_NP20s",
+                                "Standard_NP40s",
+                                "Standard_NC24rs_v3",
+                                "Standard_NC24s_v3",
+                                "Standard_ND96amsr_A100_v4",
+                                "Standard_NV32as_v4",
+                                "Standard_DC16ds_v3",
+                                "Standard_DC24ds_v3",
+                                "Standard_DC32ds_v3",
+                                "Standard_DC48ds_v3",
+                                "Standard_HB120-16rs_v3",
+                                "Standard_HB120-32rs_v3",
+                                "Standard_HB120-64rs_v3",
+                                "Standard_HB120-96rs_v3",
+                                "Standard_HB120rs_v3",
+                                "Standard_HC44-16rs",
+                                "Standard_HC44-32rs",
+                                "Standard_HC44rs",
+                                "Standard_ND24rs",
+                                "Standard_ND24s",
+                                "Standard_HB60-30rs",
+                                "Standard_HB60-45rs",
+                                "Standard_HB60rs",
+                                "Standard_ND96asr_v4",
+                                "Standard_ND40s_v3",
+                                "Standard_HX176-24rs",
+                                "Standard_HX176-48rs",
+                                "Standard_HX176-96rs",
+                                "Standard_HX176-144rs",
+                                "Standard_HX176rs",
+                                "Standard_HB176-24rs_v4",
+                                "Standard_HB176-48rs_v4",
+                                "Standard_HB176-96rs_v4",
+                                "Standard_HB176-144rs_v4",
+                                "Standard_HB176rs_v4",
+                                "Standard_NC16ads_A10_v4",
+                                "Standard_NC32ads_A10_v4"
+                            ]
+                        },
+                        "osPlatform": "Linux",
+                        "imageReference": {
+                            "publisher": "RedHat",
+                            "offer": "RHEL",
+                            "sku": "9_2"
+                        },
+                        "count": 1,
+                        "visible": "[equals(basics('installType'),'demo')]"
+                    },
+                    {
+                        "name": "osVersion",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Operating System Version",
+                        "toolTip": "The operating system for the Instana virtual machine",
+                        "visible": false,
+                        "defaultValue": ["Red Hat Enterprise Linux v9.2"],
+                        "multiselect": false,
+                        "filter": false,
+                        "multiLine": false,
+                        "constraints": {
+                            "required": true,
+                            "allowedValues": [
+                                {
+                                    "label": "Red Hat Enterprise Linux v8.6",
+                                    "value": "RHEL 8.6"
+                                },
+                                {
+                                    "label": "Red Hat Enterprise Linux v8.7",
+                                    "value": "RHEL 8.7"
+                                },
+                                {
+                                    "label": "Red Hat Enterprise Linux v9.2",
+                                    "value": "RHEL 9.2"
+                                }
+                            ]
+                        }
+                    },
+					{
+						"name": "vmZone",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Availability Zone for VM",
+						"defaultValue": ["1"],
+						"toolTip": "Zone must be present in selected region",
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "1",
+									"value": "1"
+								},
+								{
+									"label": "2",
+									"value": "2"
+								},
+								{
+									"label": "3",
+									"value": "3"
+								}
+							]
+						},
+						"required": true,
+						"visible": true
+					},
+                    {
+                        "name": "storageSku",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Storage SKU",
+                        "toolTip": "This will apply to OS and data disks attached to the VM",
+                        "defaultValue": ["Premium_LRS"],
+                        "multiselect": false,
+                        "selectAll": false,
+                        "multiLine": false,
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Premium_LRS",
+                                    "value": "Premium_LRS"
+                                },
+                                {
+                                    "label": "Premium_ZRS",
+                                    "value": "Premium_ZRS"
+                                }
+                            ]
+                        }
+                    },
+					{
+						"name": "vmPublicIP",
+						"type": "Microsoft.Network.PublicIpAddressCombo",
+						"label": {
+							"publicIpAddress": "Public IP address for VM",
+							"domainNameLabel": "Domain name label for the VM's public IP"
+						},
+						"toolTip": {
+							"publicIpAddress": "Name of the public IP for the VM",
+							"domainNameLabel": "Domain name label for the public IP of the VM"
+						},
+						"defaultValue": {
+							"publicIpAddressName": "[concat(basics('namePrefix'),'-pip')]",
+							"domainNameLabel": "[toLower( concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)) )]"
+						},
+						"constraints": {
+							"required": {
+								"domainNameLabel": false
+							}
+						},
+						"options": {
+							"hideNone": true,
+							"hideDomainNameLabel": false,
+							"hideExisting": false
+						},
+						"visible": true
+                    }
+                ]
+            },
+            {
+                "name": "instana",
+                "label": "Instana",
+                "elements": [
+                    {
+                        "name": "acceptLicense",
+                        "type": "Microsoft.Common.CheckBox",
+                        "label": "Accept License",
+                        "toolTip": "License acceptance is required to activate Instana"
+                    },
+					{
+						"name": "licenseInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
+						  "uri": "https://www.ibm.com/support/customer/csol/terms/licenses#license-search-result"
+						}
+					},
+                    {
+                        "name": "downloadKey",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "Instana Download Key",
+                            "confirmPassword": "Confirm"
+                        },
+                        "toolTip": "Download key for the Instana application",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "validations": [
+                                {
+                                    "regex": "^[a-zA-Z0-9_~.-]{8,30}$",
+                                    "message": "Must be between 8 and 30 characters in length and contain only alphanumeric characters"
+                                }
+                            ]
+                        },
+                        "options": {
+                            "hideConfirmation": false
+                        }
+                    },
+                    {
+                        "name": "salesKey",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "Instana Sales Key",
+                            "confirmPassword": "Confirm"
+                        },
+                        "toolTip": "Sales key for the Instana application",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "validations": [
+                                {
+                                    "regex": "^[a-zA-Z0-9_~.-]{8,30}$",
+                                    "message": "Must be between 8 and 30 characters in length and contain only alphanumeric characters"
+                                }
+                            ]
+                        },
+                        "options": {
+                            "hideConfirmation": false
+                        }
+                    },
+                    {
+                        "name": "tenantName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Name for the Instana tenant",
+                        "toolTip": "This will be used to configure the Instana application",
+                        "defaultValue": "tenant0",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "validations": [
+                                {
+                                    "regex": "^[a-zA-Z0-9_-]{3,30}$",
+                                    "message": "Must be between 3 and 30 characters in length and contain only alphanumeric characters"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "envName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Unit name for the Instana instance",
+                        "toolTip": "This will be used to configure the Instana application",
+                        "defaultValue": "unit0",
+                        "visible": true,
+                        "constraints": {
+                            "required": true,
+                            "validations": [
+                                {
+                                    "regex": "^[a-zA-Z0-9_-]{3,30}$",
+                                    "message": "Must be between 3 and 30 characters in length and contain only alphanumeric characters"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "instanaPassword",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "Instana administrator password",
+                            "confirmPassword": "Confirm password"
+                        },
+                        "toolTip": "Will be used to access Instana",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9]{10,}$",
+                            "validationMessage": "Password must be at least 10 characters and contain letters and numbers."
+                        },
+                        "options": {
+                            "hideConfirmation": false
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "dataDiskSizeDemo",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 150,
+                        "max": 1024,
+                        "defaultValue": 150,
+                        "label": "Data Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the data disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'demo')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "metricsDiskSizeDemo",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 300,
+                        "max": 1024,
+                        "defaultValue": 300,
+                        "label": "Metrics Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the metrics disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'demo')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "analyticsDiskSizeDemo",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 500,
+                        "max": 1024,
+                        "defaultValue": 500,
+                        "label": "Analytics Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the analytics disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'demo')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "objectsDiskSizeDemo",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 250,
+                        "max": 1024,
+                        "defaultValue": 250,
+                        "label": "Objects Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the objects disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'demo')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "dataDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 500,
+                        "max": 5000,
+                        "defaultValue": 500,
+                        "label": "Data Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the data disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "metricsDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 1000,
+                        "max": 5000,
+                        "defaultValue": 1000,
+                        "label": "Metrics Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the metrics disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "analyticsDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 1200,
+                        "max": 5000,
+                        "defaultValue": 1200,
+                        "label": "Analytics Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the analytics disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "objectsDiskSizeProd",
+                        "type": "Microsoft.Common.Slider",
+                        "min": 1000,
+                        "max": 5000,
+                        "defaultValue": 1000,
+                        "label": "Objects Disk Size",
+                        "subLabel": "GB",
+                        "toolTip": "The size of the objects disk that will be mounted",
+                        "visible": "[equals(basics('installType'),'production')]",
+                        "constraints": {
+                            "required": true
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "tags",
+                "label": "Tags",
+                "elements": [
+                    {
+                        "name": "tagsByResource",
+                        "type": "Microsoft.Common.TagsByResource",
+                        "toolTip": "Create one or more tags to associate with the created resources.",
+                        "resources": [
+                            "Microsoft.Network/ddosProtectionPlans",
+                            "Microsoft.Network/networkSecurityGroups",
+                            "Microsoft.Network/publicIPAddresses",
+                            "Microsoft.Network/virtualNetworks",
+                            "Microsoft.Compute/virtualMachines"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "namePrefix": "[basics('namePrefix')]",
+            "location": "[location()]",
+            "networkResourceGroup": "[steps('networking').vnet.resourceGroup]",
+            "vnetName": "[steps('networking').vnet.name]",
+            "vnetCIDR": "[first( steps('networking').vnet.addressPrefixes ) ]",
+            "vnetNewOrExisting": "[steps('networking').vnet.newOrExisting]",
+            "enableDdosProtection": "[steps('networking').ddosPlan]",
+            "existingDdosPlan": "[equals(steps('networking').existingDdosPlan,'existing')]",
+            "ddosProtectionPlanName": "[if(and(steps('networking').ddosPlan,equals(steps('networking').existingDdosPlan,'existing')),steps('networking').ddosPlanSelector,steps('networking').ddosPlanName)]",
+            "subnetName": "[steps('networking').vnet.subnets.vmSubnet.name]",
+            "subnetCidr": "[steps('networking').vnet.subnets.vmSubnet.addressPrefix]",
+            "dnsZoneName": "[steps('networking').dnsZone.name]",
+            "dnsZoneResourceGroup": "[last(take(split(steps('networking').dnsZone.id,'/'),5))]",
+            "vmName": "[steps('virtualMachine').vmName]",
+            "vmZone": "[steps('virtualMachine').vmZone]",
+            "adminUserName": "[steps('virtualMachine').adminUserName]",
+            "adminPassword": "[if(equals(steps('virtualMachine').adminPassword.authenticationType,'password'),steps('virtualMachine').adminPassword.password,steps('virtualMachine').adminPassword.sshPublicKey)]",
+            "authType": "[steps('virtualMachine').adminPassword.authenticationType]",
+            "storageSKU": "[steps('virtualMachine').storageSku]",
+            "vmOSVersion": "[steps('virtualMachine').osVersion]",
+            "vmSize": "[if(equals(basics('installType'),'demo'),steps('virtualMachine').vmSizeDemo,steps('virtualMachine').vmSizeProd)]",
+            "publicIPName": "[steps('virtualMachine').vmPublicIP.name]",
+            "publicIpNewOrExisting": "[steps('virtualMachine').vmPublicIP.newOrExistingOrNone]",
+            "publicIpResourceGroup": "[steps('virtualMachine').vmPublicIP.resourceGroup]",
+            "domainName": "[steps('virtualMachine').vmPublicIP.domainNameLabel]",
+            "installType": "[basics('installType')]",
+            "instanaPassword": "[steps('instana').instanaPassword]",
+            "dataDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').dataDiskSizeProd,steps('instana').dataDiskSizeDemo)]",
+            "metricsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').metricsDiskSizeProd,steps('instana').metricsDiskSizeDemo)]",
+            "analyticsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').analyticsDiskSizeProd,steps('instana').analyticsDiskSizeDemo)]",
+            "objectsDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').objectsDiskSizeProd,steps('instana').objectsDiskSizeDemo)]",
+            "downloadKey": "[steps('instana').downloadKey]",
+            "salesKey": "[steps('instana').salesKey]",
+            "tenantName": "[steps('instana').tenantName]",
+            "unitName": "[steps('instana').envName]",
+            "acceptLicense": "[steps('instana').acceptLicense]",
+            "tagsByResource": "[steps('tags').tagsByResource]"
+        }
+    }
+}

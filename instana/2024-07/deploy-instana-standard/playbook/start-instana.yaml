@@ -1,0 +1,117 @@
+---
+
+- name: Start Instana
+  block:
+
+  - name: Set the retry count
+    ansible.builtin.set_fact:
+      retry_count: "{{ 1 if ( retry_count is undefined) else retry_count | int + 1 }}"
+
+  - name: Run Instana up command
+    ansible.builtin.shell: |
+      set timeout 3000
+      export HOME="{{ ansible_facts.user_dir }}"
+      stanctl up --install-type {{ instana.install_type }} \
+        --download-key {{ instana.download_key }} \
+        --sales-key {{ instana.sales_key }} \
+        --unit-tenant-name {{ instana.tenant_name }} \
+        --unit-unit-name {{ instana.unit_name }} \
+        --unit-initial-admin-password {{ instana.admin_password }} \
+        --core-base-domain {{ instana.domain }} \
+        --core-tls-generate-cert \
+        --instana-release {{ instana.release }} \
+        --quiet
+      exit 0
+    args:
+      executable: /bin/bash
+      chdir: "{{ ansible_facts.user_dir }}"
+    become: yes
+    become_user: "{{ ansible_facts.user_id }}"
+    register: response
+    async: "{{ default.timeout | int }}"
+    poll: "{{ default.poll | int }}"
+
+  - name: Output install result
+    ansible.builtin.debug:
+      var: response
+    when: 
+    - log_level == "debug"
+
+  - name: Check status of Instana core
+    ansible.builtin.shell:
+      cmd: "{{ dir.bin_dir }}/kubectl get core -n instana-core -o json | jq -r .items[].status.componentsStatus"
+    register: core_status
+
+  - name: Output Instana core status
+    ansible.builtin.debug:
+      var: core_status.stdout
+    when: log_level == "debug"
+
+  - name: Check status of instana unit
+    ansible.builtin.shell:
+      cmd: "{{ dir.bin_dir }}/kubectl get unit -n instana-unit -o json | jq -r .items[].status.componentsStatus"
+    register: unit_status
+
+  - name: Output Instana unit status
+    ansible.builtin.debug:
+      var: unit_status.stdout
+    when: log_level == "debug"
+
+  - name: Set Instana status
+    ansible.builtin.set_fact:
+      instana_status: "{{ 'Ready' if(core_status.stdout == 'Ready' and unit_status.stdout == 'Ready') else 'NotReady' }}"
+
+  - name: Force failure if not ready
+    ansible.builtin.command: /bin/false
+    when: instana_status == 'NotReady'
+
+  rescue:
+
+  - name: Retries exceeded
+    when: retry_count | int >= default.retries
+    block:
+    - name: Dump result if exceeded retries
+      ansible.builtin.shell: |
+        set timeout 600
+        export HOME="{{ ansible_facts.user_dir }}"
+        stanctl debug --quiet --output-dir ~{{ ansible_facts.user_dir }}/
+        exit 0
+      args:
+        executable: /bin/bash
+        chdir: "{{ ansible_facts.user_dir }}"
+      become: yes
+
+    - name: Fail if exceeded retries
+      ansible.builtin.fail: 
+        msg: "Unable to start Instana after {{ default.retries }} attempts. Please check logs."
+
+  - name: Retry
+    when: retry_count | int < default.retries
+    block:
+    - name: Send message that retrying
+      ansible.builtin.debug:
+        msg: "Trying again"
+
+    - name: Delay to let processes clean themselves up
+      ansible.builtin.pause:
+        minutes: 1
+
+    - name: Stop instana
+      ansible.builtin.shell: |
+        set timeout 1800
+        export HOME="{{ ansible_facts.user_dir }}"
+        stanctl cluster delete --quiet
+        exit 0
+      args:
+        executable: /bin/bash
+        chdir: "{{ ansible_facts.user_dir }}"
+      become: yes
+      become_user: "{{ ansible_facts.user_id }}"
+      register: response
+      async: "{{ default.timeout | int }}"
+      poll: "{{ default.poll | int }}"
+
+    - name: Run again
+      ansible.builtin.include_tasks:
+        file: ./start-instana.yaml
+  

@@ -1,0 +1,58 @@
+---
+
+  - name: Get list of LVM physical volume partitions
+    ansible.builtin.set_fact:
+      pvList: "{{ ansible_facts['lvm']['pvs'] | list }}"
+
+  - name: Search for the partition used for the rootvg (should be only one for new system)
+    ansible.builtin.fail:
+      msg: "More than one physical volume {{ pvList }}. Please manually configure."
+    when: pvList | length > 1
+
+  - name: Set rootvg partition
+    ansible.builtin.set_fact:
+      pvPartition: "{{ pvList[0] }}"
+    when: pvList | length == 1
+
+  - name: Set the rootvg device path
+    ansible.builtin.set_fact:
+      pvDevicePath: "{{ pvPartition [:-1]  }}"
+
+  - name: Set rootvg partition number
+    ansible.builtin.set_fact:
+      pvPartitionNumber: "{{ pvPartition | last | trim  }}"
+
+  - name: Fix partitions
+    ansible.builtin.shell: parted {{ pvDevicePath }} -f -s print
+    args:
+      executable: /bin/bash
+  
+  - name: Resize the rootvg
+    ansible.builtin.shell: parted {{ pvDevicePath }} -s resizepart {{ pvPartitionNumber }} 100%
+    args:
+      executable: /bin/bash
+
+  - name: Resize the physical volume
+    ansible.builtin.shell: pvresize {{ pvPartition }}
+    args:
+      executable: /bin/bash
+
+  - name: Extend the var logical volume
+    ansible.builtin.shell: lvextend -L +{{ osdisk.var.size }}G /dev/rootvg/varlv
+    args:
+      executable: /bin/bash
+
+  - name: Extend the var filesystem
+    ansible.builtin.shell: xfs_growfs /dev/rootvg/varlv
+    args:
+      executable: /bin/bash
+
+  - name: Extend root's $HOME (rootlv) logical volume
+    ansible.builtin.shell: lvextend -L +{{ osdisk.home.size }}G /dev/rootvg/rootlv
+    args:
+      executable: /bin/bash
+
+  - name: Extend root's $HOME (rootlv) filesystem
+    ansible.builtin.shell: xfs_growfs /dev/rootvg/rootlv
+    args:
+      executable: /bin/bash

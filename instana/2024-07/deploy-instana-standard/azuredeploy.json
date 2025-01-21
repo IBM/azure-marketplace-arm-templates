@@ -1,0 +1,227 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "installType": {
+            "type": "string",
+            "allowedValues": [
+                "production",
+                "demo"
+            ],
+            "metadata": {
+                "description": "Type of Instana installation."
+            }
+        },
+        "downloadKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Instana download key"
+            }
+        },
+        "salesKey": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Instana sales key"
+            }
+        },
+        "instanaPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Instana administrator password"
+            }
+        },
+        "tenantName": {
+            "type": "string",
+            "metadata": {
+                "description": "Tenant name for Instana"
+            }
+        },
+        "unitName": {
+            "type": "string",
+            "metadata": {
+                "description": "Unit name for Instana"
+            }
+        },
+        "instanaDomain": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('domainName'),'.',parameters('location'),'.cloudapp.azure.com')]",
+            "metadata": {
+                "description": "FQDN for the public IP"
+            }
+        },
+        "instanaRelease": {
+            "type": "string",
+            "defaultValue": "285",
+            "metadata": {
+                "description": "Release of Instana to install"
+            }
+        },
+        "acceptLicense": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag for Instana license acceptance"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "dataDiskSize": {
+            "type": "int",
+            "defaultValue": 150,
+            "minValue": 150,
+            "metadata": {
+                "description": "Size of the data directory (GB)"
+            }
+        },
+        "metricsDiskSize": {
+            "type": "int",
+            "defaultValue": 300,
+            "minValue": 300,
+            "metadata": {
+                "description": "Size of the metrics directory (GB)"
+            }
+        },
+        "analyticsDiskSize": {
+            "type": "int",
+            "defaultValue": 500,
+            "minValue": 500,
+            "metadata": {
+                "description": "Size of the analytics directory (GB)"
+            }
+        },
+        "objectsDiskSize": {
+            "type": "int",
+            "defaultValue": 250,
+            "minValue": 250,
+            "metadata": {
+                "description": "Size of the objects directory (GB)"
+            }
+        },
+        "domainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "logLevel": {
+            "type": "string",
+            "defaultValue": "info",
+            "allowedValues": [
+                "info",
+                "debug"
+            ],
+            "metadata": {
+                "description": "Log level for Ansible playbook"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for installation script"
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2024-07",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
+        "scriptParameters": {
+            "ansible_python_interpreter": "/usr/bin/python3",
+            "log_level": "[parameters('logLevel')]",
+            "instana": {
+                "download_key": "[parameters('downloadKey')]",
+                "sales_key": "[parameters('salesKey')]",
+                "tenant_name": "[parameters('tenantName')]",
+                "unit_name": "[parameters('unitName')]",
+                "accept_license": "[parameters('acceptLicense')]",
+                "admin_password": "[parameters('instanaPassword')]",
+                "install_type": "[parameters('installType')]",
+                "domain": "[parameters('instanaDomain')]",
+                "release": "[parameters('instanaRelease')]"
+            },
+            "tls": {
+                "cert": "",
+                "key": ""
+            },
+            "disks": [
+                {
+                    "name": "data",
+                    "size": "[parameters('dataDiskSize')]",
+                    "mount_point": "/mnt/instana/stanctl/data"
+                },
+                {
+                    "name": "metrics",
+                    "size": "[parameters('metricsDiskSize')]",
+                    "mount_point": "/mnt/instana/stanctl/metrics"
+                },
+                {
+                    "name": "analytics",
+                    "size": "[parameters('analyticsDiskSize')]",
+                    "mount_point": "/mnt/instana/stanctl/analytics"
+                },
+                {
+                    "name": "objects",
+                    "size": "[parameters('objectsDiskSize')]",
+                    "mount_point": "/mnt/instana/stanctl/objects"
+                }
+            ],
+            "dir": {
+                "tmp_dir": "/tmp",
+                "bin_dir": "/usr/local/bin"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2023-03-01",
+            "location": "[parameters('location')]",
+            "name": "[concat(parameters('vmName'),'/','installInstana')]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "fileUris": [
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/start-instana.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/prepare-disks.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/extend-os-disk.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/playbook/instana-product.repo.j2'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/stanctl-preflight.sh'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),'/instana/',parameters('deploymentVersion'),'/deploy-instana-standard/wait-for-cloud-init.sh'))]"
+                    ],
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                }
+            }
+        }
+    ]
+}
