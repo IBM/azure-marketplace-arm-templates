@@ -260,14 +260,18 @@ fi
 # Log into cluster
 oc-login $API_SERVER $OCP_USERNAME $OCP_PASSWORD $BIN_DIR
 
+# Get the cluster name
+
 ### Install Kubecost
 # Run helm chart
 if [[ $LICENSE == "accept" ]]; then
     log-info "Installing Kubecost"
-    helm install kubecost cost-analyzer \
-        --repo https://kubecost.github.io/cost-analyzer/ \
-        --namespace ${NAMESPACE} --create-namespace \
-        --set kubecostToken="${KUBECOST_TOKEN}"
+    helm repo add kubecost https://kubecost.github.io/cost-analyzer/
+    helm repo update
+    helm upgrade --install kubecost kubecost/cost-analyzer -n ${NAMESPACE} --create-namespace \
+        -f https://raw.githubusercontent.com/kubecost/cost-analyzer-helm-chart/develop/cost-analyzer/values-openshift.yaml \
+        --set kubecostProductConfigs.clusterName=${CLUSTER_NAME} \
+        --set prometheus.server.global.external_labels.cluster_id=${CLUSTER_NAME}
     if [ $? != 0 ]; then
         log-error "Error installing Kubecost"
         exit 1
