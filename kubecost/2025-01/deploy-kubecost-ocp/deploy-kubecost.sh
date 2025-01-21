@@ -3,7 +3,7 @@
 # Script to install kubecost onto an OpenShift cluster.
 # Designed to be run from an Azure CLI container
 #
-# Tested with image mcr.microsoft.com/azure-cli:2.64.0 and OpenShift CLI version 4.17
+# Tested with image mcr.microsoft.com/azure-cli:2.60.0 and OpenShift CLI version 4.17
 
 function log-output() {
     MSG=${1}
@@ -144,7 +144,7 @@ function oc-download() {
         log-info "Openshift client binary already installed"
     else
         log-info "Downloading and installing oc"
-        curl -sLo $TMP_DIR/openshift-client.tgz $OC_URL
+        wget -O $TMP_DIR/openshift-client.tgz $OC_URL
 
         if ! error=$(tar xzf ${TMP_DIR}/openshift-client.tgz -C ${TMP_DIR} oc 2>&1) ; then
             log-error "Unable to extract oc from tar file"
@@ -182,7 +182,7 @@ function helm-download() {
     fi
 
     log-info "Downloading Helm"
-    curl -Lo ${TMP_DIR}/helm.tgz https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
+    wget -O ${TMP_DIR}/helm.tgz https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz
     if [[ $? != 0 ]]; then
         log-error "Unable to download helm version ${HELM_VERSION} from https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
         exit 1
@@ -228,6 +228,7 @@ ENV_VAR_NOT_SET=""
 
 if [[ -z $API_SERVER ]]; then ENV_VAR_NOT_SET="API_SERVER"; fi
 if [[ -z $OCP_PASSWORD ]]; then ENV_VAR_NOT_SET="OCP_PASSWORD"; fi
+if [[ -z $KUBECOST_TOKEN ]] && [[ $LICENSE == "accept" ]]; then ENV_VAR_NOT_SET="KUBECOST_TOKEN"; fi
 
 if [[ -n $ENV_VAR_NOT_SET ]]; then
     log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
@@ -239,8 +240,8 @@ fi
 mkdir -p ${TMP_DIR}
 
 # Install tar and jq
-log-info "Installing tar and awk tools"
-yum install -y tar awk
+# log-info "Installing tar and awk tools"
+# yum install -y tar awk
 
 # Install tools - helm
 if [[ -f ${BIN_DIR}/helm ]]; then
