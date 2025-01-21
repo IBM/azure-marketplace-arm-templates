@@ -241,7 +241,6 @@
         },
         "vmSize": {
             "type": "string",
-            "defaultValue": "Standard_D16s_v3",
             "metadata": {
                 "description": "Size of Virtual Machine"
             }
@@ -277,7 +276,6 @@
         },
         "osDiskSize": {
             "type": "int",
-            "minValue": 200,
             "defaultValue": 200,
             "metadata": {
                "description": "Size of the OS Disk (GB)" 
@@ -286,7 +284,6 @@
         "dataDiskSize": {
             "type": "int",
             "defaultValue": 150,
-            "minValue": 150,
             "metadata": {
                 "description": "Size of the data directory (GB)"
             }
@@ -294,15 +291,12 @@
         "metricsDiskSize": {
             "type": "int",
             "defaultValue": 300,
-            "minValue": 300,
             "metadata": {
                 "description": "Size of the metrics directory (GB)"
             }
         },
         "analyticsDiskSize": {
             "type": "int",
-            "defaultValue": 500,
-            "minValue": 500,
             "metadata": {
                 "description": "Size of the analytics directory (GB)"
             }
@@ -310,7 +304,6 @@
         "objectsDiskSize": {
             "type": "int",
             "defaultValue": 500,
-            "minValue": 250,
             "metadata": {
                 "description": "Size of the objects directory (GB)"
             }
@@ -407,7 +400,7 @@
     },
     "resources": [
         { 
-            "apiVersion": "2021-04-01",
+            "apiVersion": "2024-11-01",
             "comments": "This is the deployment identifier for Instana",
             "condition": "[parameters('registerDeployment')]",
             "name": "pid-1b34a8ac-b40e-4675-bbf8-621ebbc6ae0a", 
@@ -423,7 +416,7 @@
         },
         {
             "type": "Microsoft.Network/ddosProtectionPlans",
-            "apiVersion": "2023-04-01",
+            "apiVersion": "2024-05-01",
             "name": "[parameters('ddosProtectionPlanName')]",
             "condition": "[and(parameters('enableDdosProtection'),not(parameters('existingDdosPlan')))]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/ddosProtectionPlans'), parameters('tagsByResource')['Microsoft.Network/ddosProtectionPlans'], json('{}')) ]",
@@ -431,7 +424,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2023-07-01",
+            "apiVersion": "2024-11-01",
             "name": "virtualNetwork",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/ddosProtectionPlans', parameters('ddosProtectionPlanName'))]"
@@ -506,7 +499,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.Network/virtualNetworks",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-05-01",
                             "name": "[parameters('vnetName')]",
                             "condition": "[not(parameters('existingVnet'))]",
                             "location": "[parameters('location')]",
@@ -523,7 +516,7 @@
                         },
                         {
                             "type": "Microsoft.Network/virtualNetworks/subnets",
-                            "apiVersion": "2023-04-01",
+                            "apiVersion": "2024-05-01",
                             "dependsOn": [
                                 "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
                             ],
@@ -538,7 +531,7 @@
         },
         {
             "type": "Microsoft.Network/publicIPAddresses",
-            "apiVersion": "2022-07-01",
+            "apiVersion": "2024-05-01",
             "condition": "[equals(parameters('publicIpNewOrExisting'),'new')]",
             "name": "[parameters('publicIPName')]",
             "location": "[parameters('location')]",
@@ -563,7 +556,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2023-07-01",  
+            "apiVersion": "2024-11-01",  
             "dependsOn": [
                "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]" 
@@ -765,13 +758,12 @@
                             },
                             "securityType": "[parameters('securityType')]"
                         },
-                        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
-                        "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]"
+                        "subnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'), 'Microsoft.Networks/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
                     },
                     "resources": [                 
                         {
                             "type": "Microsoft.Network/networkSecurityGroups",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-05-01",
                             "name": "[variables('nsgName')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
@@ -781,7 +773,7 @@
                         },
                         {
                             "type": "Microsoft.Network/networkInterfaces",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-05-01",
                             "name": "[variables('nicName')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkInterfaces'), parameters('tagsByResource')['Microsoft.Network/networkInterfaces'], json('{}')) ]",
@@ -810,7 +802,7 @@
                         },
                             {
                                 "type": "Microsoft.Compute/virtualMachines",
-                                "apiVersion": "2021-03-01",
+                                "apiVersion": "2024-07-01",
                                 "name": "[parameters('vmName')]",
                                 "location": "[parameters('location')]",
                                 "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/virtualMachines'), parameters('tagsByResource')['Microsoft.Compute/virtualMachines'], json('{}')) ]",
@@ -910,7 +902,7 @@
                         },
                         "internalIP": {
                             "type": "string",
-                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2022-07-01').ipConfigurations[0].properties.privateIPAddress]"
+                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2024-05-01').ipConfigurations[0].properties.privateIPAddress]"
                         }
                     }
                 }
@@ -918,7 +910,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2023-07-01",
+            "apiVersion": "2024-11-01",
             "condition": "[parameters('updateDNSZone')]",    
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
@@ -938,7 +930,7 @@
                         "value": "[parameters('domainName')]"
                     },
                     "ipAddress": {
-                        "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')),'2022-07-01').ipAddress]" 
+                        "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')),'2024-05-01').ipAddress]" 
                     }
                 },
                 "template": {
@@ -991,7 +983,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2023-07-01",
+            "apiVersion": "2024-11-01",
             "condition": "[parameters('deployInstana')]",
             "dependsOn": [
                 "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'virtualNetwork')]",
@@ -1071,7 +1063,7 @@
         "instanaUrl": {
             "type": "string",
             "condition": "[parameters('deployInstana')]",
-            "value": "[concat('https://',parameters('instanaDomain'),'/')]"
+            "value": "[uri('https://',parameters('instanaDomain'))]"
         }
     }
 }

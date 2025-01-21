@@ -196,23 +196,6 @@
                             ]
                         }
                     },
-                    {
-                        "name": "nsgName",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Name for the network security group",
-                        "defaultValue": "[concat(basics('namePrefix'),'-nsg')]",
-                        "toolTip": "A network security group is created for the Instana VM network interface.",
-                        "visible": true,
-                        "constraints": {
-                            "required": true,
-                            "validations": [
-                                {
-                                    "regex": "^[a-z0-9A-Z_.-]{1,80}$",
-                                    "message": "Must be between 1-80 charactors and have only alphanumeric, underscores, letters, periods and hyphens."
-                                }
-                            ]
-                        }
-                    },
 					{
 						"name": "dnsZone",
 						"type": "Microsoft.Solutions.ResourceSelector",
@@ -255,7 +238,6 @@
                         "name": "adminUserName",
                         "type": "Microsoft.Compute.UserNameTextBox",
                         "label": "Administrator Username",
-                        "defaultValue": "azureuser",
                         "toolTip": "This will be the primary admin user and login on the created virtual machine",
                         "visible": true,
                         "constraints": {
@@ -894,13 +876,6 @@
 						"visible": true
 					},
                     {
-                        "name": "hostEncryption",
-                        "type": "Microsoft.Common.CheckBox",
-                        "label": "Use host encryption",
-                        "toolTip": "This needs to be enabled beforehand in the subscription",
-                        "visible": true
-                    },
-                    {
                         "name": "storageSku",
                         "type": "Microsoft.Common.DropDown",
                         "label": "Storage SKU",
@@ -990,7 +965,7 @@
                             ]
                         },
                         "options": {
-                            "hideConfirmation": true
+                            "hideConfirmation": false
                         }
                     },
                     {
@@ -1012,7 +987,7 @@
                             ]
                         },
                         "options": {
-                            "hideConfirmation": true
+                            "hideConfirmation": false
                         }
                     },
                     {
@@ -1214,21 +1189,18 @@
             "subnetCidr": "[steps('networking').vnet.subnets.vmSubnet.addressPrefix]",
             "dnsZoneName": "[steps('networking').dnsZone.name]",
             "dnsZoneResourceGroup": "[last(take(split(steps('networking').dnsZone.id,'/'),5))]",
-            "nsgName": "[steps('networking').nsgName]",
             "vmName": "[steps('virtualMachine').vmName]",
             "vmZone": "[steps('virtualMachine').vmZone]",
             "adminUserName": "[steps('virtualMachine').adminUserName]",
             "adminPassword": "[if(equals(steps('virtualMachine').adminPassword.authenticationType,'password'),steps('virtualMachine').adminPassword.password,steps('virtualMachine').adminPassword.sshPublicKey)]",
             "authType": "[steps('virtualMachine').adminPassword.authenticationType]",
             "storageSKU": "[steps('virtualMachine').storageSku]",
-            "osVersion": "[steps('virtualMachine').osVersion]",
+            "vmOSVersion": "[steps('virtualMachine').osVersion]",
             "vmSize": "[if(equals(basics('installType'),'demo'),steps('virtualMachine').vmSizeDemo,steps('virtualMachine').vmSizeProd)]",
-            "createPublicIP": true,
             "publicIPName": "[steps('virtualMachine').vmPublicIP.name]",
             "publicIpNewOrExisting": "[steps('virtualMachine').vmPublicIP.newOrExistingOrNone]",
             "publicIpResourceGroup": "[steps('virtualMachine').vmPublicIP.resourceGroup]",
             "domainName": "[steps('virtualMachine').vmPublicIP.domainNameLabel]",
-            "encryption": "[steps('virtualMachine').hostEncryption]",
             "installType": "[basics('installType')]",
             "instanaPassword": "[steps('instana').instanaPassword]",
             "dataDiskSize": "[if(equals(basics('installType'),'production'),steps('instana').dataDiskSizeProd,steps('instana').dataDiskSizeDemo)]",
