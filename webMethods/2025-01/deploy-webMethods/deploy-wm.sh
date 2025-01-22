@@ -103,6 +103,13 @@ else
     log-error "License not accepted. Software not installed"
 fi
 
+# Copy webMethods installer binary to permanent directory
+cp ${WORK_DIR}/${INSTALLER_NAME} ${INSTALL_DIR}/bin
+
+# Install xvnc-server
+# yum install -y tigervnc-server
+# sudo cp /usr/lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:3.service
+
 # Clean up the install script
 log-info "Removing the installer script"
 rm ${WORK_DIR}/${SCRIPT_NAME}

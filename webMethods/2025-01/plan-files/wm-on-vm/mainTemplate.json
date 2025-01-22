@@ -339,6 +339,7 @@
                 "version": "latest"
             }
         },
+        "osType": "[if(equals(substring(parameters('vmOSVersion'),1,3),'RHE'),'RHEL','Windows')]",
         "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- jq')]",
         "securityProfile": {
             "uefiSettings": {
@@ -517,8 +518,8 @@
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2023-03-01",
             "location": "[parameters('location')]",
-            "name": "[concat(parameters('vmName'),'/','installCloudPak')]",
-            "condition": "[parameters('deployWM')]",
+            "name": "[concat(parameters('vmName'),'/','installWebMethods-RHEL')]",
+            "condition": "[and(parameters('deployWM'),equals(variables('osType'),'RHEL'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
             ],
@@ -531,7 +532,7 @@
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/webMethods/',parameters('deploymentVersion'),'/deploy-webMethods/deploy-wm.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./deploy-wm.sh \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                    "commandToExecute": "[concat('/bin/bash ./deploy-wm.sh ''', string(variables('scriptParameters')),'''')]"
                 }
             }
         }
