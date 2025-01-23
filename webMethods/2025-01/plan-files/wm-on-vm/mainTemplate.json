@@ -371,7 +371,12 @@
             "installProducts": "[parameters('installProducts')]",
             "selectedFixes": "[parameters('selectedFixes')]",
             "wmServerUrl": "[parameters('wmServerUrl')]",
-            "workDirectory": "[parameters('workDirectory')]"
+            "workDirectory": "[parameters('workDirectory')]",
+            "vnc": {
+                "user": "",
+                "password": "",
+                "display": ""
+            }
         }
     },
     "resources": [
@@ -550,6 +555,11 @@
             "condition": "[parameters('createPublicIP')]",
             "type": "string",
             "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
+        },
+        "consoleAccess": {
+            "condition": "[and(parameters('deployWM'),equals(variables('osType'),'RHEL'))]",
+            "type": "string",
+            "value": "[concat('/bin/sh ',parameters('installDirectory'),'/',parameters('installerName'))]"
         }
     }
 }

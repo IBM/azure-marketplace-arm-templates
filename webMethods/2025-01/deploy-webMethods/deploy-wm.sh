@@ -61,6 +61,11 @@ INSTALLER_NAME="$(echo $PARAMETERS | jq -r '.installerName' )"
 WM_URL="$(echo $PARAMETERS | jq -r '.wmServerUrl' )"
 LICENSE_ACCEPTED="$(echo $PARAMETERS | jq -r '.licenseAccepted' )"
 WORK_DIR="$(echo $PARAMETERS | jq -r '.workDirectory' )"
+VNC_USER="$(echo $PARAMETERS | jq -r '.vnc.user' )"
+VNC_USER="$(echo $PARAMETERS | jq -r '.vnc.password' )"
+VNC_DISPLAY="$(echo $PARAMETERS | jq -r '.vnc.display')"
+
+### webMethods base installation
 
 # Download the installer
 if [[ ! -f ${WORK_DIR}/${INSTALLER_NAME} ]]; then
@@ -106,12 +111,44 @@ fi
 # Copy webMethods installer binary to permanent directory
 cp ${WORK_DIR}/${INSTALLER_NAME} ${INSTALL_DIR}/bin
 
+### VNC Configuration
+
 # Install xvnc-server
-# yum install -y tigervnc-server
-# sudo cp /usr/lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:3.service
+yum install -y tigervnc-server
+
+# Set vnc display, user and password
+sudo cp /usr/lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:${VNC_DISPLAY}.service
+echo ":${VNC_DISPLAY}=${VNC_USER}" >> /etc/tigervnc/vncserver.users
+mkdir /home/${VNC_USER}/.vnc
+echo ${VNC_PASSWORD} | vncpasswd -f > /home/${VNC_USER}/.vnc/passwd
+chown -R ${VNC_USER}:${VNC_USER} /home/${VNC_USER}/.vnc
+chmod 0600 /home/${VNC_USER}/.vnc/passwd
+
+# Configure gnome for session
+echo "gnome-session" > /home/${VNC_USER}/.session
+
+echo << EOF > /home/${VNC_USER}/.vnc/config
+session=gnome
+securitytypes=vncauth,tlsvnc
+geometry=1280x720
+EOF
+
+# Enable the service
+systemctl enable vncserver@:${VNC_DISPLAY}.service
+systemctl start vncserver@:${VNC_DISPLAY}.service
+
+# Add firewall rule
+firewall-cmd --permanent --add-service=vnc-server
+firewall-cmd --permanent --add-port=590${VNC_DISPLAY}/tcp
+firewall-cmd --reload
+
+### Clean up
 
 # Clean up the install script
 log-info "Removing the installer script"
 rm ${WORK_DIR}/${SCRIPT_NAME}
+
+log-info "From GUI, run the following to configure products"
+log-info "/bin/sh ${INSTALL_DIR}/bin/${INSTALLER_NAME}"
 
 log-info "Install completed"
