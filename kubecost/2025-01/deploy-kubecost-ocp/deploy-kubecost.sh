@@ -239,8 +239,7 @@ fi
 oc-login $API_SERVER $OCP_USERNAME $OCP_PASSWORD $BIN_DIR
 
 # Create the namespace
-${BIN_DIR}/oc get ns ${NAMESPACE} > /dev/null 2> /dev/null
-if [[ $? != 0  ]]; then
+if [[ ! $(${BIN_DIR}/oc get ns ${NAMESPACE} 2> /dev/null)  ]]; then
     log-info "Creating namespace"
     ${BIN_DIR}/oc create ns ${NAMESPACE} 
     if [[ $? != 0 ]]; then
@@ -254,8 +253,7 @@ else
 fi
 
 # Create operatorGroup
-${BIN_DIR}/oc get operatorgroup -n ${NAMESPACE} kubecost-nngns > /dev/null 2> /dev/null
-if [[ $? != 0 ]]; then
+if [[ ! $(${BIN_DIR}/oc get operatorgroup -n ${NAMESPACE} kubecost-nngns 2> /dev/null) ]]; then
     log-info "Creating Kubecost operator group"
     cat << EOF | ${BIN_DIR}/oc apply -f -
 apiVersion: operators.coreos.com/v1
@@ -279,8 +277,7 @@ else
 fi
 
 # Create subscription
-${BIN_DIR}/oc get subscription -n ${KUBECOST} kubecost-operator > /dev/null 2> /dev/null
-if [[ $? != 0 ]]; then
+if [[ ! $(${BIN_DIR}/oc get subscription -n ${KUBECOST} kubecost-operator 2> /dev/null) ]]; then
     log-info "Create Kubecost subscription"
     cat << EOF | ${BIN_DIR}/oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
@@ -311,8 +308,7 @@ wait_for_subscription ${NAMESPACE} kubecost-operator 15
 log-info "Subscription ready"
 
 # Create operand
-${BIN_DIR}/oc get costanalyzer -n ${NAMESPACE} kubecost > /dev/null 2> /dev/null
-if [[ $? != 0 ]]; then
+if [[ ! $(${BIN_DIR}/oc get costanalyzer -n ${NAMESPACE} kubecost 2> /dev/null) ]]; then
     if [[ $LICENSE == "accept" ]]; then
         log-info "Creating Kubecost operand"
         cat << EOF | ${BIN_DIR}/oc apply -f -
@@ -1465,8 +1461,7 @@ fi
 
 # Create route
 log-info "Creating route"
-${BIN_DIR}/oc get route -n ${NAMESPACE} kubecost-ui > /dev/null 2> /dev/null
-if [[ $? != 0 ]] && [[ $LICENSE == "accept" ]]; then
+if [[ ! $(${BIN_DIR}/oc get route -n ${NAMESPACE} kubecost-ui 2> /dev/null) ]] && [[ $LICENSE == "accept" ]]; then
     log-info "Creating Kubecost route"
     cat << EOF | ${BIN_DIR}/oc apply -f -
 apiVersion: route.openshift.io/v1
