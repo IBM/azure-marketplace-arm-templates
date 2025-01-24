@@ -276,6 +276,8 @@ else
     log-info "Operator group already installed"
 fi
 
+# Get the latest CSV version from the catalog
+
 # Create subscription
 if [[ ! $(${BIN_DIR}/oc get subscription -n ${KUBECOST} kubecost-operator 2> /dev/null) ]]; then
     log-info "Create Kubecost subscription"
@@ -1443,7 +1445,7 @@ EOF
 
         # Wait for operand to be ready
         count=0;
-        while [[ $(${BIN_DIR}/oc get CostAnalyzer -n ${NAMESPACE} kubecost -o json | jq -r '.status.conditions[] | select(.type=="Ready").status') != "True" ]]; do
+        while [[ $(${BIN_DIR}/oc get CostAnalyzer -n ${NAMESPACE} kubecost -o json | jq -r '.status.conditions[] | select(.type=="Deployed").status') != "True" ]]; do
             log-info "Waiting for Kubecost operand to be ready. Waited $count minutes. Will wait up to 15 minutes"
             sleep 60
             count=$(( $count + 1 ))
