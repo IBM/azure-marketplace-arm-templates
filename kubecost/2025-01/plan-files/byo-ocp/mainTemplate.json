@@ -112,24 +112,11 @@
                 "description": "Namespace on the cluster to install kubecost into (will be created if it does not exist)"
             }
         },
-        "kubecostToken": {
-            "type": "string",
-            "metadata": {
-                "description": "IBM Kubecost installation token"
-            }
-        },
         "ocVersion": {
             "type": "string",
             "defaultValue": "4.17",
             "metadata": {
                 "description": "Version of the oc client to use"
-            }
-        },
-        "helmVersion": {
-            "type": "string",
-            "defaultValue": "v3.4.1",
-            "metadata": {
-                "description": "Version of helm client to use"
             }
         },
         "apiServer": {
@@ -151,6 +138,13 @@
             "defaultValue": "",
             "metadata": {
                 "description": "OpenShift administrator password if not using KeyVault to store"
+            }
+        },
+        "clusterName": {
+            "type": "string",
+            "defaultValue": "MyCluster",
+            "metadata": {
+                "description": "Name for the OpenShift cluster in Kubecost"
             }
         },
         "branch": {
@@ -287,16 +281,8 @@
                         "value": "[parameters('ocVersion')]"
                     },
                     {
-                        "name": "HELM_VERSION",
-                        "value": "[parameters('helmVersion')]"
-                    },
-                    {
                         "name": "NAMESPACE",
                         "value": "[parameters('nameSpace')]"
-                    },
-                    {
-                        "name": "KUBECOST_TOKEN",
-                        "value": "[parameters('kubecostToken')]"
                     },
                     {
                         "name": "API_SERVER",
@@ -309,6 +295,10 @@
                     {
                         "name": "OCP_PASSWORD",
                         "value": "[parameters('ocpPassword')]"
+                    },
+                    {
+                        "name": "CLUSTER_NAME",
+                        "value": "[parameters('clusterName')]"
                     }
                 ],
                 "primaryScriptUri": "[uri(variables('baseUrl'),concat(parameters('branch'),'/kubecost/',parameters('deploymentVersion'),'/deploy-kubecost-ocp/deploy-kubecost.sh'))]",

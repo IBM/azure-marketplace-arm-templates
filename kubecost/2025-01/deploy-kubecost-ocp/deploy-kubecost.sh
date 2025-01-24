@@ -209,10 +209,8 @@ if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="/mnt/azscripts/azscriptinput"; f
 if [[ -z $BIN_DIR ]]; then export BIN_DIR="/usr/local/bin"; fi
 if [[ -z $TMP_DIR ]]; then TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
 if [[ -z $OC_VERSION ]]; then OC_VERSION="4.17"; fi    
-if [[ -z $HELM_VERSION ]]; then HELM_VERSION="v3.4.1"; fi
 if [[ -z $NAMESPACE ]]; then NAMESPACE="kubecost"; fi
 if [[ -z $CLUSTER_NAME ]]; then CLUSTER_NAME="myCluster"; fi
-if [[ -z $OC_VERSION ]]; then OC_VERSION="4.17"; fi
 
 ######
 # Check environment variables
