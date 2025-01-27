@@ -238,6 +238,20 @@ fi
 # Log into cluster
 oc-login $API_SERVER $OCP_USERNAME $OCP_PASSWORD $BIN_DIR
 
+# Get the default channel and available version from the package manifest in the catalog
+DEFAULT_CHANNEL=$(${BIN_DIR}/oc get packagemanifest -n openshift-marketplace kubecost-operator -o jsonpath='{.status.channels[0].name}')
+if [[ $? != 0 ]]; then
+    log-error "Kubecost-operator package not found in package manifest in openshift-marketplace. Check Red Hat marketplace is available on cluster"
+    exit 1
+fi
+
+## TODO : Change the below to search for the default channel in the list (from .status.defaultChannel)
+STARTING_CSV=$(${BIN_DIR}/oc get packagemanifest -n openshift-marketplace kubecost-operator -o jsonpath='{.status.channels[0].entries[0].name}')
+if [[ $? != 0 ]]; then
+    log-error "Kubecost-operator package not found in package manifest in openshift-marketplace. Check Red Hat marketplace is available on cluster"
+    exit 1
+fi
+
 # Create the namespace
 if [[ ! $(${BIN_DIR}/oc get ns ${NAMESPACE} 2> /dev/null)  ]]; then
     log-info "Creating namespace"
@@ -250,6 +264,16 @@ if [[ ! $(${BIN_DIR}/oc get ns ${NAMESPACE} 2> /dev/null)  ]]; then
     fi
 else
     log-info "Namespace ${NAMESPACE} already exists"
+fi
+
+# Label namespace
+log-info "Labelling namespace ${NAMESPACE} to enable monitoring"
+${BIN_DIR}/oc label namespace ${NAMESPACE} openshift.io/cluster-monitoring=true
+if [[ $? != 0 ]]; then
+    log-error "Unable to label namespace"
+    exit 1
+else
+    log-info "Namespace labelled"
 fi
 
 # Create operatorGroup
@@ -276,8 +300,6 @@ else
     log-info "Operator group already installed"
 fi
 
-# Get the latest CSV version from the catalog
-
 # Create subscription
 if [[ ! $(${BIN_DIR}/oc get subscription -n ${KUBECOST} kubecost-operator 2> /dev/null) ]]; then
     log-info "Create Kubecost subscription"
@@ -293,7 +315,7 @@ spec:
   name: kubecost-operator
   source: certified-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: kubecost-operator.v2.5.2
+  startingCSV: ${STARTING_CSV}
 EOF
     if [[ $? != 0 ]]; then
         log-error "Unable to create subscription"
