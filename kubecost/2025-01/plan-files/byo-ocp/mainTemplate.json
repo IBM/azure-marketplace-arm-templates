@@ -375,7 +375,14 @@
             },
             "kind": "StorageV2",
             "properties": {
-                "accessTier": "Hot"
+                "accessTier": "Hot",
+                "publicNetworkAccess": "[if(parameters('deployOnVnet'),'SecuredByPerimeter','Enabled')]",
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "[if(parameters('deployOnVnet'),'Deny','Allow')]"
+                }
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleDefinitionName'))]"
