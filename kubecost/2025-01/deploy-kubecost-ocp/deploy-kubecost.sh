@@ -239,13 +239,13 @@ fi
 oc-login $API_SERVER $OCP_USERNAME $OCP_PASSWORD $BIN_DIR
 
 # Get the default channel and available version from the package manifest in the catalog
-DEFAULT_CHANNEL=$(${BIN_DIR}/oc get packagemanifest -n openshift-marketplace kubecost-operator -o jsonpath='{.status.defaultChannel}')
+DEFAULT_CHANNEL=$(${BIN_DIR}/oc get packagemanifest -n openshift-marketplace kubecost-operator -o jsonpath='{.status.defaultChannel}{"\n"}')
 if [[ $? != 0 ]]; then
     log-error "Kubecost-operator package not found in package manifest in openshift-marketplace. Check Red Hat marketplace is available on cluster"
     exit 1
 fi
 
-STARTING_CSV=$(${BIN_DIR}/oc get packagemanifests -n openshift-marketplace kubecost-operator -o jsonpath="{.status.channels[?(.name==\"${DEFAULT_CHANNEL}\")]}{\"\n\"}")
+STARTING_CSV=$(${BIN_DIR}/oc get packagemanifests -n openshift-marketplace kubecost-operator -o jsonpath="{.status.channels[?(.name==\"${DEFAULT_CHANNEL}\")].entries[0].name}{\"\n\"}")
 if [[ $? != 0 ]]; then
     log-error "Kubecost-operator package not found in package manifest in openshift-marketplace. Check Red Hat marketplace is available on cluster"
     exit 1
