@@ -245,7 +245,7 @@ if [[ $? != 0 ]]; then
     exit 1
 fi
 
-STARTING_CSV=$(${BIN_DIR}/oc get packagemanifests -n openshift-marketplace kubecost-operator -o jsonpath="{.status.channels[?(.name==\"${DEFAULT_CHANNEL}\")]}{\"\n\"}"
+STARTING_CSV=$(${BIN_DIR}/oc get packagemanifests -n openshift-marketplace kubecost-operator -o jsonpath="{.status.channels[?(.name==\"${DEFAULT_CHANNEL}\")]}{\"\n\"}")
 if [[ $? != 0 ]]; then
     log-error "Kubecost-operator package not found in package manifest in openshift-marketplace. Check Red Hat marketplace is available on cluster"
     exit 1
