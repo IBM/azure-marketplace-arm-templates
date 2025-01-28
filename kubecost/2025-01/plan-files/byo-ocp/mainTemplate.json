@@ -161,6 +161,13 @@
                 "description": "Name of the managed identity used for deployment scripts"
             }
         },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for the resources"
+            }
+        },
         "branch": {
             "type": "string",
             "defaultValue": "main",
@@ -194,6 +201,7 @@
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2022-07-01",
             "name": "[parameters('vnetName')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
             "condition": "[and(not(parameters('existingVnet')),parameters('deployOnVnet'))]",
             "location": "[parameters('location')]",
             "properties": {
@@ -274,7 +282,8 @@
             "apiVersion": "2018-11-30",
             "name": "[parameters('managedIdName')]",
             "condition": "[parameters('createManagedIdentity')]",
-            "location": "[parameters('location')]"
+            "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.ManagedIdentity/userAssignedIdentities'), parameters('tagsByResource')['Microsoft.ManagedIdentity/userAssignedIdentities'], json('{}')) ]"
         },
         {
             "type": "Microsoft.Authorization/roleAssignments",
@@ -297,6 +306,7 @@
             "comments": "Deploys a container to run script",
             "name": "[variables('scriptName')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Resources/deploymentScripts'), parameters('tagsByResource')['Microsoft.Resources/deploymentScripts'], json('{}')) ]",
             "identity": {
                 "type": "UserAssigned",
                 "userAssignedIdentities": {
@@ -363,6 +373,7 @@
             "condition": "[parameters('createStorageAccount')]",
             "name": "[parameters('storageAccountName')]",
             "location": "[parameters('location')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
             "identity": {
                 "type": "UserAssigned",
                 "userAssignedIdentities": {
