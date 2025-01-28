@@ -1,0 +1,286 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+		"config": {
+			"isWizard": false,
+			"basics": {
+				"resourceGroup": {
+					"constraints": {
+						"validations": [
+							{
+								"permission": "Microsoft.Compute/virtualMachines/create",
+								"message": "Must be able to create a virtual machine in the resource group"
+							}
+						]
+					},
+					"allowExisting": true
+				},
+				"location": {
+					"visible": true,
+					"resourceTypes": [
+						"Microsoft.Compute/virtualMachines",
+						"Microsoft.Network/virtualNetworks"
+					]
+				}
+			}
+		},
+        "basics": [
+            {
+                "name": "namePrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Azure resource prefix",
+                "defaultValue": "kubecost",
+                "toolTip": "Prefix for Azure installation resources.",
+				"constraints":{
+					"required": true,
+					"validations": [
+						{
+							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,15}$",
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 15 characters in length."
+						}
+					]
+				}
+            }
+        ],
+        "steps": [
+            {
+				"name": "openshift",
+				"label": "OpenShift Cluster",
+				"elements": [
+					{
+						"name": "ocpApiServer",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster API URL",
+						"toolTip": "The API server URL for the cluster for the installation.",
+						"placeholder": "https://mycluster.mydown.com:6443",
+						"multiLine": false,
+						"visible": true,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z://._-]{8,}$",
+									"message": "Can only contain valid characters for a URL"
+								},
+								{
+									"isValid": "[startsWith(steps('openshift').ocpApiServer, 'https://')]",
+									"message": "Must start with \"https://\""
+								},
+								{
+									"isValid": "[or(endsWith(steps('openshift').ocpApiServer, ':6443'), endsWith(steps('openshift').ocpApiServer, ':6443/'))]",
+									"message": "Must end with \":6443\" or \":6443/\""
+								}
+							]
+						}
+					},
+					{
+						"name": "ocpUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster administrator username",
+						"toolTip": "Administrator username for the cluster",
+						"defaultValue": "kubeadmin",
+						"multiLine": "false",
+						"visible": true,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z:_-]{3,50}$",
+									"message": "Must be alphanumeric only and be between 3 and 50 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "ocpPassword",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Cluster administrator password",
+							"confirmPassword": "Confirm cluster password"
+						},
+						"toolTip": "Administrator password for existing cluster",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"hideConfirmation": false
+						}
+					},
+					{
+						"name": "privateVnet",
+						"label": "Private VNet",
+						"type": "Microsoft.Common.CheckBox",
+						"toolTip": "Check if the OpenShift API uses a private virtual network.",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "networkInfoPublic",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[steps('openshift').privateVnet]",
+						"options": {
+							"icon": "Warning",
+							"text": "Ensure that the OpenShift API endpoint is accessible from the virtual network below." 
+						}
+					},
+					{
+						"name": "networkInfoPublic",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[steps('openshift').privateVnet]",
+						"options": {
+							"icon": "Info",
+							"text": "You must have access to update the virtual network below." 
+						}
+					},
+					{
+						"name": "vmNetwork",
+						"type": "Microsoft.Network.VirtualNetworkCombo",
+						"label": {
+							"virtualNetwork": "OpenShift Virtual network",
+							"subnets": "Script Subnet"
+						},
+						"toolTip": {
+							"virtualNetwork": "Select the virtual network used by the OpenShift cluster",
+							"subnets": "Select the subnet for the deployment script container"
+						},
+						"defaultValue": {
+							"name": "[concat(basics('namePrefix'),'-',substring(guid(),0,8),'-vnet')]",
+							"addressPrefixSize": "/24"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/27"
+						},
+						"options": {
+							"hideExisting": false
+						},
+						"subnets": {
+							"scriptSubnet": {
+								"label": "Script Subnet",
+								"defaultValue": {
+									"name": "script-subnet",
+									"addressPrefixSize": "/27"
+								},
+								"constraints": {
+									"minAddressCount": 1,
+									"minAddressPrefixSize": "/30",
+									"requireContiguousAddresses": false
+								}
+							}
+						},
+						"visible": "[steps('openshift').privateVnet]"
+					}
+				]
+			},
+			{
+                "name": "kubecost",
+                "label": "IBM Kubecost",
+                "elements": [
+					{
+						"name": "licenseInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "**UPDATE FOR KUBECOST** By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
+						  "uri": "https://ibm.biz/int-licenses"
+						}
+					},
+					{
+						"name": "acceptLicense",
+						"type": "Microsoft.Common.OptionsGroup",
+						"label": "License agreement",
+						"toolTip": "Acceptance of license terms is required to continue with installation.  Refer to the information box for details.",
+						"defaultValue": "Decline",
+						"constraints": {
+							"required": true,
+							"allowedValues": [
+								{
+									"label": "Decline",
+									"value": "decline"
+								},
+								{
+									"label": "Accept",
+									"value": "accept"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "nameSpace",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Kubecost namespace",
+						"defaultValue": "kubecost",
+						"toolTip": "Namespace where you want to install the operators and Kubecost instance",
+						"multiLine": false,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+							  "regex": "^[a-z0-9A-Z-]{3,63}$",
+							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+							}
+						  ]
+						},
+						"visible": true
+					},
+					{
+						"name": "clusterName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Name of current cluster for Kubecost",
+						"defaultValue": "MyCluster",
+						"toolTip": "This is what the cluster will show as in Kubecost",
+						"visible": true,
+						"constraints": {
+							"required": false,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z-]{3,20}$",
+									"message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 20 characters long."
+								}
+							]
+						}
+					}
+                ]
+            },
+			{
+                "name": "tags",
+                "label": "Tags",
+                "elements": [
+                    {
+                        "name": "tagsByResource",
+                        "type": "Microsoft.Common.TagsByResource",
+                        "resources": [
+                            "Microsoft.Network/virtualNetworks",
+							"Microsoft.ManagedIdentity/userAssignedIdentities",
+                            "Microsoft.Resources/deploymentScripts"
+                        ]
+                    }
+                ]
+            }
+         ],
+        "outputs": {
+            "namePrefix": "[basics('namePrefix')]",
+            "location": "[location()]",
+			"deployOnVnet": "[steps('openshift').privateVnet]",
+			"existingVnet": "[if(equals(steps('openshift').vmNetwork.newOrExisting,'existing'),bool('true'),bool('false'))]",
+			"vnetCidr": "[steps('openshift').vmNetwork.addressPrefix]",
+			"vnetName": "[steps('openshift').vmNetwork.name]",
+			"networkResourceGroup": "[steps('openshift').vmNetwork.resourceGroup]",
+			"subnetName": "[steps('openshift').vmNetwork.subnets.scriptSubnet.name]",
+			"subnetCidr": "[steps('openshift').vmNetwork.subnets.scriptSubnet.addressPrefix]",
+            "acceptLicense": "[steps('kubecost').acceptLicense]",
+			"nameSpace": "[steps('openshift').nameSpace]",
+			"apiServer": "[steps('openshift').ocpApiServer]",
+			"ocpAdministrator": "[steps('openshift').ocpUsername]",
+			"ocpPassword": "[steps('openshift').ocpPassword]",
+			"clusterName": "[steps('kubecost').clusterName]",
+			"tagsByResource": "[steps('tags').tagsByResource]",
+			"deploymentVersion": "2024-03",
+			"ocVersion": "4.17"
+         }
+    }
+}
