@@ -253,6 +253,7 @@
                     {
                         "name": "tagsByResource",
                         "type": "Microsoft.Common.TagsByResource",
+						"toolTip": "Specify tags for Azure created resources",
                         "resources": [
                             "Microsoft.Network/virtualNetworks",
 							"Microsoft.ManagedIdentity/userAssignedIdentities",
@@ -273,7 +274,7 @@
 			"subnetName": "[steps('openshift').vmNetwork.subnets.scriptSubnet.name]",
 			"subnetCidr": "[steps('openshift').vmNetwork.subnets.scriptSubnet.addressPrefix]",
             "acceptLicense": "[steps('kubecost').acceptLicense]",
-			"nameSpace": "[steps('openshift').nameSpace]",
+			"nameSpace": "[steps('kubecost').nameSpace]",
 			"apiServer": "[steps('openshift').ocpApiServer]",
 			"ocpAdministrator": "[steps('openshift').ocpUsername]",
 			"ocpPassword": "[steps('openshift').ocpPassword]",
