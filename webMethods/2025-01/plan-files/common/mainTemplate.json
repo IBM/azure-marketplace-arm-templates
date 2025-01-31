@@ -564,13 +564,13 @@
             "properties": {
                 "publisher": "Microsoft.Compute",
                 "type": "CustomScriptExtension",
-                "typeHandlerVersion": "2.0",
+                "typeHandlerVersion": "1.10",
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/webMethods/',parameters('deploymentVersion'),'/deploy-webMethods/deploy-wm-win.ps1'))]"
                     ],
-                    "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File scripts/deploy-wm-win.ps1"
+                    "commandToExecute": "[format('powershell -ExecutionPolicy Bypass -File scripts/deploy-wm-win.ps1 ''{0}''',variables('scriptParameters'))] "
                 }
             }
         }
@@ -589,10 +589,15 @@
             "type": "string",
             "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
         },
-        "consoleAccess": {
+        "consoleAccessRHEL": {
             "condition": "[and(parameters('deployWM'),equals(variables('osType'),'RHEL'))]",
             "type": "string",
             "value": "[concat('/bin/sh ',parameters('installDirectory'),'/',parameters('installerName'))]"
+        },
+        "consoleAccessWIN": {
+            "condition": "[and(parameters('deployWM'),equals(variables('osType'),'Windows'))]",
+            "type": "string",
+            "value": "[concat(parameters('installDirectory'),'\\install\\bin\\',parameters('installerName'))]"
         }
     }
 }
