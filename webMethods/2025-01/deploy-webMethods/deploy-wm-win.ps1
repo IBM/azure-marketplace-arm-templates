@@ -16,16 +16,16 @@ try {
 # Download webMethod installer binary
 $webMethodsInstaller = ".\$($parameters.installerName)"
 if (-not(Test-Path -path $webMethodsInstaller)) {
-    Write-Output "Attempting to download webMethod Installer binary"
+    Write-Host "Attempting to download webMethod Installer binary"
     [DownloadWithRetry]::DoDownloadWithRetry($($parameters.installerURL),5, 10, $null,  $webMethodsInstaller, $false)
 } else {
-    Write-Output "webMethod installer already exists on server"
+    Write-Host "webMethod installer already exists on server"
 }
 
 # Create the script file
 $scriptFile = ".\script-file"
 if (-not(Test-Path -path $scriptFile)) {
-    Write-Output "Creating script file"
+    Write-Host "Creating script file"
     New-Item -Path $scriptFile
     Add-Content -Path $scriptFile "ServerURL=$($parameters.wmServerUrl)"
     Add-Content -Path $scriptFile "selectedFixes=$($parameters.selectedFixes)"
@@ -36,12 +36,12 @@ if (-not(Test-Path -path $scriptFile)) {
     Add-Content -Path $scriptFile "Password=$($parameters.entitlementKey)"
     Add-Content -Path $scriptFile "InstallDir=$($parameters.installDirectory)"
 } else {
-    Write-Output "Script file already exists"
+    Write-Host "Script file already exists"
 }
 
 # Run the installer
 if ($($parameters.licenseAccepted )) {
-    Write-Output "Attempting to install base webMethods"
+    Write-Host "Attempting to install base webMethods"
     try {
         cmd.exe /c $webMethodsInstaller -readScript $scriptFile 
     } catch {
@@ -49,7 +49,7 @@ if ($($parameters.licenseAccepted )) {
         Exit
     }
 } else {
-    Write-Output "License not accepted. Not installing."
+    Write-Host "License not accepted. Not installing."
 }
 
 # Copy the installer to the install dir
