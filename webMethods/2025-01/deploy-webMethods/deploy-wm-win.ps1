@@ -1,13 +1,18 @@
 # Script to download and install webMethod on a Windows VM
-param (
-    $jsonString
-)
+# Read the parameters file
+try {
+    $jsonString = Get-Content '.\parameters.json' | Out-String
+} catch {
+    Write-Error "Unable to read parameters file $_"
+    Exit
+} 
 
 # Convert input parameter to object
 try {
     $parameters = $jsonString | ConvertFrom-Json
 } catch {
     Write-Error "Error parsing JSON $_"
+    Exit
 }
 
 # Download webMethod installer binary
@@ -43,6 +48,7 @@ if ($($parameters.licenseAccepted )) {
         cmd.exe /c $webMethodsInstaller -readScript $scriptFile 
     } catch {
         Write-Error "Failed to install webMethods"
+        Exit
     }
 } else {
     Write-Output "License not accepted. Not installing."
