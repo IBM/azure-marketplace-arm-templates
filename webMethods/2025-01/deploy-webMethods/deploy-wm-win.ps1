@@ -1,11 +1,9 @@
 # Script to download and install webMethod on a Windows VM
-# Read the parameters file
-try {
-    $jsonString = Get-Content '.\parameters.json' | Out-String
-} catch {
-    Write-Error "Unable to read parameters file $_"
-    Exit
-} 
+
+# Read command line parameters
+param (
+    $jsonString
+)
 
 # Convert input parameter to object
 try {
