@@ -5,9 +5,11 @@ param (
     $jsonString
 )
 
+Write-Host $jsonString
+
 # Convert input parameter to object
 try {
-    $parameters = $jsonString.Replace('\"', '"') | ConvertFrom-Json
+    $parameters = ($jsonString | ConvertFrom-Json | ConvertTo-Json -Depth 100 -Compress).Replace('\"', '"')
 } catch {
     Write-Error "Error parsing JSON $_"
     Exit
