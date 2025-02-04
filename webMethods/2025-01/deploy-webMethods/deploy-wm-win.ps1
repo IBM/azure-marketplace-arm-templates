@@ -65,6 +65,14 @@ New-Item -ItemType Directory -Force -Path C:\Users\$($parameters.vmUser)\webMeth
 Move-Item $webMethodsInstaller C:\Users\$($parameters.vmUser)\webMethods
 Move-Item $scriptFile C:\Users\$($parameters.vmUser)\webMethods
 
+# Create the run script
+New-Item -Path C:\Users\$($parameters.vmUser)\webMethods\runme.bat
+Add-Content -Path C:\Users\$($parameters.vmUser)\webMethods\runme.bat "cmd.exe /c $webMethodInstaller -readScript $scriptFile"
+
+# Create README file
+New-Item -Path C:\Users\$($parameters.vmUser)\webMethods\README.txt
+Add-Content -Path C:\Users\$($parameters.vmUser)\webMethods\README.txt "To complete installation, run the runme.bat file as an Administator."
+
 class DownloadWithRetry {
     static [string] DoDownloadWithRetry([string] $uri, [int] $maxRetries, [int] $retryWaitInSeconds, [string] $authToken, [string] $outFile, [bool] $metadata) {
         $retryCount = 0
