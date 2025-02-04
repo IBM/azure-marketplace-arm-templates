@@ -7,11 +7,13 @@ param (
 
 # Convert input parameter to object
 try {
-    $parameters = $jsonString | ConvertFrom-Json
+    $parameters = $jsonString.Replace('\"', '"') | ConvertFrom-Json
 } catch {
     Write-Error "Error parsing JSON $_"
     Exit
 }
+
+Write-Host $parameters
 
 # Download webMethod installer binary
 $webMethodsInstaller = ".\$($parameters.installerName)"
