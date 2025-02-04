@@ -595,10 +595,10 @@
             "type": "string",
             "value": "[concat('/bin/sh ',parameters('installDirectory'),'/',parameters('installerName'))]"
         },
-        "consoleAccessWIN": {
+        "InstallInstructions": {
             "condition": "[and(parameters('deployWM'),equals(variables('osType'),'Windows'))]",
             "type": "string",
-            "value": "[concat(parameters('installDirectory'),'\\install\\bin\\',parameters('installerName'))]"
+            "value": "[concat('Run the batch file c:\\Users\\',parameters('adminUserName'),'\\webMethods\\runme.bat as Administrator')]"
         }
     }
 }
