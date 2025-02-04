@@ -39,25 +39,31 @@ if (-not(Test-Path -path $scriptFile)) {
     Write-Host "Script file already exists"
 }
 
-# Run the installer
-if ($($parameters.licenseAccepted )) {
-    Write-Host "Attempting to install base webMethods"
-    try {
-        cmd.exe /c $webMethodsInstaller -readScript $scriptFile 
-    } catch {
-        Write-Error "Failed to install webMethods"
-        Exit
-    }
-} else {
-    Write-Host "License not accepted. Not installing."
-}
+# Below requires a headless installation option for the webMethods installer which is not currently available.
+# # Run the installer
+# if ($($parameters.licenseAccepted )) {
+#     Write-Host "Attempting to install base webMethods"
+#     try {
+#         cmd.exe /c $webMethodsInstaller -readScript $scriptFile 
+#     } catch {
+#         Write-Error "Failed to install webMethods"
+#         Exit
+#     }
+# } else {
+#     Write-Host "License not accepted. Not installing."
+# }
 
-# Copy the installer to the install dir
-$webMethodDirectory = $($parameters.installDirectory).Replace("\:",":").Replace("\\","\") 
-Copy-Item -Path $webMethodsInstaller -Destination "$webMethodDirectory\install\bin\"
+# # Copy the installer to the install dir
+# $webMethodDirectory = $($parameters.installDirectory).Replace("\:",":").Replace("\\","\") 
+# Copy-Item -Path $webMethodsInstaller -Destination "$webMethodDirectory\install\bin\"
 
-# Clean up the script file
-Remove-Item -Path $scriptFile
+# # Clean up the script file
+# Remove-Item -Path $scriptFile
+
+# Move the installer and script to the admin users directory
+New-Item -ItemType Directory -Force -Path C:\Users\$($parameters.vmUser)\webMethods
+Move-Item $webMethodsInstaller C:\Users\$($parameters.vmUser)\webMethods
+Move-Item $scriptFile C:\Users\$($parameters.vmUser)\webMethods
 
 class DownloadWithRetry {
     static [string] DoDownloadWithRetry([string] $uri, [int] $maxRetries, [int] $retryWaitInSeconds, [string] $authToken, [string] $outFile, [bool] $metadata) {

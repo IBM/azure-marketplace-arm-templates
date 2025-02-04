@@ -382,6 +382,7 @@
             "selectedFixes": "[parameters('selectedFixes')]",
             "wmServerUrl": "[parameters('wmServerUrl')]",
             "workDirectory": "[parameters('workDirectory')]",
+            "vmUser": "[parameters('adminUserName')]",
             "vnc": {
                 "user": "",
                 "password": "",
