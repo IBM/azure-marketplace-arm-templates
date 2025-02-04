@@ -5,8 +5,6 @@ param (
     $jsonString
 )
 
-Write-Host $jsonString
-
 # Convert input parameter to object
 try {
     $parameters = $jsonString | ConvertFrom-Json
@@ -14,11 +12,6 @@ try {
     Write-Error "Error parsing JSON $_"
     Exit
 }
-
-Write-Host "Parameters are $parameters"
-Write-Host ""
-Write-Host "Email Address = $($parameters.EmailAddress)" 
-
 
 # Download webMethod installer binary
 $webMethodsInstaller = ".\$($parameters.installerName)"

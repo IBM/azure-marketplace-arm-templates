@@ -571,7 +571,7 @@
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),'/webMethods/',parameters('deploymentVersion'),'/deploy-webMethods/deploy-wm-win.ps1'))]"
                     ],
-                    "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File .\\deploy-wm-win.ps1 ''',string(variables('scriptParameters')),'''')]"
+                    "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -File .\\deploy-wm-win.ps1 \"',replace(string(variables('scriptParameters')),'\"','\\\"\"'),'\"')]"
                 }
             }
         }
