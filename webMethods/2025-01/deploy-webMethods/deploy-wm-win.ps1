@@ -24,6 +24,7 @@ if (-not(Test-Path -path $webMethodsInstaller)) {
 
 # Create the script file
 $scriptFile = ".\script-file"
+$wmInstallDir = $($parameters.installDirectory).Replace("\","\\").Replace(":","\:")
 if (-not(Test-Path -path $scriptFile)) {
     Write-Host "Creating script file"
     New-Item -Path $scriptFile
@@ -34,7 +35,7 @@ if (-not(Test-Path -path $scriptFile)) {
     Add-Content -Path $scriptFile "HostName=$env:computername"
     Add-Content -Path $scriptFile "InstallProducts=$($parameters.installProducts)"
     Add-Content -Path $scriptFile "Password=$($parameters.entitlementKey)"
-    Add-Content -Path $scriptFile "InstallDir=$($parameters.installDirectory)"
+    Add-Content -Path $scriptFile "InstallDir=$wmInstallDir"
 } else {
     Write-Host "Script file already exists"
 }
@@ -54,7 +55,7 @@ if (-not(Test-Path -path $scriptFile)) {
 # }
 
 # # Copy the installer to the install dir
-# $webMethodDirectory = $($parameters.installDirectory).Replace("\:",":").Replace("\\","\") 
+# $webMethodDirectory = $($parameters.installDirectory) 
 # Copy-Item -Path $webMethodsInstaller -Destination "$webMethodDirectory\install\bin\"
 
 # # Clean up the script file
