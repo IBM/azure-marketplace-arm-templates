@@ -405,16 +405,16 @@
             "workDirectory": "[parameters('workDirectory')]",
             "vmUser": "[parameters('adminUserName')]",
             "vnc": {
-                "user": "",
+                "user": "[parameters('adminUserName')]",
                 "password": "",
-                "display": ""
+                "display": "1"
             }
         }
     },
     "resources": [
         {
             "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2020-11-01",
+            "apiVersion": "2024-05-01",
             "condition": "[equals(parameters('virtualNetworkNewOrExisting'),'new')]",
             "comments": "Create a new virtual network if requested.",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
@@ -430,7 +430,7 @@
         },
         {
             "type": "Microsoft.Network/virtualNetworks/subnets",
-            "apiVersion": "2020-11-01",
+            "apiVersion": "2024-05-01",
             "condition": "[equals(parameters('virtualNetworkNewOrExisting'),'new')]",
             "name": "[concat(parameters('vnetName'),'/',parameters('subnetName'))]",
             "properties": {
@@ -442,7 +442,7 @@
         },
         {
             "type": "Microsoft.Network/publicIPAddresses",
-            "apiVersion": "2022-07-01",
+            "apiVersion": "2024-05-01",
             "condition": "[and(parameters('createPublicIP'),equals(parameters('publicIpNewOrExisting'),'new'))]",
             "name": "[parameters('publicIPName')]",
             "location": "[parameters('location')]",
@@ -467,7 +467,7 @@
         },
         {
             "type": "Microsoft.Network/networkInterfaces",
-            "apiVersion": "2022-07-01",
+            "apiVersion": "2024-05-01",
             "name": "[variables('nicName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkInterfaces'), parameters('tagsByResource')['Microsoft.Network/networkInterfaces'], json('{}')) ]",
@@ -496,7 +496,7 @@
         },
         {
             "type": "Microsoft.Network/networkSecurityGroups",
-            "apiVersion": "2022-07-01",
+            "apiVersion": "2024-05-01",
             "name": "[variables('nsgName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
@@ -506,7 +506,7 @@
         },
         {
             "type": "Microsoft.Compute/virtualMachines",
-            "apiVersion": "2021-03-01",
+            "apiVersion": "2024-07-01",
             "name": "[parameters('vmName')]",
             "location": "[parameters('location')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/virtualMachines'), parameters('tagsByResource')['Microsoft.Compute/virtualMachines'], json('{}')) ]",
@@ -554,7 +554,7 @@
         },
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "apiVersion": "2023-03-01",
+            "apiVersion": "2024-07-01",
             "location": "[parameters('location')]",
             "name": "[concat(parameters('vmName'),'/','installWebMethods-RHEL')]",
             "condition": "[and(parameters('deployWM'),equals(variables('osType'),'RHEL'))]",
@@ -576,7 +576,7 @@
         },
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "apiVersion": "2023-03-01",
+            "apiVersion": "2024-07-01",
             "location": "[parameters('location')]",
             "name": "[concat(parameters('vmName'),'/','installWebMethods-WIN')]",
             "condition": "[and(parameters('deployWM'),equals(variables('osType'),'Windows'))]",
@@ -604,12 +604,12 @@
         },
         "internalIP": {
             "type": "string",
-            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2022-07-01').ipConfigurations[0].properties.privateIPAddress]"
+            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2024-05-01').ipConfigurations[0].properties.privateIPAddress]"
         },
         "publicIP": {
             "condition": "[parameters('createPublicIP')]",
             "type": "string",
-            "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
+            "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2024-05-01').ipAddress]"
         },
         "consoleAccessRHEL": {
             "condition": "[and(parameters('deployWM'),equals(variables('osType'),'RHEL'))]",
