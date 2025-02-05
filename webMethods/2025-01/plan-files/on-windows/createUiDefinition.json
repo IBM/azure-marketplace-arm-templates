@@ -108,10 +108,10 @@
                         },
                         "defaultValue": {
                             "name": "vnet",
-                            "addressPrefixSize": "/24"
+                            "addressPrefixSize": "/20"
                         },
                         "constraints": {
-                            "minAddressPrefixSize": "/24"
+                            "minAddressPrefixSize": "/27"
                         },
                         "options": {
                             "hideExisting": false
@@ -171,26 +171,19 @@
 						"name": "vmPassword",
 						"type": "Microsoft.Compute.CredentialsCombo",
 						"label": {
-						  "authenticationType": "Authentication type",
 						  "password": "Password",
-						  "confirmPassword": "Confirm password",
-						  "sshPublicKey": "SSH public key"
+						  "confirmPassword": "Confirm password"
 						},
 						"toolTip": {
-						  "authenticationType": "SSH key or password. SSH key is recommended.",
-						  "password": "Password for the administrator user",
-						  "sshPublicKey": "Public SSH key for the administrator user. Private key required for access."
+						  "password": "Password for the administrator user"
 						},
 						"constraints": {
-						  "required": true,
-						  "customPasswordRegex": "^(?!abc@123|P@$$w0rd|P@ssw0rd|P@ssword123|Pa$$word|pass@word1|Password!|Password1|Password22|iloveyou!)(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,72}$",
-						  "customValidationMessage": "The password must have a lowercase character, an uppercase character, a digit and a special character and contain at least 6 characters, up to 72 characters."
+						  "required": true
 						},
 						"options": {
-						  "hideConfirmation": false,
-						  "hidePassword": false
+						  "hideConfirmation": false
 						},
-						"osPlatform": "Linux",
+						"osPlatform": "Windows",
 						"visible": true
 					},
 					{
@@ -201,23 +194,14 @@
 						"recommendedSizes": [
 						  "Standard_B2s"
 						],
-						"constraints": {
-						  "allowedSizes": [
-							"Standard_B2s",
-							"Standard_D2s_v3",
-							"Standard_D4s_v3"
-						  ],
-						  "numAvailabilityZonesRequired": 1,
-						  "zone": "3"
-						},
 						"options": {
 						  "hideDiskTypeFilter": false
 						},
-						"osPlatform": "Linux",
+						"osPlatform": "Windows",
 						"imageReference": {
-						  "publisher": "RedHat",
-						  "offer": "RHEL",
-						  "sku": "9_2"
+						  "publisher": "MicrosoftWindowsServer",
+						  "offer": "WindowsServer",
+						  "sku": "2022-datacenter-azure-edition"
 						},
 						"count": 1,
 						"visible": true
@@ -274,20 +258,28 @@
 					{
 						"name": "vmOsVersion",
 						"type": "Microsoft.Common.DropDown",
-						"label": "RHEL Version",
+						"label": "OS Version",
 						"toolTip": "Select the version of RHEL for the dpeloyment VM",
-						"defaultValue": ["RHEL 9.2"],
+						"defaultValue": ["WindowsServer 2022 (Hot Patch)"],
 						"multiselect": false,
 						"multiLine": false,
 						"constraints": {
 							"allowedValues": [
 								{
-									"label": "RHEL 9.2",
-									"value": "RHEL 9.2"
+									"label": "WindowsServer 2019",
+									"value": "WindowsServer 2019"
 								},
 								{
-									"label": "RHEL 9.4",
-									"value": "RHEL 9.4"
+									"label": "WindowsServer 2022",
+									"value": "WindowsServer 2022"
+								},
+								{
+									"label": "WindowsServer 2022 (Hot Patch)",
+									"value": "WindowsServer 2022 (Hot Patch)"
+								},
+								{
+									"label": "WindowsServer 2025",
+									"value": "WindowsServer 2025"
 								}
 							]
 						},
@@ -353,7 +345,7 @@
                         "visible": true,
                         "constraints": {
                             "required": true,
-                            "accept": "tar"
+                            "accept": "exe"
                         },
                         "options": {
                             "multiple": false,
@@ -406,14 +398,14 @@
 						"label": "Installation directory on virtual machine",
 						"toolTip": "Directory path must have at least 256GB available",
 						"visible": true,
-						"defaultValue": "/opt/webmethods",
+						"defaultValue": "C:\\SoftwareAG",
 						"multiLine": false,
 						"constraints": {
 							"required": true,
 							"validations": [
 								{
-									"regex": "^(.+)\/([^\/]+)$",
-									"message": "Must be a valid directory path"
+									"regex": "^[a-zA-Z]:\\\\[a-zA-Z0-9() ]*\\\\*.*",
+									"message": "Must be a valid full windows directory path"
 								}
 							]
 						}
@@ -482,6 +474,7 @@
             "licenseAccepted": "[ steps('webMethods').acceptLicense ]",
             "installDirectory": "[steps('webMethods').installDir]",
             "installerURL": "[ steps('webMethods').binaryPath ]",
+			"installerName": "IBM_webMethods_Install_Windowsx64.exe",
             "tagsByResource": "[steps('tags').resourceTags]",
             "deploymentVersion": "2025-01"
         }
