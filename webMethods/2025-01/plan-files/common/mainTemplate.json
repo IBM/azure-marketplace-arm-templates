@@ -289,6 +289,20 @@
                 "description": "Filename of the webMethods installer"
             }
         },
+        "enableXRDP": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to install XRDP on Linux virtual machines"
+            }
+        },
+        "rdpPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Password for XRDP if being installed."
+            }
+        },
         "branch": {
             "type": "string",
             "defaultValue": "main",
@@ -404,10 +418,9 @@
             "wmServerUrl": "[parameters('wmServerUrl')]",
             "workDirectory": "[parameters('workDirectory')]",
             "vmUser": "[parameters('adminUserName')]",
-            "vnc": {
-                "user": "[parameters('adminUserName')]",
-                "password": "",
-                "display": "1"
+            "xrdp": {
+                "enable": "[if(parameters('enableXRDP'),'True','False')]",
+                "password": "[parameters('rdpPassword')]"
             }
         }
     },

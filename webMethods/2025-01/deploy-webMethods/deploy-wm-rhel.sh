@@ -2,6 +2,7 @@
 #
 # Script to deploy webMethods on a virtual machine
 #
+# NOTE: The script needs to run as root (this is the default behaviour with the Azure CLI custom script extension)
 
 function log-output() {
     MSG=${1}
@@ -30,6 +31,87 @@ function log-error() {
 
     log-output "ERROR: $MSG"
     echo $MSG >&2
+}
+
+function install-xrdp() {
+    # Usage install-xrdp $rdp_password
+
+    if [[ !${1} ]]; then
+        log-error "No password provided for XRDP configuration. Continuing."
+    else
+        local RDP_PASSWORD=${1}
+    fi
+
+    # Update the system
+    log-info "Updating the system's packages"
+    yum update -y
+    if [[ $? != 0 ]]; then
+        log-error "Unable to update system packages. Continuing"
+    fi
+
+    # Install remote GUI package
+    log-info "Configuring remote GUI package"
+    sudo dnf -y group install "Server with GUI"
+    if [[ $? != 0 ]]; then
+        log-error "Unable to configure the remote GUI package"
+        exit 1
+    fi
+
+    # Install the additional package addon for RHEL
+    log-info "Installing the additional packages addon for RHEL"
+    dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+    dnf makecache
+    if [[ $? != 0 ]]; then
+        log-error "Unable to install the addon packages required for XRDP"
+        exit 1
+    fi
+
+    # Install XRDP
+    log-info "Installing XRDP"
+    dnf install -y xrdp
+    if [[ $? != 0 ]]; then
+        log-error "Unable to install XRDP"
+        exit 1
+    fi
+
+    # Enable and start the XRDP service
+    log-info "Enabling the XRDP service"
+    systemctl enable xrdp
+    if [[ $? != 0 ]]; then
+        log-error "Unable to enable the XRDP service"
+        exit 1
+    fi
+
+    log-info "Starting the XRDP service"
+    systemctl start xrdp
+    if [[ $? != 0 ]]; then
+        log-error "Unable to start the XRDP service"
+        exit 1
+    fi
+
+    # Open the firewall ports for RDP
+    log-info "Opening RDP ports"
+    firewall-cmd --permanent --add-port=3389/tcp
+    if [[ $? != 0 ]]; then
+        log-error "Unable to open firewall port for RDP. Continuing"
+    fi
+
+    firewall-cmd --reload
+    if [[ $? != 0 ]]; then
+        log-error "Unable to restart firewall. Continuing"
+    fi
+
+    # Set the local user account password
+    if [[ $RDP_PASSWORD ]]; then
+        log-info "Adding password for local user"
+        echo $RDP_PASSWORD | passwd $RDP_USER --stdin
+        if [[ $? != 0 ]]; then
+            log-error "Unable to set local user password."
+            exit 1
+        fi
+    else
+        log-info "No local password set."
+    fi
 }
 
 # Define internal defaults
@@ -61,9 +143,9 @@ INSTALLER_NAME="$(echo $PARAMETERS | jq -r '.installerName' )"
 WM_URL="$(echo $PARAMETERS | jq -r '.wmServerUrl' )"
 LICENSE_ACCEPTED="$(echo $PARAMETERS | jq -r '.licenseAccepted' )"
 WORK_DIR="$(echo $PARAMETERS | jq -r '.workDirectory' )"
-VNC_USER="$(echo $PARAMETERS | jq -r '.vnc.user' )"
-VNC_USER="$(echo $PARAMETERS | jq -r '.vnc.password' )"
-VNC_DISPLAY="$(echo $PARAMETERS | jq -r '.vnc.display')"
+CONFIGURE_RDP="$(echo $PARAMETERS | jq -r '.xrdp.enable' )"
+RDP_PASSWORD="$(echo $PARAMETERS | jq -r '.xrdp.password' )"
+RDP_USER="$(echo $PARAMETERS | jq -r '.vmUser' )"
 
 ### webMethods base installation
 
@@ -111,42 +193,18 @@ fi
 # Copy webMethods installer binary to permanent directory
 cp ${WORK_DIR}/${INSTALLER_NAME} ${INSTALL_DIR}/bin
 
-### VNC Configuration
-
-# Install xvnc-server
-yum install -y tigervnc-server
-
-# Set vnc display, user and password
-sudo cp /usr/lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:${VNC_DISPLAY}.service
-echo ":${VNC_DISPLAY}=${VNC_USER}" >> /etc/tigervnc/vncserver.users
-mkdir /home/${VNC_USER}/.vnc
-echo ${VNC_PASSWORD} | vncpasswd -f > /home/${VNC_USER}/.vnc/passwd
-chown -R ${VNC_USER}:${VNC_USER} /home/${VNC_USER}/.vnc
-chmod 0600 /home/${VNC_USER}/.vnc/passwd
-
-# Configure gnome for session
-echo "gnome-session" > /home/${VNC_USER}/.session
-
-echo << EOF > /home/${VNC_USER}/.vnc/config
-session=gnome
-securitytypes=vncauth,tlsvnc
-geometry=1280x720
-EOF
-
-# Enable the service
-systemctl enable vncserver@:${VNC_DISPLAY}.service
-systemctl start vncserver@:${VNC_DISPLAY}.service
-
-# Add firewall rule
-firewall-cmd --permanent --add-service=vnc-server
-firewall-cmd --permanent --add-port=590${VNC_DISPLAY}/tcp
-firewall-cmd --reload
-
-### Clean up
-
 # Clean up the install script
 log-info "Removing the installer script"
 rm ${WORK_DIR}/${SCRIPT_NAME}
+
+### XRDP Configuration
+if [[ $CONFIGURE_RDP == "True" ]]; then
+    log-info "Configuring RDP"
+    install-xrdp $RDP_PASSWORD
+else
+    log-info "RDP not configured"
+fi
+
 
 log-info "From GUI, run the following to configure products"
 log-info "/bin/sh ${INSTALL_DIR}/bin/${INSTALLER_NAME}"

@@ -199,16 +199,10 @@
 						"label": "VM Size",
 						"toolTip": "Azure VM Size",
 						"recommendedSizes": [
-						  "Standard_B2s"
+						  "Standard_B4ms"
 						],
 						"constraints": {
-						  "allowedSizes": [
-							"Standard_B2s",
-							"Standard_D2s_v3",
-							"Standard_D4s_v3"
-						  ],
-						  "numAvailabilityZonesRequired": 1,
-						  "zone": "3"
+						  "numAvailabilityZonesRequired": 1
 						},
 						"options": {
 						  "hideDiskTypeFilter": false
@@ -217,7 +211,7 @@
 						"imageReference": {
 						  "publisher": "RedHat",
 						  "offer": "RHEL",
-						  "sku": "9_2"
+						  "sku": "9_4"
 						},
 						"count": 1,
 						"visible": true
@@ -294,10 +288,40 @@
 						"visible": true
 					},
 					{
+						"name": "enableXRDP",
+						"label": "Enable XRDP",
+						"tooltip": "This will create GUI access for the VM",
+						"type": "Microsoft.Common.CheckBox",
+						"visible": true,
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "rdpPassword",
+						"label": "Local Password for RDP",
+						"toolTip": "Set a local password for use by RDP (does not affect SSH login)",
+						"visible": "[and(steps('infrastructure').enableXRDP,equals(steps('infrastructure').vmPassword.authenticationType,'sshPublicKey'))]",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Account Password",
+                            "confirmPassword": "Confirm Account Password"
+						},
+						"constraints": {
+							"required": false,
+							"customPasswordRegex": "^(?!abc@123|P@$$w0rd|P@ssw0rd|P@ssword123|Pa$$word|pass@word1|Password!|Password1|Password22|iloveyou!)(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,72}$",
+						  	"customValidationMessage": "The password must have a lowercase character, an uppercase character, a digit and a special character and contain at least 6 characters, up to 72 characters."
+                		},
+						"options": {
+							"hideConfirmation": false
+						}
+					},
+					{
 						"name": "vmPublicIPRequired",
 						"label": "VM Public IP",
 						"toolTip": "Create a public IP for the deployment VM?",
 						"type": "Microsoft.Common.CheckBox",
+						"visible": true,
 						"constraints": {
 							"required": false
 						}
@@ -482,6 +506,8 @@
             "licenseAccepted": "[ steps('webMethods').acceptLicense ]",
             "installDirectory": "[steps('webMethods').installDir]",
             "installerURL": "[ steps('webMethods').binaryPath ]",
+			"enableXRDP": "[steps('infrastructure').enableXRDP]",
+			"rdpPassword": "[if(steps('infrastructure').enableXRDP,if(equals(steps('infrastructure').vmPassword.authenticationType,'password'),steps('infrastructure').vmPassword.password,steps('infrastructure').rdpPassword),'')]",
             "tagsByResource": "[steps('tags').resourceTags]",
             "deploymentVersion": "2025-01"
         }
