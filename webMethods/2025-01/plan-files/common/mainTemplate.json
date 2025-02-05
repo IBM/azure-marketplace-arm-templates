@@ -167,7 +167,10 @@
             "allowedValues": [
                 "RHEL 9.2",
                 "RHEL 9.4",
-                "WindowsServer_2022-datacenter-azure-edition"
+                "WindowsServer 2019",
+                "WindowsServer 2022",
+                "WindowsServer 2022 (Hot Patch)",
+                "WindowsServer 2025"
             ],
             "metadata": {
                 "description": "Operating system version"
@@ -342,10 +345,28 @@
                 "sku": "9_4",
                 "version": "latest"
             },
-            "WindowsServer_2022-datacenter-azure-edition": {
+            "WindowsServer 2019": {
+                "publisher": "MicrosoftWindowsServer",
+                "offer": "WindowsServer",
+                "sku": "2019-datacenter-core-g2",
+                "version": "latest"
+            },
+            "WindowsServer 2022": {
                 "publisher": "MicrosoftWindowsServer",
                 "offer": "WindowsServer",
                 "sku": "2022-datacenter-azure-edition",
+                "version": "latest"
+            },
+            "WindowsServer 2022 (Hot Patch)": {
+                "publisher": "MicrosoftWindowsServer",
+                "offer": "WindowsServer",
+                "sku": "2022-datacenter-azure-edition-hotpatch",
+                "version": "latest"
+            },
+            "WindowsServer 2025": {
+                "publisher": "MicrosoftWindowsServer",
+                "offer": "WindowsServer",
+                "sku": "2025-datacenter-azure-edition",
                 "version": "latest"
             }
         },
