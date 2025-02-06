@@ -147,6 +147,14 @@ CONFIGURE_RDP="$(echo $PARAMETERS | jq -r '.xrdp.enable' )"
 RDP_PASSWORD="$(echo $PARAMETERS | jq -r '.xrdp.password' )"
 RDP_USER="$(echo $PARAMETERS | jq -r '.vmUser' )"
 
+### XRDP Configuration
+if [[ $CONFIGURE_RDP == "True" ]]; then
+    log-info "Configuring RDP"
+    install-xrdp $RDP_PASSWORD
+else
+    log-info "RDP not configured"
+fi
+
 ### webMethods base installation
 
 # Download the installer
@@ -196,14 +204,6 @@ cp ${WORK_DIR}/${INSTALLER_NAME} ${INSTALL_DIR}/bin
 # Clean up the install script
 log-info "Removing the installer script"
 rm ${WORK_DIR}/${SCRIPT_NAME}
-
-### XRDP Configuration
-if [[ $CONFIGURE_RDP == "True" ]]; then
-    log-info "Configuring RDP"
-    install-xrdp $RDP_PASSWORD
-else
-    log-info "RDP not configured"
-fi
 
 
 log-info "From GUI, run the following to configure products"
