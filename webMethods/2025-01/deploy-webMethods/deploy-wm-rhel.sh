@@ -199,7 +199,13 @@ else
 fi
 
 # Copy webMethods installer binary to permanent directory
+log-info "Copying installer to webMethods install directory"
 cp ${WORK_DIR}/${INSTALLER_NAME} ${INSTALL_DIR}/bin
+if [[ $? != 0 ]]; then
+    log-error "Unable to copy the installer to the install directory. Continuing"
+else
+    chmod +x ${INSTALL_DIR}/bin/${INSTALLER_NAME}
+fi
 
 # Clean up the install script
 log-info "Removing the installer script"

@@ -665,7 +665,7 @@
         "consoleAccessRHEL": {
             "condition": "[and(parameters('deployWM'),equals(variables('osType'),'RHEL'))]",
             "type": "string",
-            "value": "[concat('/bin/sh ',parameters('installDirectory'),'/',parameters('installerName'))]"
+            "value": "[concat('/bin/sh ',parameters('installDirectory'),'/bin/',parameters('installerName'))]"
         },
         "InstallInstructions": {
             "condition": "[and(parameters('deployWM'),equals(variables('osType'),'Windows'))]",
