@@ -192,7 +192,7 @@
 						"label": "VM Size",
 						"toolTip": "Azure VM Size",
 						"recommendedSizes": [
-						  "Standard_B2s"
+						  "Standard_B4ms"
 						],
 						"options": {
 						  "hideDiskTypeFilter": false
@@ -455,12 +455,13 @@
             "virtualNetworkNewOrExisting": "[steps('infrastructure').vnet.newOrExisting]",
             "virtualNetworkResourceGroupName": "[steps('infrastructure').vnet.resourceGroup]",
             "vnetCIDR": "[steps('infrastructure').vnet.addressPrefix]",
-            "subnetName": "[steps('infrastructure').vnet.vmSubnet.name]",
-            "subnetCIDR": "[steps('infrastructure').vnet.vmSubnet.addressPrefix]",
+            "subnetName": "[steps('infrastructure').vnet.subnets.vmSubnet.name]",
+            "subnetCIDR": "[steps('infrastructure').vnet.subnets.vmSubnet.addressPrefix]",
             "adminUserName": "[steps('infrastructure').vmUsername]",
             "adminPassword": "[if(equals(steps('infrastructure').vmPassword.authenticationType,'password'),steps('infrastructure').vmPassword.password,steps('infrastructure').vmPassword.sshPublicKey)]",
             "authType": "[steps('infrastructure').vmPassword.authenticationType]",
             "vmSize": "[steps('infrastructure').vmSize]",
+			"securityType": "TrustedLaunch",
             "vmDiskType": "[steps('infrastructure').vmDiskType]",
             "vmZone": "[steps('infrastructure').vmZone]",
             "vmOSVersion": "[steps('infrastructure').vmOsVersion]",
