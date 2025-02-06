@@ -7,4 +7,6 @@ This Bring-Your-Own-License Azure marketplace plan deploys the following archite
 <u>Version 1.0.0</u>
 
 Includes support for:
-- Windows Server xxx
+- Windows Server 2019
+- Windows Server 2022
+- Windows Server 2025
