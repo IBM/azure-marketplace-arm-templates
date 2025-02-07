@@ -109,10 +109,20 @@
 						}
 					},
 					{
+						"name": "infoAccessibility",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": "[not(steps('openshift').privateVnet)]",
+						"options": {
+							"icon": "Warning",
+							"text": "The above API must be visible from a public IP address." 
+						}
+					},
+					{
 						"name": "privateVnet",
 						"label": "Private VNet",
 						"type": "Microsoft.Common.CheckBox",
 						"toolTip": "Check if the OpenShift API uses a private virtual network.",
+						"visible": false,
 						"constraints": {
 							"required": false
 						}
@@ -127,12 +137,12 @@
 						}
 					},
 					{
-						"name": "networkInfoPublic",
+						"name": "networkInfoPermissions",
 						"type": "Microsoft.Common.InfoBox",
 						"visible": "[steps('openshift').privateVnet]",
 						"options": {
 							"icon": "Info",
-							"text": "You must have access to update the virtual network below." 
+							"text": "Your Azure user must have access to update the virtual network below." 
 						}
 					},
 					{
@@ -170,7 +180,7 @@
 								}
 							}
 						},
-						"visible": "[steps('openshift').privateVnet]"
+						"visible": false
 					}
 				]
 			},
@@ -206,24 +216,6 @@
 									"value": "accept"
 								}
 							]
-						},
-						"visible": true
-					},
-					{
-						"name": "nameSpace",
-						"type": "Microsoft.Common.TextBox",
-						"label": "Kubecost namespace",
-						"defaultValue": "kubecost",
-						"toolTip": "Namespace where you want to install the operators and Kubecost instance",
-						"multiLine": false,
-						"constraints": {
-						  "required": true,
-						  "validations": [
-							{
-							  "regex": "^[a-z0-9A-Z-]{3,63}$",
-							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
-							}
-						  ]
 						},
 						"visible": true
 					},
@@ -274,13 +266,13 @@
 			"subnetName": "[steps('openshift').vmNetwork.subnets.scriptSubnet.name]",
 			"subnetCidr": "[steps('openshift').vmNetwork.subnets.scriptSubnet.addressPrefix]",
             "acceptLicense": "[steps('kubecost').acceptLicense]",
-			"nameSpace": "[steps('kubecost').nameSpace]",
+			"nameSpace": "kubecost",
 			"apiServer": "[steps('openshift').ocpApiServer]",
 			"ocpAdministrator": "[steps('openshift').ocpUsername]",
 			"ocpPassword": "[steps('openshift').ocpPassword]",
 			"clusterName": "[steps('kubecost').clusterName]",
 			"tagsByResource": "[steps('tags').tagsByResource]",
-			"deploymentVersion": "2024-03",
+			"deploymentVersion": "2025-01",
 			"ocVersion": "4.17"
          }
     }
