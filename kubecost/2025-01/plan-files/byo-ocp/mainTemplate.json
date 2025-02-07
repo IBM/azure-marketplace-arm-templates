@@ -31,7 +31,7 @@
         },
         "deployOnVnet": {
             "type": "bool",
-            "defaultValue": true,
+            "defaultValue": false,
             "metadata": {
                 "description": "Flag to determine whether to deploy with a private VNet connection."
             }
@@ -87,7 +87,7 @@
         },
         "azureCliVersion": {
             "type": "string",
-            "defaultValue": "2.48.0",
+            "defaultValue": "2.60.0",
             "metadata": {
                 "description": "Container image version to pull. Refer https://mcr.microsoft.com/v2/azure-cli/tags/list for list of available versions."
             }
@@ -197,7 +197,7 @@
     "resources": [
         {  
             "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2022-07-01",
+            "apiVersion": "2024-05-01",
             "name": "[parameters('vnetName')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
             "condition": "[and(not(parameters('existingVnet')),parameters('deployOnVnet'))]",
@@ -212,7 +212,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2024-11-01",
             "name": "scriptSubnet",
             "resourceGroup": "[parameters('networkResourceGroup')]",
             "condition": "[parameters('deployOnVnet')]",
@@ -252,7 +252,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.Network/virtualNetworks/subnets",
-                            "apiVersion": "2023-04-01",
+                            "apiVersion": "2024-05-01",
                             "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
                             "properties": {
                                 "addressPrefix": "[parameters('subnetCidr')]",
@@ -277,7 +277,7 @@
         },
         {
             "type": "Microsoft.Resources/deploymentScripts",
-            "apiVersion": "2020-10-01",
+            "apiVersion": "2023-08-01",
             "comments": "Deploys the Kubecost deployment container and runs the script",
             "name": "[variables('scriptName')]",
             "location": "[parameters('location')]",
@@ -297,7 +297,7 @@
                 },
                 "storageAccountSettings": {
                     "storageAccountName": "[parameters('storageAccountName')]",
-                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-09-01').keys[0].value]"
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-05-01').keys[0].value]"
                 },
                 "azCliVersion": "[parameters('azureCliVersion')]",  
                 "environmentVariables": [
@@ -323,7 +323,7 @@
                     },
                     {
                         "name": "OCP_PASSWORD",
-                        "value": "[parameters('ocpPassword')]"
+                        "securevalue": "[parameters('ocpPassword')]"
                     },
                     {
                         "name": "CLUSTER_NAME",
@@ -342,7 +342,7 @@
         },
         {
             "type": "Microsoft.Storage/storageAccounts",
-            "apiVersion": "2023-01-01",
+            "apiVersion": "2023-05-01",
             "condition": "[parameters('createStorageAccount')]",
             "name": "[parameters('storageAccountName')]",
             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Storage/storageAccounts'), parameters('tagsByResource')['Microsoft.Storage/storageAccounts'], json('{}')) ]",
@@ -358,7 +358,7 @@
         },
         {
             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-            "apiVersion": "2018-11-30",
+            "apiVersion": "2023-01-31",
             "name": "[parameters('managedIdName')]",
             "condition": "[parameters('createManagedIdentity')]",
             "location": "[parameters('location')]",
@@ -374,7 +374,7 @@
             ],
             "properties": {
                 "roleDefinitionId": "[variables('roleDefinitionId')]",
-                "principalId": "[reference(parameters('managedIdName'), '2018-11-30').principalId]",
+                "principalId": "[reference(parameters('managedIdName'), '2023-01-31').principalId]",
                 "scope": "[resourceGroup().id]",
                 "principalType": "ServicePrincipal"
             }
