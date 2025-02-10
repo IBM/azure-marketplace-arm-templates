@@ -17,6 +17,13 @@
                 "description": "Azure location for resources"
             }
         },
+        "registerDeployment": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Excludes the deployment registration to the partner portal if set to false (debug only)"
+            }
+        },
         "vmName": {
             "type": "string",
             "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
@@ -463,6 +470,21 @@
         }
     },
     "resources": [
+        { 
+            "apiVersion": "2023-07-01",
+            "name": "pid-2aba7608-edb4-4dbd-959e-0659547eae96-partnercenter", 
+            "condition": "[parameters('registerDeployment')]",
+            "comments": "Attribution ID for webMethods BYOL marketplace entry",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
         {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2024-05-01",
