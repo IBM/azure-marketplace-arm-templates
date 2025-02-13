@@ -68,7 +68,7 @@ Move-Item $scriptFile C:\Users\$($parameters.vmUser)\webMethods
 
 # Create the run script
 New-Item -Path C:\Users\$($parameters.vmUser)\webMethods\runme.bat
-Add-Content -Path C:\Users\$($parameters.vmUser)\webMethods\runme.bat "cmd.exe /c $webMethodInstaller -readScript $scriptFile"
+Add-Content -Path C:\Users\$($parameters.vmUser)\webMethods\runme.bat "cmd.exe /c $webMethodsInstaller -readScript $scriptFile"
 
 # Create README file
 New-Item -Path C:\Users\$($parameters.vmUser)\webMethods\README.txt
