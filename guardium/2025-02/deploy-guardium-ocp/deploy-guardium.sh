@@ -195,8 +195,6 @@ function wait_for_subscription() {
     done
 }
 
-log-info "Script starting"
-
 ######
 # Set defaults
 if [[ -z $OCP_USERNAME ]]; then OCP_USERNAME="kubeadmin"; fi
@@ -205,6 +203,7 @@ if [[ -z $WORKSPACE_DIR ]]; then WORKSPACE_DIR="/mnt/azscripts/azscriptinput"; f
 if [[ -z $BIN_DIR ]]; then export BIN_DIR="/usr/local/bin"; fi
 if [[ -z $TMP_DIR ]]; then TMP_DIR="${WORKSPACE_DIR}/tmp"; fi
 if [[ -z $OC_VERSION ]]; then OC_VERSION="4.17"; fi   
+if [[ -z $OUTPUT_DIR ]]; then OUTPUT_DIR="$WORKSPACE_DIR"; fi
 
 ######
 # Check environment variables
@@ -217,6 +216,8 @@ if [[ -n $ENV_VAR_NOT_SET ]]; then
     log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
     exit 1
 fi
+
+log-info "Script starting"
 
 ### Configure environment
 # Create tmp directory
