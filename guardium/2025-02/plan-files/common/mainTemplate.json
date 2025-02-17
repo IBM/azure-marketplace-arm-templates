@@ -15,20 +15,6 @@
                 "description": "Location for deployment container"
             }
         },
-        "rgRoleGuid": {
-            "type": "string",
-            "defaultValue": "[newGuid()]",
-            "metadata": {
-                "description": "forceUpdateTag property, used to force the execution of the script resource when no other properties have changed."
-            }
-        },
-        "createStorageAccount": {
-            "type": "bool",
-            "defaultValue": true,
-            "metadata": {
-                "description": "Flag to determine whether to create a new storage account"
-            }
-        },
         "deployOnVnet": {
             "type": "bool",
             "defaultValue": false,
@@ -77,13 +63,6 @@
             "metadata": {
                 "description": "Address prefix for the script subnet"
             }
-        },
-        "storageAccountName": {
-            "type": "string",
-            "defaultValue": "[concat(parameters('namePrefix'), 'script',substring(uniqueString(resourceGroup().id),1,7))]",
-            "metadata": {
-                "description": "Name for the storage account for the script execution"
-            }            
         },
         "azureCliVersion": {
             "type": "string",
@@ -138,13 +117,6 @@
                 "description": "OpenShift administrator password if not using KeyVault to store"
             }
         },
-        "clusterName": {
-            "type": "string",
-            "defaultValue": "MyCluster",
-            "metadata": {
-                "description": "Name for the OpenShift cluster in Kubecost"
-            }
-        },
         "createManagedIdentity": {
             "type": "bool",
             "defaultValue": true,
@@ -175,7 +147,7 @@
         },
         "deploymentVersion": {
             "type": "string",
-            "defaultValue": "2025-01",
+            "defaultValue": "2025-02",
             "metadata": {
                 "description": "Deployment version to use"
             }
@@ -185,10 +157,10 @@
     "variables": {
       "baseUrl": "[uri('https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/',parameters('branch'))]",
       "scriptUrl": "[uri(variables('baseUrl'),concat(parameters('branch'),'/guardium/',parameters('deploymentVersion'),'/deploy-guardium-ocp/deploy-guardium.sh'))]",
-      "workspaceDir": "/root/guardium",
+      "workspaceDir": "/mnt/guardium",
       "containerGroupName": "[concat(parameters('namePrefix'), '-cg')]",
       "scriptName": "[concat(parameters('namePrefix'),'-script')]",
-      "imageName": "[concat('mcr.microsoft.com/azure-cli:',parameters('azureCliVersion'))]",
+      "imageName": "[concat('alpine:',parameters('azureCliVersion'))]",
       "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
       "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
       "subnetIds": [
@@ -237,9 +209,6 @@
                     },
                     "subnetCidr": {
                         "value": "[parameters('subnetCidr')]"
-                    },
-                    "managedIdName": {
-                        "value": "[parameters('managedIdName')]"
                     }
                 },
                 "template": {
@@ -266,9 +235,6 @@
                             "properties": {
                                 "addressPrefix": "[parameters('subnetCidr')]",
                                 "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.Storage"
-                                }
                                 ],
                                 "delegations": [
                                     {
@@ -304,7 +270,7 @@
                         "properties": {
                             "image": "[variables('imageName')]",
                             "command": [
-                                "/bin/sh -c \"mkdir -p ${WORKSPACE_DIR} && cd ${WORKSPACE_DIR} && wget -O - ${URL} | /bin/bash \""
+                                "mkdir -p ${WORKSPACE_DIR} && cd ${WORKSPACE_DIR} && wget -O - ${URL} | /bin/bash"
                             ],
                             "resources": {
                                 "requests": {
@@ -338,10 +304,6 @@
                                     "securevalue": "[parameters('ocpPassword')]"
                                 },
                                 {
-                                    "name": "CLUSTER_NAME",
-                                    "value": "[parameters('clusterName')]"
-                                },
-                                {
                                     "name": "WORKSPACE_DIR",
                                     "value": "[variables('workspaceDir')]"
                                 },
@@ -349,12 +311,25 @@
                                     "name": "URL",
                                     "value": "[variables('scriptUrl')]"
                                 }
+                            ],
+                            "volumeMounts": [
+                                {
+                                    "name": "workDir",
+                                    "mountPath": "[variables('workspaceDir')]"
+                                }
                             ]
                         }
                     }
                 ],
+                "volumes": [
+                    {
+                        "Name": "workDir",
+                        "emptyDir": {}
+                    }
+                ],
                 "osType": "Linux",
-                "subnetIds": "[variables('subnetIds')]"
+                "subnetIds": "[if(parameters('deployOnVnet'),variables('subnetIds'),json('null'))]",
+                "restartPolicy": "Never"
             },
             "dependsOn": [
                 "[variables('roleDefinitionName')]",
