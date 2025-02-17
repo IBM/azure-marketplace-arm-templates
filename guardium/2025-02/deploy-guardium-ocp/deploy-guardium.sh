@@ -5,7 +5,7 @@ function log-output() {
     MSG=${1}
 
     if [[ -z $OUTPUT_DIR ]]; then
-        OUTPUT_DIR="/root/guardium/azscriptoutput"
+        OUTPUT_DIR="/mnt/guardium"
     fi
     mkdir -p $OUTPUT_DIR
 
