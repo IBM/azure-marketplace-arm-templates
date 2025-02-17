@@ -5,12 +5,12 @@ function log-output() {
     MSG=${1}
 
     if [[ -z $OUTPUT_DIR ]]; then
-        OUTPUT_DIR="/mnt/azscripts/azscriptoutput"
+        OUTPUT_DIR="/root/guardium/azscriptoutput"
     fi
     mkdir -p $OUTPUT_DIR
 
     if [[ -z $OUTPUT_FILE ]]; then
-        OUTPUT_FILE="script-output.log"
+        OUTPUT_FILE="script-output-$(date -u +"%Y%m%d-%T").log"
     fi
 
     echo "$(date -u +"%Y-%m-%d %T") ${MSG}" >> ${OUTPUT_DIR}/${OUTPUT_FILE}
@@ -210,8 +210,8 @@ if [[ -z $OC_VERSION ]]; then OC_VERSION="4.17"; fi
 # Check environment variables
 ENV_VAR_NOT_SET=""
 
-#if [[ -z $API_SERVER ]]; then ENV_VAR_NOT_SET="API_SERVER"; fi
-#if [[ -z $OCP_PASSWORD ]]; then ENV_VAR_NOT_SET="OCP_PASSWORD"; fi
+if [[ -z $API_SERVER ]]; then ENV_VAR_NOT_SET="API_SERVER"; fi
+if [[ -z $OCP_PASSWORD ]]; then ENV_VAR_NOT_SET="OCP_PASSWORD"; fi
 
 if [[ -n $ENV_VAR_NOT_SET ]]; then
     log-output "ERROR: $ENV_VAR_NOT_SET not set. Please set and retry."
