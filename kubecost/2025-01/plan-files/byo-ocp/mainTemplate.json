@@ -15,6 +15,13 @@
                 "description": "Location for deployment container"
             }
         },
+        "registerDeployment": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Excludes the deployment registration to the partner portal if set to false (debug only)"
+            }
+        },
         "rgRoleGuid": {
             "type": "string",
             "defaultValue": "[newGuid()]",
@@ -195,6 +202,21 @@
       ]
     },
     "resources": [
+        { 
+            "name": "pid-12504287-b070-4dce-afd2-f4080b5ecf5a-partnercenter", 
+            "apiVersion": "2024-11-01",
+            "condition": "[parameters('registerDeployment')]",
+            "comments": "Resource GUID for Cloud Pak for Integration BYOL marketplace entry",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
         {  
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2024-05-01",
