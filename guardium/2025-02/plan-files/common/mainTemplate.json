@@ -160,7 +160,7 @@
       "workspaceDir": "/mnt/guardium",
       "containerGroupName": "[concat(parameters('namePrefix'), '-cg')]",
       "scriptName": "[concat(parameters('namePrefix'),'-script')]",
-      "imageName": "[concat('alpine:',parameters('azureCliVersion'))]",
+      "imageName": "[concat('mcr.microsoft.com/azure-cli:',parameters('azureCliVersion'))]",
       "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
       "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdName')), variables('roleDefinitionId'), resourceGroup().id)]",
       "subnetIds": [
@@ -270,6 +270,8 @@
                         "properties": {
                             "image": "[variables('imageName')]",
                             "command": [
+                                "bin/bash",
+                                "-c",
                                 "mkdir -p ${WORKSPACE_DIR} && cd ${WORKSPACE_DIR} && wget -O - ${URL} | /bin/bash"
                             ],
                             "resources": {
@@ -314,7 +316,7 @@
                             ],
                             "volumeMounts": [
                                 {
-                                    "name": "workDir",
+                                    "name": "work-dir",
                                     "mountPath": "[variables('workspaceDir')]"
                                 }
                             ]
@@ -323,7 +325,7 @@
                 ],
                 "volumes": [
                     {
-                        "Name": "workDir",
+                        "Name": "work-dir",
                         "emptyDir": {}
                     }
                 ],
