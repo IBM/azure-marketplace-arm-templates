@@ -889,7 +889,7 @@
             "apiVersion": "2023-07-01",
             "condition": "[parameters('deployODF')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'configureOpenShift')]"
+                "[resourceId('Microsoft.Resources/deployments', 'configureVM')]"
             ],
             "name": "deployODF",
             "properties": {
