@@ -229,7 +229,7 @@
 
   - name: Set local case directory
     ansible.builtin.set_fact:
-      local_case_dir: "{{ env.HOME }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"    
+      local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"    
 
   - name: Extract the CASE bundle
     ansible.builtin.command:
