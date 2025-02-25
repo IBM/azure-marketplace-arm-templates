@@ -174,7 +174,7 @@
       ansible.builtin.set_fact:
         image_publisher: "{{ response.stdout }}"
 
-    - name: Output the image version
+    - name: Output the image publisher
       ansible.builtin.debug:
         msg: "Image publisher is {{ image_publisher }}"
       when: log_level == "debug"
@@ -188,7 +188,7 @@
       ansible.builtin.set_fact:
         image_resourceid: "{{ response.stdout }}"
 
-    - name: Output the image version
+    - name: Output the image resource id
       ansible.builtin.debug:
         msg: "Image resource id is {{ image_resourceid }}"
       when: log_level == "debug"
