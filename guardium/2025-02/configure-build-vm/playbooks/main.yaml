@@ -15,6 +15,8 @@
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
+    env:
+      home: "/root"
     default:
       retries: 30
       retry_delay: 15
@@ -27,19 +29,6 @@
   #       - podman
   #       - jq
   #     state: latest
-
-  #####
-  # Following for DEBUG purposes
-  - name: Write get facts output
-    ansible.builtin.copy:
-      content: "{{ ansible_facts }}"
-      dest: "{{ directories.tmp_dir }}/ansible_facts.json"
-
-  - name: Output the get facts result
-    ansible.builtin.debug:
-      msg: "{{ ansible_facts }}"
-
-  #####
 
   - name: Create temporary directory if it does not exist
     ansible.builtin.file:
@@ -216,14 +205,15 @@
 
     - name: Clean up the client from tmp dir
       ansible.builtin.file:
-        path: "{{ directories.tmp_dir }}/oc-ibm_pak"
+        path: "{{ directories.tmp_dir }}/oc-ibm_pak-{{ os_type }}-{{ arch }}"
         state: absent
 
   - name: Download CASE files
     ansible.builtin.shell: |
       set timeout 30
       export PATH=$PATH:{{ directories.bin_dir }}
-      oc ibm-pak get {{ case.name }} --version {{ case.version }} --skip-verify 1> /dev/null
+      export HOME={{ env.home }}
+      oc ibm-pak get {{ case.name }} --version {{ case.version }} --skip-verify
       exit 0
     register: response 
 
