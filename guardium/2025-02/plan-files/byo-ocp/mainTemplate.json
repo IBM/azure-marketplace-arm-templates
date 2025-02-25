@@ -31,6 +31,13 @@
                 "description": "Flag to determine whether to deploy the deployment VM (debug only)"
             }
         },
+        "deployODF": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy ODF on the cluster (debug only)"
+            }
+        },
         "configureVM": {
             "type": "bool",
             "defaultValue": true,
@@ -118,11 +125,46 @@
                 "description": "IBM Guardium Data Security Center version to be installed"
             }
         },
+        "ocVersion": {
+            "type": "string",
+            "defaultValue": "stable-4.17",
+            "metadata": {
+                "description": "Version of oc CLI to be deployed"
+            }
+        },
+        "ibmPakVersion": {
+            "type": "string",
+            "defaultValue": "v1.16.3",
+            "metadata": {
+                "description": "Version of the IBM Pak oc extension to install"
+            }
+        },
+        "caseName": {
+            "type": "string",
+            "defaultValue": "ibm-guardium-data-security-center",
+            "metadata": {
+                "description": "Name of the CASE repository to deploy"
+            }
+        },
         "caseVersion": {
             "type": "string",
             "defaultValue": "2.6.2",
             "metadata": {
-                "description": "CASE version to install. Refer to https://github.com/IBM/cloud-pak/blob/master/repo/case/ibm-guardium-data-security-center/index.yaml"
+                "description": "Version of CASE repository to deploy"
+            }
+        },
+        "binariesDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Directory for CLI binaries"
+            }
+        },
+        "tmpDirectory": {
+            "type": "string",
+            "defaultValue": "/tmp",
+            "metadata": {
+                "description": "Temporary working directory for downloads, etc"
             }
         },
         "vmName": {
@@ -287,6 +329,51 @@
             "defaultValue": "gdsc",
             "metadata": {
                 "description": "Name of the VM Extension"
+            }
+        },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Password",
+                "Token"
+            ],
+            "metadata": {
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
+        "odfClusterSize": {
+            "type": "string",
+            "defaultValue": "1Ti",
+            "metadata": {
+                "description": "Size of the ODF storage cluster to create"
+            }
+        },
+        "odfExistingNodes": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to use existing worker nodes or create new dedicated ones for ODF"
             }
         },
         "logLevel": {
@@ -764,8 +851,86 @@
                     "extensionName": {
                         "value": "[parameters('vmExtensionName')]"
                     },
-                    "cpdCliVersion": {
-                        "value": "[parameters('caseVersion')]" 
+                    "ocVersion": {
+                        "value": "[parameters('ocVersion')]" 
+                    },
+                    "ibmPakVersion": {
+                        "value": "[parameters('ibmPakVersion')]"
+                    },
+                    "caseName": {
+                        "value": "[parameters('caseName')]"
+                    },
+                    "caseVersion": {
+                        "value": "[parameters('caseVersion')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployODF')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'configureOpenShift')]"
+            ],
+            "name": "deployODF",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-odf/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "clusterSize": {
+                        "value": "[parameters('odfClusterSize')]"  
+                    },
+                    "existingNodes": {
+                        "value": "[parameters('odfExistingNodes')]"  
+                    },
+                    "licenseAccepted": {
+                        "value": "[parameters('acceptLicense')]" 
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 

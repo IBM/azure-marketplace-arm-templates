@@ -34,22 +34,46 @@
                 "description": "Name of the VM Extension"
             }
         },
-        "cpdCliVersion": {
+        "ocVersion": {
             "type": "string",
-            "defaultValue": "14.0.3",
+            "defaultValue": "stable-4.17",
             "metadata": {
-                "description": "Version of CPD CLI to install. Refer to https://github.com/IBM/cpd-cli"
+                "description": "Version of oc CLI to be deployed"
             }
         },
-        "cpdEdition": {
+        "ibmPakVersion": {
             "type": "string",
-            "defaultValue": "EE",
-            "allowedValues": [
-                "EE",
-                "SE"
-            ],
+            "defaultValue": "v1.16.3",
             "metadata": {
-                "description": "CPD Edition, Enterprise (EE) or Standard (SE)"
+                "description": "Version of the IBM Pak oc extension to install"
+            }
+        },
+        "caseName": {
+            "type": "string",
+            "defaultValue": "ibm-guardium-data-security-center",
+            "metadata": {
+                "description": "Name of the CASE repository to deploy"
+            }
+        },
+        "caseVersion": {
+            "type": "string",
+            "defaultValue": "2.6.2",
+            "metadata": {
+                "description": "Version of CASE repository to deploy"
+            }
+        },
+        "binariesDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Directory for CLI binaries"
+            }
+        },
+        "tmpDirectory": {
+            "type": "string",
+            "defaultValue": "/tmp",
+            "metadata": {
+                "description": "Temporary working directory for downloads, etc"
             }
         },
         "logLevel": {
@@ -79,7 +103,7 @@
         },
         "deploymentVersion": {
             "type": "string",
-            "defaultValue": "2024-10",
+            "defaultValue": "2025-02",
             "metadata": {
                 "description": "Deployment version to use"
             }
@@ -87,14 +111,20 @@
     },
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
-        "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/install-cpd-cli/",
+        "gitRepoBaseDirectory": "/guardium/",
+        "gitRepoDeploymentDirectory": "/configure-build-vm/",
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
-            "cpd": {
-                "version": "[parameters('cpdCliVersion')]",
-                "edition": "[parameters('cpdEdition')]"
+            "oc_version": "[parameters('ocVersion')]",
+            "ibm_pak_version": "[parameters('ibmPakVersion')]",
+            "case": {
+                "name": "[parameters('caseName')]",
+                "version": "[parameters('caseVersion')]"
+            },
+            "directories": {
+                "bin_dir": "[parameters('binariesDirectory')]",
+                "tmp_dir": "[parameters('tmpDirectory')]"
             }
         }
     },
