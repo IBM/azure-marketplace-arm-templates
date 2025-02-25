@@ -28,6 +28,19 @@
   #       - jq
   #     state: latest
 
+  #####
+  # Following for DEBUG purposes
+  - name: Write get facts output
+    ansible.builtin.copy:
+      content: "{{ ansible_facts }}"
+      dest: "{{ directories.tmp_dir }}/ansible_facts.json"
+
+  - name: Output the get facts result
+    ansible.builtin.debug:
+      msg: "{{ ansible_facts }}"
+
+  #####
+
   - name: Create temporary directory if it does not exist
     ansible.builtin.file:
       path: "{{ directories.tmp_dir }}"
