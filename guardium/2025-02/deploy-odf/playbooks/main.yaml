@@ -165,18 +165,46 @@
         msg: "Image version is {{ image_version }}"
       when: log_level == "debug"
 
-    - name: Get the ARO resource group
+    - name: Get the image publisher
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.publisher}{\"\\n\"}'"
+      register: response
+
+    - name: Set the image publisher fact
+      ansible.builtin.set_fact:
+        image_publisher: "{{ response.stdout }}"
+
+    - name: Output the image version
+      ansible.builtin.debug:
+        msg: "Image publisher is {{ image_publisher }}"
+      when: log_level == "debug"
+
+    - name: Get the image resource id
+      ansible.builtin.shell:
+        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.resourceID}{\"\\n\"}'"
+      register: response
+
+    - name: Set the image resource id fact
+      ansible.builtin.set_fact:
+        image_resourceid: "{{ response.stdout }}"
+
+    - name: Output the image version
+      ansible.builtin.debug:
+        msg: "Image resource id is {{ image_resourceid }}"
+      when: log_level == "debug"
+
+    - name: Get the OpenShift resource group
       ansible.builtin.shell:
         cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{\"\\n\"}'"
       register: response
 
-    - name: Set the ARO resource group fact
+    - name: Set the OpenShift resource group fact
       ansible.builtin.set_fact:
-        aro_resource_group: "{{ response.stdout }}"
+        ocp_resource_group: "{{ response.stdout }}"
 
-    - name: Output the ARO resource group
+    - name: Output the OpenShift resource group
       ansible.builtin.debug:
-        msg: "ARO resource group is {{ aro_resource_group }}"
+        msg: "OpenShift resource group is {{ ocp_resource_group }}"
       when: log_level == "debug"
 
     - name: Get the network resource group

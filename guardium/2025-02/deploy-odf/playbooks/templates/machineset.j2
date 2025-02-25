@@ -34,8 +34,8 @@ spec:
             namespace: openshift-machine-api
           image:
             offer: {{ image_offer }}
-            publisher: azureopenshift
-            resourceID: ''
+            publisher: {{ image_publisher }}
+            resourceID: {{ image_resourceid }}
             sku: {{ image_sku }}
             version: {{ image_version }}
           internalLoadBalancer: ""
@@ -52,7 +52,7 @@ spec:
             osType: Linux
           publicIP: false
           publicLoadBalancer: {{ cluster_id }}
-          resourceGroup: {{ aro_resource_group }} 
+          resourceGroup: {{ ocp_resource_group }} 
           sshPrivateKey: ""
           sshPublicKey: ""
           subnet: {{ subnet_name }}  
