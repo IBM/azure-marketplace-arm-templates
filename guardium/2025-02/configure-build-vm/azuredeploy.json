@@ -144,7 +144,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"', ' && (cd ~root ; /usr/local/bin/cpd-cli manage restart-container)')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }
