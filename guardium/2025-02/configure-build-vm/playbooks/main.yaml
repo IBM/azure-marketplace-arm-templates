@@ -213,7 +213,7 @@
       set timeout 30
       export PATH=$PATH:{{ directories.bin_dir }}
       export HOME={{ env.home }}
-      oc ibm-pak get {{ case.name }} --version {{ case.version }} --skip-verify
+      oc ibm-pak get {{ case.name }} --version {{ case.version }} --skip-verify 1> /dev/null
       exit 0
     register: response 
 
@@ -224,12 +224,12 @@
 
   - name: Fail if unsuccessful
     ansible.builtin.fail:
-      msg: "Unable to extract download the {{ case.name }} CASE directory for {{ case.version }}"
+      msg: "Unable download the {{ case.name }} CASE directory for {{ case.version }}"
     when: response.stdout != ''
 
   - name: Set local case directory
     ansible.builtin.set_fact:
-      local_case_dir: "{{ ansible_facts.env.HOME }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"    
+      local_case_dir: "{{ env.HOME }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"    
 
   - name: Extract the CASE bundle
     ansible.builtin.command:
