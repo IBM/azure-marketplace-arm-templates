@@ -37,7 +37,7 @@
 
 - name: Wait for instance to be ready (can take up to 60 minutes)
   ansible.builtin.shell: 
-    cmd: "{{ directories.bin_dir }}/oc get PlatformNavigator -n {{ instance.namespace }} {{ instance.name }} -o jsonpath='{.status.conditions[].type}'"
+    cmd: "{{ directories.bin_dir }}/oc get PlatformNavigator -n {{ instance.namespace }} {{ instance.name }} -o jsonpath='{.status.conditions[?(.reason==\"Deployed\")].type}'"
   args:
     executable: /bin/bash
   register: response
