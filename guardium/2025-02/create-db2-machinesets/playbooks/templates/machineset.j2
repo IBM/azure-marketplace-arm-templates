@@ -5,14 +5,14 @@ metadata:
     machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
     machine.openshift.io/cluster-api-machine-role: worker
     machine.openshift.io/cluster-api-machine-type: worker
-  name: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu_zone }}
+  name: {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }}
   namespace: openshift-machine-api
 spec:
-  replicas: {{ gpu.qty }}
+  replicas: {{ db2.zone_qty }}
   selector:
     matchLabels:
       machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
-      machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu_zone }}
+      machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }}
   template:
     metadata:
       creationTimestamp: null
@@ -20,14 +20,8 @@ spec:
         machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
         machine.openshift.io/cluster-api-machine-role: worker
         machine.openshift.io/cluster-api-machine-type: worker
-        machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ gpu.name }}-{{ cluster_location }}{{ gpu_zone }}
+        machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }}
     spec:
-{% if gpu.taint_nodes %}
-      taints:
-      - key: watsonxai
-        value: gpunode
-        effect: PreferNoSchedule
-{% endif %}
       providerSpec:
         value:
           apiVersion: azureproviderconfig.openshift.io/v1beta1
@@ -36,8 +30,8 @@ spec:
             namespace: openshift-machine-api
           image:
             offer: {{ image_offer }}
-            publisher: azureopenshift
-            resourceID: ''
+            publisher: {{ image_publisher }}
+            resourceID: {{ image_resourceid }}
             sku: {{ image_sku }}
             version: {{ image_version }}
           internalLoadBalancer: ""
@@ -48,18 +42,18 @@ spec:
           natRule: null
           networkResourceGroup: {{ network_resource_group }}
           osDisk:
-            diskSizeGB: {{ gpu.disk_size }}
+            diskSizeGB: {{ db2.disk_size }}
             managedDisk:
-              storageAccountType: {{ gpu.storage_type }}
+              storageAccountType: {{ db2.storage_type }}
             osType: Linux
           publicIP: false
           publicLoadBalancer: {{ cluster_id }}
-          resourceGroup: {{ aro_resource_group }} 
+          resourceGroup: {{ ocp_resource_group }} 
           sshPrivateKey: ""
           sshPublicKey: ""
           subnet: {{ subnet_name }}  
           userDataSecret:
             name: worker-user-data 
-          vmSize: {{ gpu.node_type }}
+          vmSize: {{ db2.node_type }}
           vnet: {{ vnet_name }}
-          zone: "{{ gpu_zone }}" 
+          zone: "{{ item }}" 
