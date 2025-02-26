@@ -7,152 +7,401 @@
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
     log_level: "info"
-    cpd:
-      version: "14.0.3"
-      edition: "EE"
+    ics:
+      namespace: "gdsc"
+      size: "small"
+    registry:
+      name: "cp.icr.io"
+      user: "cp"
+      password: "ibm_entitlement_key"
+    cert_manager:
+      namespace: "gdsc"
+    case:
+      version: "2.6.2"
+      name: "ibm-guardium-data-security-center"
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
+    env:
+      home: "/root"
+    default_sc: "managed-csi"
     default:
       retries: 30
       retry_delay: 15
 
   tasks:
 
-  - name: Install required packages
-    ansible.builtin.package:
-      name:
-        - podman
-        - jq
-      state: latest
-
-  - name: Check if cpd cli already installed
+  - name: Check if oc client is already installed
     ansible.builtin.stat:
-      path: "{{ directories.bin_dir }}/cpd-cli"
-    register: cpdcli
+      path: "{{ directories.bin_dir }}/oc"
+    register: oc_file
 
-  - name: Download cpdcli
-    ansible.builtin.get_url:
-      url: "https://github.com/IBM/cpd-cli/releases/download/v{{ cpd.version }}/cpd-cli-linux-{{ cpd.edition }}-{{ cpd.version }}.tgz"
-      dest: "{{ directories.tmp_dir }}"
-    register: cpdcli_file
-    when: not cpdcli.stat.exists
-
-  - name: Extract files
-    ansible.builtin.command:
-      tar xzf {{ cpdcli_file.dest }}
-    register: result
-    when: not cpdcli.stat.exists
-
-  - name: Output the result
-    ansible.builtin.debug:
-      var: result
-    when: 
-      - log_level == "debug"
-      - not cpdcli.stat.exists
-    
-
-  - name: Fail if unable to extract file
-    ansible.builtin.fail:
-      msg: "Unable to extract the cpd cli from {{ cpdcli_file.dest }}"
-    when: 
-      - not cpdcli.stat.exists
-      - result.failed
-  
-  - name: Clean up the downloaded archive
-    ansible.builtin.file:
-      state: absent
-      path: "{{ cpdcli_file.dest }}"
-    when: not cpdcli.stat.exists
-
-  - name: Get the extracted directory name
-    ansible.builtin.shell:
-      cmd: ls -d cpd-cli* | head -n 1
-    register: response
-    when: not cpdcli.stat.exists
-
-  - name: Set directory name fact
-    ansible.builtin.set_fact:
-      cpdcli_tmp_dir: "{{ response.stdout }}"
-    when: not cpdcli.stat.exists
-
-  - name: Output the temporary directory name
-    ansible.builtin.debug:
-      msg: "CPD-CLI temporary directory is {{ cpdcli_tmp_dir }}"
-    when: 
-      - log_level == "debug"
-      - not cpdcli.stat.exists
-
-  - name: Move the temporary directory to the bin directory
-    ansible.builtin.copy:
-      src: "{{ cpdcli_tmp_dir }}/"
-      dest: "{{ directories.bin_dir }}/"
-      owner: root
-      group: root
-      mode: '0755'
-    when: not cpdcli.stat.exists
-
-  - name: Check if az cli exists
-    ansible.builtin.shell: |
-      set timeout 5
-      which az 2> /dev/null
-      exit 0
-    register: response
-
-  - name: Set fact based on response (az exists)
-    ansible.builtin.set_fact:
-      az_exists: "{{ True if( response.stdout != '' ) else False }}"
-
-  - name: Install Azure CLI
-    when: not az_exists
+  - name: Install oc cli if not already present
     block:
-      
-      - name: Import the Microsoft repository key
-        ansible.builtin.shell:
-          cmd: "rpm --import https://packages.microsoft.com/keys/microsoft.asc"
+    - name: Set version to stable if not provided
+      ansible.builtin.set_fact:
+        oc_version: "stable"
+      when: oc_version is not defined
 
-      - name: Add the packages-microsoft-com-prod repository
-        ansible.builtin.shell:
-          cmd: "dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm"
+    - name: Set machine architecture if not provided
+      ansible.builtin.set_fact:
+        arch: "{{ ansible_facts.architecture }}"
+      when: arch is not defined
 
-      - name: Install the Azure CLI package
-        ansible.builtin.shell:
-          cmd: "dnf install -y azure-cli"
+    - name: Set OS type to mac if not provided and system reports as Darwin
+      ansible.builtin.set_fact:
+        os_type: "mac"
+      when: 
+        - os_type is not defined
+        - ansible_facts.system == "Darwin"
 
-  - name: Check if already logged into Azure CLI
-    ansible.builtin.shell: |
-      set timeout 5
-      az account show 2> /dev/null
-      exit 0
-    register: response
+    - name: Set OS type to linux if not provided and anything else
+      ansible.builtin.set_fact:
+        os_type: "linux"
+      when: os_type is not defined
 
-  - name: Set fact based on response (az cli logged in)
-    ansible.builtin.set_fact:
-      az_logged_in: "{{ True if( response.stdout != '') else False }}"
+    - name: Build the URL for download
+      ansible.builtin.set_fact:
+        oc_url: "https://mirror.openshift.com/pub/openshift-v4/{{ arch }}/clients/ocp/{{ oc_version }}/openshift-client-{{ os_type }}.tar.gz"
 
-  - name: Log into the Azure CLI
-    when: not az_logged_in
-    block:
-    - name: Login into Azure CLI
-      ansible.builtin.shell:
-        cmd: "az login --identity"
-      register: result
-
-    - name: Output login result
+    - name: Output the URL
       ansible.builtin.debug:
-        var: result
+        msg: "Will download {{ oc_url }}"
       when: log_level == "debug"
 
-  # - name: Verify the installation
-  #   ansible.builtin.shell: |
-  #     set timeout 300
-  #     {{ directories.bin_dir }}/cpd-cli manage restart-container
-  #     exit 0
-  #   args:
-  #     executable: /bin/bash
-  #   register: result
+    - name: Download the OpenShift client
+      ansible.builtin.get_url:
+        url: "{{ oc_url }}"
+        dest: "{{ directories.tmp_dir  }}"
+      register: downloaded_file
 
-  # - name: Output the result of the verification
-  #   ansible.builtin.debug:
-  #     var: result
-  #   when: log_level == "debug"
+    - name: Extract the OpenShift client binary 
+      ansible.builtin.command:
+        tar xzf {{ downloaded_file.dest }} -C {{ directories.tmp_dir }} oc
+      register: result
+
+    - name: Fail if unable to extract file
+      ansible.builtin.fail:
+        msg: "Unable to extract the oc client from {{ downloaded_file.dest }}"
+      when: result.failed
+
+    - name: Move client to bin directory
+      ansible.builtin.copy:
+        src: "{{ directories.tmp_dir }}/oc"
+        dest: "{{ directories.bin_dir }}/oc"
+        mode: '0755'
+      become: true
+    
+    when: not oc_file.stat.exists
+
+  - name: Check if already logged into cluster (and if logged in with cluster admin role)
+    ansible.builtin.shell: |
+      set timeout 30
+      export HOME={{ env.home | quote }}
+      {{ directories.bin_dir }}/oc get co 2> /dev/null
+      exit 0
+    args:
+      executable: /bin/bash
+    register: response
+
+  - name: Output response
+    debug:
+      var: response
+    when: log_level == "debug"
+
+  - name: Login to OpenShift cluster if not already logged in
+    block:
+    - name: Fail if cluster details are not provided
+      ansible.builtin.fail:
+        msg: "Cluster login details are not provided"
+      when: ( cluster.api_server is not defined ) or 
+            ( cluster.token is not defined and cluster.password is not defined ) 
+
+    - name: Set username to kubeadmin if not provided
+      ansible.builtin.set_fact:
+        username: "kubeadmin"
+      when: ( cluster.username is not defined ) or
+            ( cluster.username == "" )
+
+    - name: Set username to kubeadmin if not provided
+      ansible.builtin.set_fact:
+        username: "{{ cluster.username }}"
+      when: 
+        - cluster.username is defined
+        - cluster.username != ""
+
+    - name: Set token to empty if not defined
+      ansible.builtin.set_fact:
+        cluster_token: ""
+      when: cluster.token is not defined
+
+    - name: Set token if defined
+      ansible.builtin.set_fact:
+        cluster_token: "{{ cluster.token }}"
+      when:
+        - cluster.token is defined
+
+    - name: Log into the OpenShift cluster with credentials
+      ansible.builtin.shell: |
+        set timeout 30
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --password={{ cluster.password }} --insecure-skip-tls-verify=true 2> /dev/null 
+        exit 0
+      args:
+        executable: /bin/bash
+      register: result
+      until: result.stdout != ""
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - cluster_token == ""
+
+    - name: Log into the OpenShift cluster with token
+      ansible.builtin.shell: |
+        set timeout 30
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster_token }} --insecure-skip-tls-verify=true 2> /dev/null 
+        exit 0
+      args:
+        executable: /bin/bash
+      register: result
+      until: result.stdout != ""
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - cluster_token != ""
+
+    when: response.stdout == ""
+
+  - name: Install Cert Manager
+    block:
+    - name: Check if namespace exists
+      ansible.builtin.shell: | 
+        set timeout 5
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get namespace {{ cert_manager.namespace | quote }} 2> /dev/null
+        exit 0
+      args: 
+        executable: /bin/bash
+      register: response
+
+    - name: Create namespace if it does not exist
+      ansible.builtin.shell: |
+        set timeout 10
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc create namespace {{ cert_manager.namespace | quote }} 1> /dev/null
+      args:
+        executable: /bin/bash
+      when: response.stderr != ""
+
+    - name: Set local case directory
+      ansible.builtin.set_fact:
+        local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"
+
+    - name: Install the IBM Cert Manager catalog
+      ansible.builtin.shell: |
+        set timeout 300
+        export PATH="$PATH:{{ directories.bin_dir | quote }}"
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc ibm-pak launch {{ case.name | quote }} \
+          --version {{ case.version | quote }} \
+          --action install-catalog \
+          --inventory ibmCertManagerOperatorSetup \
+          --namespace openshift-marketplace \
+          --args "--inputDir \"{{ local_case_dir }}\"" 
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+
+    - name: Output the command result
+      ansible.builtin.debug:
+        var: response
+      when: log_level == "debug"
+
+    - name: Fail if command unsuccessful
+      ansible.builtin.fail:
+        msg: "Unable to install IBM Common Services operators in {{ cert_manager.namespace }} for {{ case.name }} version {{ case.verison }}"
+      when: response.failed
+
+    - name: Set the catalog template file name
+      ansible.builtin.set_fact:
+        catalog_template_filename: "{{ local_case_dir }}/{{ case.name }}/inventory/ibmCertManagerOperatorSetup/files/op-olm/catalog.yaml"
+
+    - name: Get the IBM Cert Manager catalog name
+      ansible.builtin.set_fact:
+        catalog: "{{ lookup('template', catalog_template_filename) | from_yaml }}"
+
+    - name: Output the catalog name
+      ansible.builtin.debug:
+        var: catalog.metadata.name
+      when: log_level == "debug"
+
+    - name: Wait for IBM Cert Manager catalog to be available
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ catalog.metadata.name }} -o jsonpath='{.status.connectionState.lastObservedState}'
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "READY"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+
+    - name: Install the IBM Cert Manager operator
+      ansible.builtin.shell: |
+        set timeout 300
+        export PATH="$PATH:{{ directories.bin_dir | quote }}"
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc ibm-pak launch {{ case.name | quote }} \
+          --version {{ case.version | quote }} \
+          --action install-operator \
+          --inventory ibmCertManagerOperatorSetup \
+          --namespace {{ cert_manager.namespace | quote }} \
+          --args "--inputDir \"{{ local_case_dir }}\"" 
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+
+    - name: Set the cert manager subscription template file name
+      ansible.builtin.set_fact:
+        subscription_template: "{{ local_case_dir }}/{{ case.name }}/inventory/ibmCertManagerOperatorSetup/files/op-olm/subscription.yaml"
+
+    - name: Get the IBM Cert Manager subscription name
+      ansible.builtin.set_fact:
+        subscription: "{{ lookup('template', subscription_template) | from_yaml }}"
+
+    - name: Output the IBM Cert Manager subscription name
+      ansible.builtin.debug:
+        var: subscription.metadata.name
+      when: log_level == "debug"
+
+    - name: Confirm operator is bound to CSV
+      ansible.builtin.shell: |
+        set timeout 60
+        export HOME={{ env.home | quote }}
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ cert_manager.namespace }} {{ subscription.metadata.name }} -o jsonpath='{.status.currentCSV}' )
+        if [[ "$CSV" == "null" ]]; then
+          echo "PendingCSV"
+        else
+          echo $({{ directories.bin_dir }}/oc get csv -n {{ cert_manager.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+        fi
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+
+    # - name: Confirm operator installation
+
+  - name: Set the default storage class for IBM Cloud Pak Foundation Services
+    block:
+    - name: Patch the default storage class
+      ansible.builtin.shell: | 
+        set timeout 30
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc patch storageclass {{ default_sc }} --patch '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "true"}}}'
+      args:
+        executable: /bin/bash
+      register: response
+    
+    - name: Output the command result
+      ansible.builtin.debug:
+        var: response
+      when: log_level == "debug"
+
+  - name: Install IBM Cloud Pak Foundation Services
+    block:
+
+    - name: Check if namespace exists
+      ansible.builtin.shell: | 
+        set timeout 5
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get namespace {{ ics.namespace | quote }} 2> /dev/null
+        exit 0
+      args: 
+        executable: /bin/bash
+      register: response
+
+    - name: Create namespace if it does not exist
+      ansible.builtin.shell: |
+        set timeout 10
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc create namespace {{ ics.namespace | quote }} 1> /dev/null
+      args:
+        executable: /bin/bash
+      when: response.stderr != ""
+
+    - name: Set local case directory
+      ansible.builtin.set_fact:
+        local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"
+
+    - name: Install the common services catalog
+      ansible.builtin.shell: |
+        set timeout 300
+        export PATH="$PATH:{{ directories.bin_dir | quote }}"
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc ibm-pak launch {{ case.name | quote }} \
+          --version {{ case.version | quote }} \
+          --action install-catalog \
+          --inventory ibmCommonServiceOperatorSetup \
+          --namespace openshift-marketplace \
+          --args \
+            "--registry \"{{ registry.name }}\" \
+            --recursive \
+            --inputDir \"{{ local_case_dir }}\"" 
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+
+    - name: Output create ICS catalog command result
+      ansible.builtin.debug:
+        var: response
+      when: log_level == "debug"
+
+    - name: Wait for IBM Common Services catalog to be available
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace opencloud-operators -o jsonpath='{.status.connectionState.lastObservedState}'
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "READY"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+
+    - name: Install the IBM Common Services operator
+      ansible.builtin.shell: |
+        set timeout 300
+        export PATH="$PATH:{{ directories.bin_dir | quote }}"
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc ibm-pak launch {{ case.name | quote }} \
+          --version {{ case.version | quote }} \
+          --action install-operator \
+          --inventory ibmCommonServiceOperatorSetup \
+          --namespace {{ ics.namespace }} \
+          --args "--secret \"ibm-entitlement-key\" \
+            --size \"{{ ics.size }}\" \
+            --registry \"{{ registry.name }}\" \
+            --user \"{{ registry.user }}\" \
+            --pass \"{{ registry.password }}\" \
+            --recursive \
+            --inputDir \"{{ local_case_dir }}\""
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      async: 600 
+      poll: 30
+
+    - name: Output create ICS create operator command result
+      ansible.builtin.debug:
+        var: response
+      when: log_level == "debug"
+
+    # - name: Confirm operators bound to CSV 
+    # - name: Confirm operands ready

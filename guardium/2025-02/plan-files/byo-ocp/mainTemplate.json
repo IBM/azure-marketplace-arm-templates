@@ -38,6 +38,13 @@
                 "description": "Flag to determine whether to deploy ODF on the cluster (debug only)"
             }
         },
+        "deployICS": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy IBM Common Services on the cluster (debug only)"
+            }
+        },
         "configureVM": {
             "type": "bool",
             "defaultValue": true,
@@ -151,6 +158,48 @@
             "defaultValue": "2.6.2",
             "metadata": {
                 "description": "Version of CASE repository to deploy"
+            }
+        },
+        "icsNamespace": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "Namespace for IBM Common Services"
+            }
+        },
+        "icsSize": {
+            "type": "string",
+            "defaultValue": "small",
+            "metadata": {
+                "description": "Deployment size for IBM Common Services"
+            }
+        },
+        "icsStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-ceph-rbd",
+            "metadata": {
+                "description": "Default block storage class for common services to utilise"
+            }
+        },
+        "registryName": {
+            "type": "string",
+            "defaultValue": "cp.icr.io",
+            "metadata": {
+                "description": "Container registry for IBM images"
+            }
+        },
+        "registryUser": {
+            "type": "string",
+            "defaultValue": "cp",
+            "metadata": {
+                "description": "Container registry username for IBM images"
+            }
+        },
+        "certManagerNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cert-manager",
+            "metadata": {
+                "description": "Namespace for the IBM Certificate Manager operator"
             }
         },
         "binariesDirectory": {
@@ -921,7 +970,7 @@
                         "value": "[parameters('openShiftAuthType')]"
                     },
                     "openShiftPassword": {
-                        "value": "[parameters('openShiftPassword')]"  
+                        "secureValue": "[parameters('openShiftPassword')]"  
                     },
                     "clusterSize": {
                         "value": "[parameters('odfClusterSize')]"  
@@ -931,6 +980,87 @@
                     },
                     "licenseAccepted": {
                         "value": "[parameters('acceptLicense')]" 
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployICS')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployODF')]"
+            ],
+            "name": "deployCommonServices",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-odf/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "icsNamespace": {
+                        "value": "[parameters('icsNamespace')]"
+                    },
+                    "icsSize": {
+                        "value": "[parameters('icsSize')]"
+                    },
+                    "registryName": {
+                        "value": "[parameters('registryName')]"
+                    },
+                    "registryUser": {
+                        "value": "[parameters('registryUser')]"
+                    },
+                    "certManagerNamespace": {
+                        "value": "[parameters('certManagerNamespace')]"
+                    },
+                    "defaultStorageClass": {
+                        "value": "[parameters('icsStorageClass')]"
+                    },
+                    "entitlementKey": {
+                        "secureValue": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "caseName": {
+                        "value": "[parameters('caseName')]"
+                    },
+                    "caseVersion": {
+                        "value": "[parameters('caseVersion')]"
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 

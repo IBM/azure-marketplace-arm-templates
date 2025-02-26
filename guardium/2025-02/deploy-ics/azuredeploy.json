@@ -1,6 +1,9 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
+    "metadata": {
+        "description": "Deploys IBM Foundation Services onto an OpenShift cluster"
+    },
     "parameters": {
         "namePrefix": {
             "type": "string",
@@ -31,22 +34,96 @@
                 "description": "Name of the VM Extension"
             }
         },
-        "cpdCliVersion": {
+        "icsNamespace": {
             "type": "string",
-            "defaultValue": "14.0.3",
+            "defaultValue": "gdsc",
             "metadata": {
-                "description": "Version of CPD CLI to install. Refer to https://github.com/IBM/cpd-cli"
+                "description": "Namespace for IBM Common Services"
             }
         },
-        "cpdEdition": {
+        "icsSize": {
             "type": "string",
-            "defaultValue": "EE",
+            "defaultValue": "small",
+            "metadata": {
+                "description": "Deployment size for IBM Common Services"
+            }
+        },
+        "registryName": {
+            "type": "string",
+            "defaultValue": "cp.icr.io",
+            "metadata": {
+                "description": "Container registry for IBM images"
+            }
+        },
+        "registryUser": {
+            "type": "string",
+            "defaultValue": "cp",
+            "metadata": {
+                "description": "Container registry username for IBM images"
+            }
+        },
+        "entitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "IBM Entitlement Key for access to download container images"
+            }
+        },
+        "caseName": {
+            "type": "string",
+            "defaultValue": "ibm-guardium-data-security-center",
+            "metadata": {
+                "description": "Name of the CASE repository to deploy"
+            }
+        },
+        "caseVersion": {
+            "type": "string",
+            "defaultValue": "2.6.2",
+            "metadata": {
+                "description": "Version of CASE repository to deploy"
+            }
+        },
+        "certManagerNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cert-manager",
+            "metadata": {
+                "description": "Namespace for the IBM Certificate Manager operator"
+            }
+        },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
             "allowedValues": [
-                "EE",
-                "SE"
+                "Password",
+                "Token"
             ],
             "metadata": {
-                "description": "CPD Edition, Enterprise (EE) or Standard (SE)"
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
+        "defaultStorageClass": {
+            "type": "string",
+            "defaultValue": "managed-csi",
+            "metadata": {
+                "description": "Default block storage class for common services to utilise"
             }
         },
         "logLevel": {
@@ -89,9 +166,35 @@
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
-            "cpd": {
-                "version": "[parameters('cpdCliVersion')]",
-                "edition": "[parameters('cpdEdition')]"
+            "ics": {
+                "namespace": "[parameters('icsNamespace')]",
+                "size": "[parameters('icsSize')]"
+            },
+            "registry": {
+                "name": "[parameters('registryName')]",
+                "user": "[parameters('registryUser')]",
+                "password": "[parameters('entitlementKey')]"
+            },
+            "cert_manager": {
+                "namespace": "[parameters('certManagerNamespace')]"
+            },
+            "case": {
+                "version": "[parameters('caseName')]",
+                "name": "[parameters('caseVersion')]"
+            },
+            "directories": {
+                "bin_dir": "/usr/local/bin",
+                "tmp_dir": "/tmp"
+            },
+            "env": {
+                "home": "/root"
+            },
+            "default_sc": "[parameters('defaultStorageClass')]",
+            "cluster": {
+                "api_server": "[parameters('openShiftApiUrl')]",
+                "username": "[parameters('openShiftUsername')]",
+                "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
             }
         }
     },
@@ -111,7 +214,7 @@
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
                     ],
-                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"', ' && (cd ~root ; /usr/local/bin/cpd-cli manage restart-container)')]"
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
                 }
             }
         }
