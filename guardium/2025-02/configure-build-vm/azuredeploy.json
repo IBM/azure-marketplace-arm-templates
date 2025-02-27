@@ -62,6 +62,20 @@
                 "description": "Version of Guardium Data Security Center to deploy"
             }
         },
+        "caseDataFileName": {
+            "type": "string",
+            "defaultValue": "case-info.yaml",
+            "metadata": {
+                "description": "Name of the data file containing the CASE details"
+            }
+        },
+        "homeDirectory": {
+            "type": "string",
+            "defaultValue": "/root",
+            "metadata": {
+                "description": "Home directory in which to run commands"
+            }
+        },
         "binariesDirectory": {
             "type": "string",
             "defaultValue": "/usr/local/bin",
@@ -74,6 +88,13 @@
             "defaultValue": "/tmp",
             "metadata": {
                 "description": "Temporary working directory for downloads, etc"
+            }
+        },
+        "pythonInterpreter": {
+            "type": "string",
+            "defaultValue": "/usr/bin/python3",
+            "metadata": {
+                "description": "Path to python interpreter to use for Ansible"
             }
         },
         "logLevel": {
@@ -101,6 +122,13 @@
                 "description": "Github branch for installation script"
             }
         },
+        "gitBaseDirectory": {
+            "type": "string",
+            "defaultValue": "/guardium/",
+            "metadata": {
+                "description": "Subdirectory within the GitHub repository to use"
+            }
+        },
         "deploymentVersion": {
             "type": "string",
             "defaultValue": "2025-02",
@@ -111,15 +139,15 @@
     },
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
-        "gitRepoBaseDirectory": "/guardium/",
+        "gitRepoBaseDirectory": "[parameters('gitBaseDirectory')]",
         "gitRepoDeploymentDirectory": "/configure-build-vm/",
         "scriptParameters": {
-            "ansible_python_interpreter": "/usr/bin/python3",
+            "ansible_python_interpreter": "[parameters('pythonInterpreter')]",
             "log_level": "[parameters('logLevel')]",
             "oc_version": "[parameters('ocVersion')]",
             "ibm_pak_version": "[parameters('ibmPakVersion')]",
             "casedata": {
-                "filename": "case-info.yaml"
+                "filename": "[parameters('caseDataFileName')]"
             },
             "gdsc": {
                 "version": "[parameters('gdscVersion')]"
@@ -130,6 +158,9 @@
             "directories": {
                 "bin_dir": "[parameters('binariesDirectory')]",
                 "tmp_dir": "[parameters('tmpDirectory')]"
+            },
+            "env": {
+                "home": "[parameters('homeDirectory')]"
             }
         }
     },

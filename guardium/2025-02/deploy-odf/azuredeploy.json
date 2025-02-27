@@ -86,6 +86,27 @@
                 "description": "Accept Red Hat License Terms to instantiate software."
             }
         },
+        "binariesDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Directory for CLI binaries"
+            }
+        },
+        "tmpDirectory": {
+            "type": "string",
+            "defaultValue": "/tmp",
+            "metadata": {
+                "description": "Temporary working directory for downloads, etc"
+            }
+        },
+        "pythonInterpreter": {
+            "type": "string",
+            "defaultValue": "/usr/bin/python3",
+            "metadata": {
+                "description": "Path to python interpreter to use for Ansible"
+            }
+        },
         "logLevel": {
             "type": "string",
             "defaultValue": "info",
@@ -102,6 +123,13 @@
             "defaultValue": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
             "metadata": {
                 "description": "URL for the GitHub repository containing the files to download"
+            }
+        },
+        "gitBaseDirectory": {
+            "type": "string",
+            "defaultValue": "/guardium/",
+            "metadata": {
+                "description": "Subdirectory within the GitHub repository to use"
             }
         },
         "branch": {
@@ -121,10 +149,10 @@
     },
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
-        "gitRepoBaseDirectory": "/guardium/",
+        "gitRepoBaseDirectory": "[parameters('gitBaseDirectory')]",
         "gitRepoDeploymentDirectory": "/deploy-odf/",
         "scriptParameters": {
-            "ansible_python_interpreter": "/usr/bin/python3",
+            "ansible_python_interpreter": "[parameters('pythonInterpreter')]",
             "log_level": "[parameters('logLevel')]",
             "odf": {
                 "license": "[parameters('licenseAccepted')]",
@@ -136,6 +164,10 @@
                 "username": "[parameters('openShiftUsername')]",
                 "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
                 "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
+            },
+            "directories": {
+                "bin_dir": "[parameters('binariesDirectory')]",
+                "tmp_dir": "[parameters('tmpDirectory')]"
             }
         }
     },

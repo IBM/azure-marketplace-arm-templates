@@ -440,7 +440,10 @@
     "variables": {
         "gitRepositoryUrl": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
         "baseUrl": "[uri(variables('gitRepositoryUrl'),parameters('branch'))]",
-        "gitRepoBaseDirectory": "/guardium/"
+        "gitRepoBaseDirectory": "/guardium/",
+        "caseDataFileName": "case-info.yaml",
+        "homeDirectory": "/root",
+        "pythonInterpreter": "/usr/bin/python3"
     },
     "resources": [
         { 
@@ -911,11 +914,23 @@
                     "tmpDirectory": {
                         "value": "[parameters('tmpDirectory')]"
                     },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -974,11 +989,23 @@
                     "licenseAccepted": {
                         "value": "[parameters('acceptLicense')]" 
                     },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
@@ -1049,11 +1076,26 @@
                     "entitlementKey": {
                         "secureValue": "[parameters('ibmEntitlementKey')]"
                     },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
