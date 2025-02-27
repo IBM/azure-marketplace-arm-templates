@@ -52,6 +52,7 @@
     register: oc_file
 
   - name: Install oc cli if not already present
+    when: not oc_file.stat.exists  
     block:
     - name: Set version to stable if not provided
       ansible.builtin.set_fact:
@@ -106,8 +107,6 @@
         dest: "{{ directories.bin_dir }}/oc"
         mode: '0755'
       become: true
-    
-    when: not oc_file.stat.exists
 
   - name: Check if already logged into cluster (and if logged in with cluster admin role)
     ansible.builtin.shell: |
@@ -118,11 +117,6 @@
     args:
       executable: /bin/bash
     register: response
-
-  - name: Output response
-    debug:
-      var: response
-    when: log_level == "debug"
 
   - name: Login to OpenShift cluster if not already logged in
     block:
