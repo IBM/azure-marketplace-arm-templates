@@ -1,5 +1,5 @@
 ---
-- name: Install the IBM Common Services on the OpenShift cluster for Guardium Data Security Center
+- name: Install the IBM Common Services on the OpenShift cluster for Guardium Data Security
   hosts: localhost
   gather_facts: false
   become: yes
