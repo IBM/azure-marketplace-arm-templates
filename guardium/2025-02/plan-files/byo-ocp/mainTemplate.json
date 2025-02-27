@@ -153,13 +153,6 @@
                 "description": "Name of the CASE repository to deploy"
             }
         },
-        "caseVersion": {
-            "type": "string",
-            "defaultValue": "2.6.2",
-            "metadata": {
-                "description": "Version of CASE repository to deploy"
-            }
-        },
         "icsNamespace": {
             "type": "string",
             "defaultValue": "gdsc",
@@ -909,8 +902,8 @@
                     "caseName": {
                         "value": "[parameters('caseName')]"
                     },
-                    "caseVersion": {
-                        "value": "[parameters('caseVersion')]"
+                    "gdscVersion": {
+                        "value": "[parameters('gdscVersion')]"
                     },
                     "binariesDirectory": {
                         "value": "[parameters('binariesDirectory')]"
