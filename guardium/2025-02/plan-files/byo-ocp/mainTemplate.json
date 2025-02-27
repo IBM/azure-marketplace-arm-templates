@@ -1056,12 +1056,6 @@
                     "entitlementKey": {
                         "secureValue": "[parameters('ibmEntitlementKey')]"
                     },
-                    "caseName": {
-                        "value": "[parameters('caseName')]"
-                    },
-                    "caseVersion": {
-                        "value": "[parameters('caseVersion')]"
-                    },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
                     },
