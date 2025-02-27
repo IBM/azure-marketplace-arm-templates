@@ -68,20 +68,6 @@
                 "description": "IBM Entitlement Key for access to download container images"
             }
         },
-        "caseName": {
-            "type": "string",
-            "defaultValue": "ibm-guardium-data-security-center",
-            "metadata": {
-                "description": "Name of the CASE repository to deploy"
-            }
-        },
-        "caseVersion": {
-            "type": "string",
-            "defaultValue": "2.6.2",
-            "metadata": {
-                "description": "Version of CASE repository to deploy"
-            }
-        },
         "certManagerNamespace": {
             "type": "string",
             "defaultValue": "ibm-cert-manager",
@@ -153,7 +139,7 @@
         },
         "deploymentVersion": {
             "type": "string",
-            "defaultValue": "2024-10",
+            "defaultValue": "2025-02",
             "metadata": {
                 "description": "Deployment version to use"
             }
@@ -161,8 +147,8 @@
     },
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
-        "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/install-cpd-cli/",
+        "gitRepoBaseDirectory": "/guardium/",
+        "gitRepoDeploymentDirectory": "/deploy-ics/",
         "scriptParameters": {
             "ansible_python_interpreter": "/usr/bin/python3",
             "log_level": "[parameters('logLevel')]",
@@ -178,9 +164,8 @@
             "cert_manager": {
                 "namespace": "[parameters('certManagerNamespace')]"
             },
-            "case": {
-                "version": "[parameters('caseName')]",
-                "name": "[parameters('caseVersion')]"
+            "casedata": {
+                "filename": "case-info.yaml"
             },
             "directories": {
                 "bin_dir": "/usr/local/bin",

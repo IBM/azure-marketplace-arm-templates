@@ -9,8 +9,11 @@
     log_level: "info"
     oc_version: "stable-4.17"
     ibm_pak_version: "v1.16.3"
+    casedata: 
+      filename: "case-info.yaml"
+    gdsc:
+      version: "3.6.2"
     case:
-      version: "2.6.2"
       name: "ibm-guardium-data-security-center"
     directories:
       bin_dir: "/usr/local/bin"
@@ -207,6 +210,49 @@
       ansible.builtin.file:
         path: "{{ directories.tmp_dir }}/oc-ibm_pak-{{ os_type }}-{{ arch }}"
         state: absent
+
+  - name: Get the case version
+    when: case.version is not defined
+    block: 
+    - name: Download the index
+      ansible.builtin.get_url:
+        url: "https://github.com/IBM/cloud-pak/raw/refs/heads/master/repo/case/{{ case.name}}/index.yaml"
+        dest: "{{ directories.tmp_dir }}"
+      register: case_index_file
+
+    - name: Read the index file
+      ansible.builtin.set_fact:
+        case_index: "{{ lookup('template', case_index_file.dest) | from_yaml }}"
+
+    - name: Output the index versions
+      ansible.builtin.debug:
+        msg: "{{ case_index.versions }}"
+      when: log_level == "debug"
+
+    - name: Get the relevant CASE version
+      ansible.builtin.set_fact:
+        case_version: "{{ item.key }}"
+      loop: "{{ case_index.versions | dict2items  }}"
+      when: "'{{ gdsc.version }}' in item.value.appVersion"
+
+    - name: Output the relevant case version for app version {{ gdsc.version }}
+      ansible.builtin.debug:
+        var: case_version
+      when: log_level == "debug"
+
+  - name: Write case details for future extensions to use
+    block:
+    - name: Write case version fact to file
+      ansible.builtin.lineinfile:
+        path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
+        line: "version: {{ case_version }}"
+        create: yes
+
+    - name: Write the case name fact to file
+      ansible.builtin.lineinfile:
+        path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
+        line: "name: {{ case.name }}"
+        create: yes
 
   - name: Download CASE files
     ansible.builtin.shell: |

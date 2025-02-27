@@ -16,9 +16,8 @@
       password: "ibm_entitlement_key"
     cert_manager:
       namespace: "gdsc"
-    case:
-      version: "2.6.2"
-      name: "ibm-guardium-data-security-center"
+    casedata: 
+      filename: "case-info.yaml"
     directories:
       bin_dir: "/usr/local/bin"
       tmp_dir: "/tmp"
@@ -30,6 +29,22 @@
       retry_delay: 15
 
   tasks:
+
+  - name: Read the CASE details
+    when: (case.name is not defined) || (case.version is not defined)
+    block:
+    - name: Built path to case datafile
+      ansible.builtin.set_fact:
+        datafile_path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
+
+    - name: Read the case data file
+      ansible.builtin.set_fact:
+        case: "{{ lookup('template', datafile_path) | from_yaml }}"
+
+    - name: Output the case details
+      ansible.builtin.debug:
+        msg: "Case name: {{ case.name }}      Case version: {{ case.version }}"
+      when: log_level == "debug"
 
   - name: Check if oc client is already installed
     ansible.builtin.stat:

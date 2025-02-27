@@ -55,11 +55,11 @@
                 "description": "Name of the CASE repository to deploy"
             }
         },
-        "caseVersion": {
+        "gdscVersion": {
             "type": "string",
-            "defaultValue": "2.6.2",
+            "defaultValue": "3.6.2",
             "metadata": {
-                "description": "Version of CASE repository to deploy"
+                "description": "Version of Guardium Data Security Center to deploy"
             }
         },
         "binariesDirectory": {
@@ -118,9 +118,14 @@
             "log_level": "[parameters('logLevel')]",
             "oc_version": "[parameters('ocVersion')]",
             "ibm_pak_version": "[parameters('ibmPakVersion')]",
+            "casedata": {
+                "filename": "case-info.yaml"
+            },
+            "gdsc": {
+                "version": "[parameters('gdscVersion')]"
+            },
             "case": {
-                "name": "[parameters('caseName')]",
-                "version": "[parameters('caseVersion')]"
+                "name": "[parameters('caseName')]"
             },
             "directories": {
                 "bin_dir": "[parameters('binariesDirectory')]",
