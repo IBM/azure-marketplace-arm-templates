@@ -113,7 +113,6 @@
   - name: Check if already logged into cluster (and if logged in with cluster admin role)
     ansible.builtin.shell: |
       set timeout 30
-      export HOME={{ env.home | quote }}
       {{ directories.bin_dir }}/oc get co 2> /dev/null
       exit 0
     args:
