@@ -45,6 +45,13 @@
                 "description": "Flag to determine whether to deploy IBM Common Services on the cluster (debug only)"
             }
         },
+        "createDB2Nodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create and configure the DB2 nodes (debug only)"
+            }
+        },
         "configureVM": {
             "type": "bool",
             "defaultValue": true,
@@ -153,9 +160,16 @@
                 "description": "Name of the CASE repository to deploy"
             }
         },
-        "icsNamespace": {
+        "gdscNamespace": {
             "type": "string",
             "defaultValue": "gdsc",
+            "metadata": {
+                "description": "OpenShift namespace for Guardium Data Security Center"
+            }
+        },
+        "icsNamespace": {
+            "type": "string",
+            "defaultValue": "[parameters('gdscNamespace')]",
             "metadata": {
                 "description": "Namespace for IBM Common Services"
             }
@@ -193,6 +207,72 @@
             "defaultValue": "ibm-cert-manager",
             "metadata": {
                 "description": "Namespace for the IBM Certificate Manager operator"
+            }
+        },
+        "db2NodeType": {
+            "type": "string",
+            "defaultValue": "Standard_D16s_v3",
+            "metadata": {
+                "description": "Type of GPU node to be deployed"
+            }
+        },
+        "db2NodeQty": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Number of db2 nodes to deploy per zone"
+            }
+        },
+        "db2NodeStorageType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "metadata": {
+                "description": "Type of managed disk to be attached to the node"
+            }
+        },
+        "db2NodeDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "metadata": {
+                "description": "Size of the root disk for the GPU node"
+            }
+        },
+        "db2NodeName": {
+            "type": "string",
+            "defaultValue": "db2",
+            "metadata": {
+                "description": "Machineset naming identifier"
+            }
+        },
+        "taintDb2Nodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether DB2 node/s can be used for non-DB2 related workloads or not (taint/set true to prevent other workloads)"
+            }
+        },
+        "labelDb2Nodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the DB2 nodes should be labelled for DB2 use"
+            }
+        },
+        "db2nodeZones": {
+            "type": "array",
+            "defaultValue": [
+                0,
+                1
+            ],
+            "metadata": {
+                "description": "The Azure availability zones containing the db2 nodes."
+            }
+        },
+        "db2Namespace": {
+            "type": "string",
+            "defaultValue": "[parameters('gdscNamespace')]",
+            "metadata": {
+                "description": "OpenShift namespace for the DB2 operator"
             }
         },
         "binariesDirectory": {
@@ -1076,6 +1156,9 @@
                     "entitlementKey": {
                         "secureValue": "[parameters('ibmEntitlementKey')]"
                     },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
                     "binariesDirectory": {
                         "value": "[parameters('binariesDirectory')]"
                     },
@@ -1090,6 +1173,105 @@
                     },
                     "logLevel": {
                         "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployCommonServices')]"
+            ],
+            "name": "createDB2Nodes",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/create-db2-machinesets/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "nodeType": {
+                        "value": "[parameters('db2NodeType')]"   
+                    },
+                    "nodeQty": {
+                        "value": "[parameters('db2NodeQty')]"   
+                    },
+                    "nodeStorageType": {
+                        "value": "[parameters('db2NodeStorageType')]" 
+                    },
+                    "nodeDiskSize": {
+                        "value": "[parameters('db2NodeDiskSize')]"  
+                    },
+                    "nodeName": {
+                        "value": "[parameters('db2NodeName')]" 
+                    },
+                    "taintNodes": {
+                        "value": "[parameters('taintDb2Nodes')]" 
+                    },
+                    "labelNodes": {
+                        "value": "[parameters('labelDb2Nodes')]"
+                    },
+                    "nodeZone": {
+                        "value": "[parameters('db2nodeZones')]"
+                    },
+                    "namespace": {
+                        "value": "[parameters('db2Namespace')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
                     },
                     "gitRepositoryUrl": {
                         "value": "[variables('gitRepositoryUrl')]"

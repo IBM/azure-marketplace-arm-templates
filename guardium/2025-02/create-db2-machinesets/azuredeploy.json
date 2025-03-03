@@ -63,35 +63,35 @@
         },
         "nodeType": {
             "type": "string",
-            "defaultValue": "Standard_NC24ads_A100_v4",
+            "defaultValue": "Standard_D16s_v3",
             "metadata": {
-                "description": "Type of GPU node to be deployed"
+                "description": "Type of DB2 nodes to be deployed"
             }
         },
         "nodeQty": {
             "type": "int",
             "defaultValue": 1,
             "metadata": {
-                "description": "Number of GPU nodes to deploy"
+                "description": "Number of DB2 nodes to deploy per zone"
             }
         },
         "nodeStorageType": {
             "type": "string",
             "defaultValue": "Premium_LRS",
             "metadata": {
-                "description": "Type of managed disk to be attached to the node"
+                "description": "Type of OS disk for the node"
             }
         },
         "nodeDiskSize": {
             "type": "int",
-            "defaultValue": 512,
+            "defaultValue": 256,
             "metadata": {
-                "description": "Size of the root disk for the GPU node"
+                "description": "Size of the OS disk for the db2 node"
             }
         },
         "nodeName": {
             "type": "string",
-            "defaultValue": "gpu",
+            "defaultValue": "db2",
             "metadata": {
                 "description": "Machineset naming identifier"
             }
@@ -100,14 +100,31 @@
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": "Flag to determine whether GPU node/s can be used for non-GPU related workloads or not (taint/set true to prevent other workloads)"
+                "description": "Flag to determine whether DB2 node/s can be used for non-db2 related workloads or not (taint/set true to prevent other workloads)"
             }
         },
-        "nodeZone": {
-            "type": "int",
-            "defaultValue": 0,
+        "labelNodes": {
+            "type": "bool",
+            "defaultValue": true,
             "metadata": {
-                "description": "The Azure availability zone containing the GPU nodes. Set to zero to attempt to determine automatically. Refer to documentation to determine zone"
+                "description": "Flag to determine whether the DB2 nodes should be labelled for DB2 use"
+            }
+        },
+        "nodeZones": {
+            "type": "array",
+            "defaultValue": [
+                0,
+                1
+            ],
+            "metadata": {
+                "description": "The Azure availability zones containing the db2 nodes."
+            }
+        },
+        "namespace": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "OpenShift namespace for the DB2 operator"
             }
         },
         "logLevel": {
@@ -121,11 +138,39 @@
                 "description": "Log level for Ansible playbook"
             }
         },
-        "binDirectory": {
+        "homeDirectory": {
+            "type": "string",
+            "defaultValue": "/root",
+            "metadata": {
+                "description": "Home directory in which to run commands"
+            }
+        },
+        "caseDataFileName": {
+            "type": "string",
+            "defaultValue": "case-info.yaml",
+            "metadata": {
+                "description": "Name of the data file containing the CASE details"
+            }
+        },
+        "binariesDirectory": {
             "type": "string",
             "defaultValue": "/usr/local/bin",
             "metadata": {
-                "description": "Location of CLI binaries"
+                "description": "Directory for CLI binaries"
+            }
+        },
+        "tmpDirectory": {
+            "type": "string",
+            "defaultValue": "/tmp",
+            "metadata": {
+                "description": "Temporary working directory for downloads, etc"
+            }
+        },
+        "pythonInterpreter": {
+            "type": "string",
+            "defaultValue": "/usr/bin/python3",
+            "metadata": {
+                "description": "Path to python interpreter to use for Ansible"
             }
         },
         "gitRepositoryUrl": {
@@ -142,6 +187,13 @@
                 "description": "Github branch for installation script"
             }
         },
+        "gitBaseDirectory": {
+            "type": "string",
+            "defaultValue": "/guardium/",
+            "metadata": {
+                "description": "Subdirectory within the GitHub repository to use"
+            }
+        },
         "deploymentVersion": {
             "type": "string",
             "defaultValue": "2024-10",
@@ -152,19 +204,27 @@
     },
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
-        "gitRepoBaseDirectory": "/watsonx/",
-        "gitRepoDeploymentDirectory": "/create-gpu-machinesets/",
+        "gitRepoBaseDirectory": "[parameters('gitBaseDirectory')]",
+        "gitRepoDeploymentDirectory": "/create-db2-machinesets/",
         "scriptParameters": {
-            "ansible_python_interpreter": "/usr/bin/python3",
+            "ansible_python_interpreter": "[parameters('pythonInterpreter')]",
             "log_level": "[parameters('logLevel')]",
-            "gpu": {
+            "casedata": {
+                "filename": "[parameters('caseDataFileName')]"
+            },
+            "db2": {
                 "node_type": "[parameters('nodeType')]",
-                "qty": "[parameters('nodeQty')]",
+                "namespace": "[parameters('namespace')]",
+                "zone_qty": "[parameters('nodeQty')]",
                 "storage_type": "[parameters('nodeStorageType')]",
                 "disk_size": "[parameters('nodeDiskSize')]",
                 "name": "[parameters('nodeName')]",
-                "taint_nodes": "[parameters('taintNodes')]",
-                "zone": "[parameters('nodeZone')]"
+                "label_nodes": "[if(parameters('labelNodes'),'true','false')]",
+                "taint_nodes": "[if(parameters('taintNodes'),'true','false')]",
+                "zones": "[parameters('nodeZones')]"
+            },
+            "env": {
+                "home": "[parameters('homeDirectory')]"
             },
             "cluster": {
                 "api_server": "[parameters('openShiftApiUrl')]",
@@ -173,8 +233,8 @@
                 "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
             },
             "directories": {
-                "bin_dir": "[parameters('binDirectory')]",
-                "tmp_dir": "/tmp"
+                "bin_dir": "[parameters('binariesDirectory')]",
+                "tmp_dir": "[parameters('tmpDirectory')]"
             }
         }
     },
@@ -192,10 +252,8 @@
                 "protectedSettings": {
                     "fileUris": [
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/templates/machineset.j2'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/az-login.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/install-oc.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/create-db2-machine.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
-                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/oc-login.yaml'))]",
                         "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
                     ],
                     "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
