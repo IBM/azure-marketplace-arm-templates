@@ -2,7 +2,7 @@
 - name: Configure the build VM for IBM Guardium Data Security Center on OpenShift
   hosts: localhost
   gather_facts: true
-  become: yes
+  become: no
 
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
@@ -254,32 +254,12 @@
         line: "name: {{ case.name }}"
         create: yes
 
-  - name: Read the CASE details for this playbook
-    block:
-    - name: Built path to case datafile
-      ansible.builtin.set_fact:
-        datafile_path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
-
-    - name: Read the case data file
-      ansible.builtin.set_fact:
-        case: "{{ lookup('template', datafile_path) | from_yaml }}"
-
-    - name: Output the case data (raw)
-      ansible.builtin.debug:
-        var: case
-      when: log_level == "debug"
-
-    - name: Output the case details
-      ansible.builtin.debug:
-        msg: "Case name: {{ case.name }}      Case version: {{ case.version }}"
-      when: log_level == "debug"
-
   - name: Download CASE files
     ansible.builtin.shell: |
       set timeout 30
       export PATH=$PATH:{{ directories.bin_dir }}
       export HOME={{ env.home }}
-      oc ibm-pak get {{ case.name }} --version {{ case.version }} --skip-verify 1> /dev/null
+      oc ibm-pak get {{ case.name }} --version {{ case_version }} --skip-verify 1> /dev/null
       exit 0
     register: response 
 
@@ -290,21 +270,21 @@
 
   - name: Fail if unsuccessful
     ansible.builtin.fail:
-      msg: "Unable download the {{ case.name }} CASE directory for {{ case.version }}"
+      msg: "Unable download the {{ case.name }} CASE directory for {{ case_version }}"
     when: response.stdout != ''
 
   - name: Set local case directory
     ansible.builtin.set_fact:
-      local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"    
+      local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case_version }}"    
 
   - name: Extract the CASE bundle
     ansible.builtin.command:
-        tar xzf {{ local_case_dir }}/{{ case.name }}-{{ case.version }}.tgz --dir {{ local_case_dir }}
+        tar xzf {{ local_case_dir }}/{{ case.name }}-{{ case_version }}.tgz --dir {{ local_case_dir }}
     register: result
 
   - name: Fail if unable to extract tar file
     ansible.builtin.fail:
-      msg: "Unable to extract CASE bundle {{ local_case_dir }}/{{ case.name }}-{{ case.version }}.tgz"
+      msg: "Unable to extract CASE bundle {{ local_case_dir }}/{{ case.name }}-{{ case_version }}.tgz"
     when: result.failed
 
 
