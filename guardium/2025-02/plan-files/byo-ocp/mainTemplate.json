@@ -261,8 +261,8 @@
         "db2nodeZones": {
             "type": "array",
             "defaultValue": [
-                0,
-                1
+                1,
+                2
             ],
             "metadata": {
                 "description": "The Azure availability zones containing the db2 nodes."
