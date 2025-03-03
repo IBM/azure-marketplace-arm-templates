@@ -255,7 +255,6 @@
         create: yes
 
   - name: Read the CASE details for this playbook
-    when: (case.name is not defined) || (case.version is not defined)
     block:
     - name: Built path to case datafile
       ansible.builtin.set_fact:
