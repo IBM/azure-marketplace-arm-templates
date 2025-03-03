@@ -320,8 +320,6 @@
       retries: "{{ default.retries }}"
       delay: "{{ default.retry_delay }}"
 
-    # - name: Confirm operator installation
-
   - name: Set the default storage class for IBM Cloud Pak Foundation Services
     block:
     - name: Patch the default storage class
@@ -358,7 +356,13 @@
         {{ directories.bin_dir }}/oc create namespace {{ ics.namespace | quote }} 1> /dev/null
       args:
         executable: /bin/bash
-      when: response.stderr != ""
+      when: response.stdout == ""
+      failed_when: response.stderr != ""
+
+    - name: Output result of command
+      ansible.builtin.debug:
+        var: response
+      when: log_level == "debug"
 
     - name: Set local case directory
       ansible.builtin.set_fact:
