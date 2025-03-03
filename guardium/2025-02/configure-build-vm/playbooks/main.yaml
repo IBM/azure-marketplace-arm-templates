@@ -254,6 +254,22 @@
         line: "name: {{ case.name }}"
         create: yes
 
+  - name: Read the CASE details for this playbook
+    when: (case.name is not defined) || (case.version is not defined)
+    block:
+    - name: Built path to case datafile
+      ansible.builtin.set_fact:
+        datafile_path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
+
+    - name: Read the case data file
+      ansible.builtin.set_fact:
+        case: "{{ lookup('template', datafile_path) | from_yaml }}"
+
+    - name: Output the case details
+      ansible.builtin.debug:
+        msg: "Case name: {{ case.name }}      Case version: {{ case.version }}"
+      when: log_level == "debug"
+
   - name: Download CASE files
     ansible.builtin.shell: |
       set timeout 30
