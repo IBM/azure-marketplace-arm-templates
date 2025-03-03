@@ -1058,7 +1058,7 @@
                         "value": "[parameters('openShiftAuthType')]"
                     },
                     "openShiftPassword": {
-                        "secureValue": "[parameters('openShiftPassword')]"  
+                        "value": "[parameters('openShiftPassword')]"  
                     },
                     "clusterSize": {
                         "value": "[parameters('odfClusterSize')]"  
@@ -1107,7 +1107,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-odf/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-ics/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -1154,7 +1154,7 @@
                         "value": "[parameters('icsStorageClass')]"
                     },
                     "entitlementKey": {
-                        "secureValue": "[parameters('ibmEntitlementKey')]"
+                        "value": "[parameters('ibmEntitlementKey')]"
                     },
                     "caseDataFileName": {
                         "value": "[variables('caseDataFileName')]"
@@ -1192,7 +1192,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "",
+            "condition": "[parameters('createDB2Nodes')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployCommonServices')]"
             ],
@@ -1249,7 +1249,7 @@
                     "labelNodes": {
                         "value": "[parameters('labelDb2Nodes')]"
                     },
-                    "nodeZone": {
+                    "nodeZones": {
                         "value": "[parameters('db2nodeZones')]"
                     },
                     "namespace": {
