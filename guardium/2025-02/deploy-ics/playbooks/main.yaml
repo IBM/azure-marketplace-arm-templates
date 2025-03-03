@@ -201,7 +201,8 @@
         {{ directories.bin_dir }}/oc create namespace {{ cert_manager.namespace | quote }} 1> /dev/null
       args:
         executable: /bin/bash
-      when: response.stderr != ""
+      when: response.stdout == ""
+      failed_when: response.failed
 
     - name: Set local case directory
       ansible.builtin.set_fact:
@@ -277,6 +278,11 @@
       ansible.builtin.debug:
         var: response
       when: log_level == "debug"
+
+    - name: Fail if command unsuccessful
+      ansible.builtin.fail:
+        msg: "Unable to install IBM Common Services operators in {{ cert_manager.namespace }} for {{ case.name }} version {{ case.verison }}"
+      when: response.failed
 
     - name: Set the cert manager subscription template file name
       ansible.builtin.set_fact:
