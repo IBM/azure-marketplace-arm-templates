@@ -204,6 +204,11 @@
       when: response.stdout == ""
       failed_when: response.failed
 
+    - name: Output command result
+      ansible.builtin.debug:
+        var: response
+      when: log_level == "debug"
+
     - name: Set local case directory
       ansible.builtin.set_fact:
         local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"
