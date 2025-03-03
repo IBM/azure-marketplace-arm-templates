@@ -273,6 +273,11 @@
         executable: /bin/bash
       register: response
 
+    - name: Output command result
+      ansible.builtin.debug:
+        var: response
+      when: log_level == "debug"
+
     - name: Set the cert manager subscription template file name
       ansible.builtin.set_fact:
         subscription_template: "{{ local_case_dir }}/{{ case.name }}/inventory/ibmCertManagerOperatorSetup/files/op-olm/subscription.yaml"
