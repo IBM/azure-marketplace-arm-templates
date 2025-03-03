@@ -264,6 +264,11 @@
       ansible.builtin.set_fact:
         case: "{{ lookup('template', datafile_path) | from_yaml }}"
 
+    - name: Output the case data (raw)
+      ansible.builtin.debug:
+        var: case
+      when: log_level == "debug"
+
     - name: Output the case details
       ansible.builtin.debug:
         msg: "Case name: {{ case.name }}      Case version: {{ case.version }}"
