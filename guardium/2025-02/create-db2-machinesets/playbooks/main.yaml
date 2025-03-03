@@ -156,7 +156,6 @@
     - name: Log into the OpenShift cluster with credentials
       ansible.builtin.shell: |
         set timeout 30
-        export HOME={{ env.home | quote }}
         {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --password={{ cluster.password }} --insecure-skip-tls-verify=true 2> /dev/null 
         exit 0
       args:
@@ -171,7 +170,6 @@
     - name: Log into the OpenShift cluster with token
       ansible.builtin.shell: |
         set timeout 30
-        export HOME={{ env.home | quote }}
         {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster_token }} --insecure-skip-tls-verify=true 2> /dev/null 
         exit 0
       args:
@@ -448,7 +446,6 @@
   - name: Run the DB2 pre-install script
     ansible.builtin.shell: |
       set timeout 600
-      export HOME="{{ env.home }}"
       {{ directories.bin_dir}}/oc ibm-pak launch {{ case.name }} \
         --version {{ case.version }} \
         --inventory install \
