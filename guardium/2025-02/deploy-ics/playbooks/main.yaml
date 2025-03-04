@@ -463,7 +463,7 @@
     - name: Confirm common services operands are running
       ansible.builtin.shell: |
         set timeout 60
-        export HHOME="{{ env.home }}"
+        export HOME="{{ env.home }}"
         {{ directories.bin_dir }}/oc get operandrequest -n {{ ics.namespace }} {{ item }} -o jsonpath='{.status.phase}{"\n"}'
         exit 0
       args:
