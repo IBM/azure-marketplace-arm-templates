@@ -459,3 +459,20 @@
         - ibm-events-operator
         - ibm-iam-operator
         - operand-deployment-lifecycle-manager-app
+
+    - name: Confirm common services operands are running
+      ansible.builtin.shell: |
+        set timeout 60
+        export HHOME="{{ env.home }}"
+        {{ directories.bin_dir }}/oc get operandrequest -n {{ ics.namespace }} {{ item }} -o jsonpath='{.status.phase}{"\n"}'
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Ready"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      loop:
+        - common-service
+        - ibm-iam-request
+        - postgresql-operator-request
