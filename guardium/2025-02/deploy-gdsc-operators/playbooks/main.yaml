@@ -246,11 +246,11 @@
     ansible.builtin.shell: |
       set timeout 60
       export HOME="{{ env.home }}"
-      CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ operator.namespace }} {{ item }} -o jsonpath='{.status.currentCSV}' )
+      CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ gdsc.namespace }} {{ item }} -o jsonpath='{.status.currentCSV}' )
       if [[ "$CSV" == "null" ]]; then
         echo "PendingCSV"
       else
-        echo $({{ directories.bin_dir }}/oc get csv -n {{ operator.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+        echo $({{ directories.bin_dir }}/oc get csv -n {{ gdsc.namespace }} ${CSV} -o jsonpath='{.status.phase}')
       fi
       exit 0
     args:
@@ -261,8 +261,5 @@
     delay: "{{ default.retry_delay }}"
     loop:
       - ibm-redis-cp-operator-catalog-subscription
-
-      # - db2uOperatorSetup
-      # - mongodbOperator
-      # - noobaaOperator
-      # - guardiumDataSecurityCenterOperator
+      - ibm-db2uoperator-catalog-subscription
+      - ibm-guardium-insights-operator-subscription
