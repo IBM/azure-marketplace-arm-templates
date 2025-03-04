@@ -113,6 +113,7 @@
   - name: Check if already logged into cluster (and if logged in with cluster admin role)
     ansible.builtin.shell: |
       set timeout 30
+      export HOME={{ env.home | quote }}
       {{ directories.bin_dir }}/oc get co 2> /dev/null
       exit 0
     args:
@@ -155,6 +156,7 @@
     - name: Log into the OpenShift cluster with credentials
       ansible.builtin.shell: |
         set timeout 30
+        export HOME={{ env.home | quote }}
         {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --password={{ cluster.password }} --insecure-skip-tls-verify=true 2> /dev/null 
         exit 0
       args:
@@ -169,6 +171,7 @@
     - name: Log into the OpenShift cluster with token
       ansible.builtin.shell: |
         set timeout 30
+        export HOME={{ env.home | quote }}
         {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster_token }} --insecure-skip-tls-verify=true 2> /dev/null 
         exit 0
       args:
@@ -196,6 +199,7 @@
   - name: Wait for cluster to be available
     ansible.builtin.shell: |
       set timeout 900
+      export HOME={{ env.home | quote }}
       {{ directories.bin_dir }}/oc adm wait-for-stable-cluster --minimum-stable-period {{ default.cluster_stable_min }}
       exit 0
     args:
@@ -204,8 +208,9 @@
   - name: Collect information about cluster and existing machinesets
     block: 
     - name: Get the cluster id
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{\"\\n\"}' infrastructure cluster"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{\"\\n\"}' infrastructure cluster
       register: response
 
     - name: Set the cluster id fact
@@ -218,8 +223,9 @@
       when: log_level == "debug"
 
     - name: Get the openshift version
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,\".\"); print version[1],version[2]}' | sed 's/ /./g'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,\".\"); print version[1],version[2]}' | sed 's/ /./g'
       register: response
 
     - name: Set the openshift version fact
@@ -232,8 +238,9 @@
       when: log_level == "debug"
 
     - name: Get the first machineset
-      ansible.builtin.shell: 
-        cmd: "{{ directories.bin_dir }}/oc get machinesets -A | grep openshift-machine-api | head -n 1 | awk '{print $2}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machinesets -A | grep openshift-machine-api | head -n 1 | awk '{print $2}'
       register: response
     
     - name: Set the machineset fact
@@ -246,8 +253,9 @@
       when: log_level == "debug"
 
     - name: Get the cluster location from the first machineset
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ first_machineset }} -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.location}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ first_machineset }} -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.location}{\"\\n\"}'
       register: response
 
     - name: Set the location fact
@@ -260,8 +268,9 @@
       when: log_level == "debug"
 
     - name: Get the image SKU
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{\"\\n\"}'
       register: response
 
     - name: Set the Image SKU fact
@@ -274,8 +283,9 @@
       when: log_level == "debug"
 
     - name: Get the image offer
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.offer}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.offer}{\"\\n\"}'
       register: response
 
     - name: Set the image offer fact
@@ -288,8 +298,9 @@
       when: log_level == "debug"
 
     - name: Get the image version
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{\"\\n\"}'
       register: response
 
     - name: Set the image version fact
@@ -302,8 +313,9 @@
       when: log_level == "debug"
 
     - name: Get the image publisher
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.publisher}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.publisher}{\"\\n\"}'
       register: response
 
     - name: Set the image publisher fact
@@ -316,8 +328,9 @@
       when: log_level == "debug"
 
     - name: Get the image resource id
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.resourceID}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.resourceID}{\"\\n\"}'
       register: response
 
     - name: Set the image resource id fact
@@ -330,8 +343,9 @@
       when: log_level == "debug"
 
     - name: Get the OpenShift resource group
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{\"\\n\"}'
       register: response
 
     - name: Set the OpenShift resource group fact
@@ -344,8 +358,9 @@
       when: log_level == "debug"
 
     - name: Get the network resource group
-      ansible.builtin.shell: 
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.networkResourceGroup}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.networkResourceGroup}{\"\\n\"}'
       register: response
 
     - name: Set the network resource group
@@ -357,8 +372,9 @@
         msg: "Network resource group is {{ network_resource_group }}"
 
     - name: Get the VNet name
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{\"\\n\"}'
       register: response
 
     - name: Set the VNet name fact
@@ -371,8 +387,9 @@
       when: log_level == "debug"
 
     - name: Get the Subnet name
-      ansible.builtin.shell:
-        cmd: "{{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.subnet}{\"\\n\"}'"
+      ansible.builtin.shell: |
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.subnet}{\"\\n\"}'
       register: response
 
     - name: Set the subnet name fact
@@ -394,8 +411,9 @@
       minutes: 1
 
   - name: Wait for machinesets to be available
-    ansible.builtin.shell:
-      cmd: "{{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'"
+    ansible.builtin.shell: |
+      export HOME={{ env.home | quote }}
+      {{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'
     args:
       executable: /bin/bash
     register: response
@@ -411,6 +429,7 @@
   - name: Get the node names
     ansible.builtin.shell: |
       set timeout 15
+      export HOME={{ env.home | quote }}
       {{ directories.bin_dir }}/oc get nodes | grep db2 | awk '{print $1}'
     args:
       executable: /bin/bash
@@ -445,6 +464,7 @@
   - name: Run the DB2 pre-install script
     ansible.builtin.shell: |
       set timeout 600
+      export HOME={{ env.home | quote }}
       {{ directories.bin_dir}}/oc ibm-pak launch {{ case.name }} \
         --version {{ case.version }} \
         --inventory install \
@@ -457,6 +477,8 @@
       executable: /bin/bash
     register: response
     failed_when: response.stderr | length > 0
+
+  # - name: Check if prior command successful (look for Error in stdout?)
 
   - name: Output command result
     ansible.builtin.debug:
