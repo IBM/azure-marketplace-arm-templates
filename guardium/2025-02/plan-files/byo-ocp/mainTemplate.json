@@ -174,32 +174,11 @@
                 "description": "Name for the GDSC Backup PVC"
             }
         },
-        "gdscBackupSC": {
-            "type": "string",
-            "defaultValue": "[parameters('rwxStorageClass')]",
-            "metadata": {
-                "description": "Storage class to be used for the GDSC Backup PVC"
-            }
-        },
         "gdscBackupSize": {
             "type": "string",
             "defaultValue": "500Gi",
             "metadata": {
                 "description": "Size of the GDSC Backup PVC"
-            }
-        },
-        "rwoStorageClass": {
-            "type": "string",
-            "defaultValue": "ocs-storagecluster-ceph-rbd",
-            "metadata": {
-                "description": "RWO Block storage class to be used"
-            }
-        },
-        "rwxStorageClass": {
-            "type": "string",
-            "defaultValue": "ocs-storagecluster-cephfs",
-            "metadata": {
-                "description": "RWX File storage class to be used"
             }
         },
         "ocVersion": {
@@ -249,27 +228,6 @@
             "defaultValue": "small",
             "metadata": {
                 "description": "Deployment size for IBM Common Services"
-            }
-        },
-        "icsStorageClass": {
-            "type": "string",
-            "defaultValue": "[parameters('rwoStorageClass')]",
-            "metadata": {
-                "description": "Default block storage class for common services to utilise"
-            }
-        },
-        "registryName": {
-            "type": "string",
-            "defaultValue": "cp.icr.io",
-            "metadata": {
-                "description": "Container registry for IBM images"
-            }
-        },
-        "registryUser": {
-            "type": "string",
-            "defaultValue": "cp",
-            "metadata": {
-                "description": "Container registry username for IBM images"
             }
         },
         "certManagerNamespace": {
@@ -594,9 +552,13 @@
         "caseDataFileName": "case-info.yaml",
         "homeDirectory": "/root",
         "pythonInterpreter": "/usr/bin/python3",
-        "imageRepository": "cp.icr.io/cp/ibm-guardium-data-security-center",
+        "registryName": "cp.icr.io",
+        "registryUser": "cp",
+        "imageRepository": "[concat(variables('registryName'),'/cp/ibm-guardium-data-security-center')]",
         "imagePullSecret": "ibm-entitlement-key",
-        "icsCatalogRegistry": "common-service"
+        "icsCatalogRegistry": "common-service",
+        "rwoStorageClass": "ocs-storagecluster-ceph-rbd",
+        "rwxStorageClass": "ocs-storagecluster-cephfs"
     },
     "resources": [
         { 
@@ -1215,16 +1177,16 @@
                         "value": "[parameters('icsSize')]"
                     },
                     "registryName": {
-                        "value": "[parameters('registryName')]"
+                        "value": "[variables('registryName')]"
                     },
                     "registryUser": {
-                        "value": "[parameters('registryUser')]"
+                        "value": "[variables('registryUser')]"
                     },
                     "certManagerNamespace": {
                         "value": "[parameters('certManagerNamespace')]"
                     },
                     "defaultStorageClass": {
-                        "value": "[parameters('icsStorageClass')]"
+                        "value": "[variables('rwoStorageClass')]"
                     },
                     "entitlementKey": {
                         "value": "[parameters('ibmEntitlementKey')]"
@@ -1401,10 +1363,10 @@
                         "value": "[parameters('openShiftPassword')]"  
                     },
                     "registryName": {
-                        "value": "[parameters('registryName')]"
+                        "value": "[variables('registryName')]"
                     },
                     "registryUser": {
-                        "value": "[parameters('registryUser')]"
+                        "value": "[variables('registryUser')]"
                     },
                     "entitlementKey": {
                         "value": "[parameters('ibmEntitlementKey')]"
@@ -1503,16 +1465,16 @@
                         "value": "[parameters('gdscBackupName')]"
                     },
                     "gdscBackupSC": {
-                        "value": "[parameters('gdscBackupSC')]"
+                        "value": "[variables('rwxStorageClass')]"
                     },
                     "gdscBackupSize": {
                         "value": "[parameters('gdscBackupSize')]"
                     },
                     "rwoStorageClass": {
-                        "value": "[parameters('rwoStorageClass')]"
+                        "value": "[variables('rwoStorageClass')]"
                     },
                     "rwxStorageClass": {
-                        "value": "[parameters('rwxStorageClass')]"
+                        "value": "[variables('rwxStorageClass')]"
                     },
                     "imagePullSecret": {
                         "value": "[variables('imagePullSecret')]"
