@@ -395,13 +395,16 @@
     - name: Wait for IBM Common Services catalog to be available
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace opencloud-operators -o jsonpath='{.status.connectionState.lastObservedState}'
+        {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ item }} -o jsonpath='{.status.connectionState.lastObservedState}'
       args:
         executable: /bin/bash
       register: response
       until: response.stdout == "READY"
       retries: "{{ default.retries }}"
       delay: "{{ default.retry_delay }}"
+      loop:
+        - cloud-native-postgresql-catalog
+        - opencloud-operators
 
     - name: Install the IBM Common Services operator
       ansible.builtin.shell: |
@@ -432,5 +435,27 @@
         var: response
       when: log_level == "debug"
 
-    # - name: Confirm operators bound to CSV 
-    # - name: Confirm operands ready
+    - name: Wait for subscriptions to be available (namespace scoped)
+      ansible.builtin.shell: |
+        set timeout 60
+        export HOME="{{ env.home }}"
+        CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ operator.namespace }} {{ item }} -o jsonpath='{.status.currentCSV}' )
+        if [[ "$CSV" == "null" ]]; then
+          echo "PendingCSV"
+        else
+          echo $({{ directories.bin_dir }}/oc get csv -n {{ operator.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+        fi
+        exit 0
+      args:
+        executable: /bin/bash
+      register: response
+      until: response.stdout == "Succeeded"
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      loop:
+        - cloud-native-postgresql
+        - ibm-common-service-operator
+        - ibm-commonui-operator-app
+        - ibm-events-operator
+        - ibm-iam-operator
+        - operand-deployment-lifecycle-manager-app
