@@ -210,7 +210,7 @@
     - name: Get the cluster id
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{\"\\n\"}' infrastructure cluster
+        {{ directories.bin_dir }}/oc get -o jsonpath='{.status.infrastructureName}{"\n"}' infrastructure cluster
       register: response
 
     - name: Set the cluster id fact
@@ -225,7 +225,7 @@
     - name: Get the openshift version
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,\".\"); print version[1],version[2]}' | sed 's/ /./g'
+        {{ directories.bin_dir }}/oc version -o json | jq -r '.openshiftVersion' | awk '{split($0,version,"."); print version[1],version[2]}' | sed 's/ /./g'
       register: response
 
     - name: Set the openshift version fact
@@ -255,7 +255,7 @@
     - name: Get the cluster location from the first machineset
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ first_machineset }} -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.location}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ first_machineset }} -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.location}{"\n"}'
       register: response
 
     - name: Set the location fact
@@ -270,7 +270,7 @@
     - name: Get the image SKU
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.sku}{"\n"}'
       register: response
 
     - name: Set the Image SKU fact
@@ -285,7 +285,7 @@
     - name: Get the image offer
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.offer}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.offer}{"\n"}'
       register: response
 
     - name: Set the image offer fact
@@ -300,7 +300,7 @@
     - name: Get the image version
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.version}{"\n"}'
       register: response
 
     - name: Set the image version fact
@@ -315,7 +315,7 @@
     - name: Get the image publisher
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.publisher}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.publisher}{"\n"}'
       register: response
 
     - name: Set the image publisher fact
@@ -330,7 +330,7 @@
     - name: Get the image resource id
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.resourceID}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.image.resourceID}{"\n"}'
       register: response
 
     - name: Set the image resource id fact
@@ -345,7 +345,7 @@
     - name: Get the OpenShift resource group
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.resourceGroup}{"\n"}'
       register: response
 
     - name: Set the OpenShift resource group fact
@@ -360,7 +360,7 @@
     - name: Get the network resource group
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.networkResourceGroup}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.networkResourceGroup}{"\n"}'
       register: response
 
     - name: Set the network resource group
@@ -374,7 +374,7 @@
     - name: Get the VNet name
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.vnet}{"\n"}'
       register: response
 
     - name: Set the VNet name fact
@@ -389,7 +389,7 @@
     - name: Get the Subnet name
       ansible.builtin.shell: |
         export HOME={{ env.home | quote }}
-        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.subnet}{\"\\n\"}'
+        {{ directories.bin_dir }}/oc get machineset/{{ cluster_id }}-worker-{{ cluster_location }}1 -n openshift-machine-api -o jsonpath='{.spec.template.spec.providerSpec.value.subnet}{"\n"}'
       register: response
 
     - name: Set the subnet name fact
@@ -413,7 +413,7 @@
   - name: Wait for machinesets to be available
     ansible.builtin.shell: |
       export HOME={{ env.home | quote }}
-      {{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }} -o jsonpath='{.status.availableReplicas}{\"\\n\"}'
+      {{ directories.bin_dir }}/oc get machinesets -n openshift-machine-api {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }} -o jsonpath='{.status.availableReplicas}{"\n"}'
     args:
       executable: /bin/bash
     register: response
