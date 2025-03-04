@@ -25,7 +25,7 @@
   tasks:
 
   - name: Read the CASE details
-    when: (case.name is not defined) || (case.version is not defined)
+    when: (case.name is not defined) or (case.version is not defined)
     block:
     - name: Built path to case datafile
       ansible.builtin.set_fact:
