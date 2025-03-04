@@ -201,7 +201,7 @@
     ansible.builtin.shell: |
       set timeout 10
       export HOME="{{ env.home }}"
-      {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ item.name }} -o jsonpath='{.status.connectionState.lastObservedState}'
+      {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ item }} -o jsonpath='{.status.connectionState.lastObservedState}'
     args:
       executable: /bin/bash
     register: response
