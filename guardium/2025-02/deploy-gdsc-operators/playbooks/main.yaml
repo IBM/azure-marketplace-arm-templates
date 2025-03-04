@@ -195,7 +195,10 @@
     register: response
     failed_when: response.stderr | length > 0
 
-  # - name: Get the list of catalogs created
+  - name: Output the result of the catalog creation
+    ansible.builtin.debug:
+      var: response
+    when: log_level == "debug"
     
   - name: Wait for catalog sources to be available
     ansible.builtin.shell: |
@@ -233,7 +236,10 @@
     register: response
     failed_when: response.stderr | length > 0
 
-  # - name: Get the list of subscriptions created
+  - name: Output the result of the operator creation
+    ansible.builtin.debug:
+      var: response
+    when: log_level == "debug"
 
   - name: Wait for subscriptions to be available (namespace scoped)
     ansible.builtin.shell: |
