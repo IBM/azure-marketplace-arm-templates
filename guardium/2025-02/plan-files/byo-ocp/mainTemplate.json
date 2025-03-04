@@ -31,6 +31,13 @@
                 "description": "Flag to determine whether to deploy the deployment VM (debug only)"
             }
         },
+        "configureVM": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to configure the deployment VM for GDSC installation (debug only)"
+            }
+        },
         "deployODF": {
             "type": "bool",
             "defaultValue": true,
@@ -52,11 +59,18 @@
                 "description": "Flag to determine whether to create and configure the DB2 nodes (debug only)"
             }
         },
-        "configureVM": {
+        "deployGDSCOperators": {
             "type": "bool",
             "defaultValue": true,
             "metadata": {
-                "description": "Flag to determine whether to install cpd cli on the deployment VM (debug only)"
+                "description": "Flag to determine whether to deploy the GDSC operators (debug only)"
+            }
+        },
+        "deployGDSCOperand": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the GDSC operand (debug only)"
             }
         },
         "branch": {
@@ -139,6 +153,55 @@
                 "description": "IBM Guardium Data Security Center version to be installed"
             }
         },
+        "gdscLicense": {
+            "type": "string",
+            "defaultValue": "L-QABB-9QRLFB",
+            "metadata": {
+                "description": "GDSC License to be used"
+            }
+        },
+        "gdscSize": {
+            "type": "string",
+            "defaultValue": "values-small",
+            "metadata": {
+                "description": "GDSC operand size"
+            }
+        },
+        "gdscBackupName": {
+            "type": "string",
+            "defaultValue": "gdsc-backup",
+            "metadata": {
+                "description": "Name for the GDSC Backup PVC"
+            }
+        },
+        "gdscBackupSC": {
+            "type": "string",
+            "defaultValue": "[parameters('rwxStorageClass')]",
+            "metadata": {
+                "description": "Storage class to be used for the GDSC Backup PVC"
+            }
+        },
+        "gdscBackupSize": {
+            "type": "string",
+            "defaultValue": "500Gi",
+            "metadata": {
+                "description": "Size of the GDSC Backup PVC"
+            }
+        },
+        "rwoStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-ceph-rbd",
+            "metadata": {
+                "description": "RWO Block storage class to be used"
+            }
+        },
+        "rwxStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-cephfs",
+            "metadata": {
+                "description": "RWX File storage class to be used"
+            }
+        },
         "ocVersion": {
             "type": "string",
             "defaultValue": "stable-4.17",
@@ -158,6 +221,13 @@
             "defaultValue": "ibm-guardium-data-security-center",
             "metadata": {
                 "description": "Name of the CASE repository to deploy"
+            }
+        },
+        "gdscName": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "Name of the GDSC operand to create"
             }
         },
         "gdscNamespace": {
@@ -183,7 +253,7 @@
         },
         "icsStorageClass": {
             "type": "string",
-            "defaultValue": "ocs-storagecluster-ceph-rbd",
+            "defaultValue": "[parameters('rwoStorageClass')]",
             "metadata": {
                 "description": "Default block storage class for common services to utilise"
             }
@@ -523,7 +593,10 @@
         "gitRepoBaseDirectory": "/guardium/",
         "caseDataFileName": "case-info.yaml",
         "homeDirectory": "/root",
-        "pythonInterpreter": "/usr/bin/python3"
+        "pythonInterpreter": "/usr/bin/python3",
+        "imageRepository": "cp.icr.io/cp/ibm-guardium-data-security-center",
+        "imagePullSecret": "ibm-entitlement-key",
+        "icsCatalogRegistry": "common-service"
     },
     "resources": [
         { 
@@ -1099,7 +1172,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('deployICS')]",
+            "condition": "[and(parameters('deployICS'),equals(parameters('acceptLicense'),'accept'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployODF')]"
             ],
@@ -1291,7 +1364,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2023-07-01",
-            "condition": "[parameters('createDB2Nodes')]",
+            "condition": "[and(parameters('deployGDSCOperators'),equals(parameters('acceptLicense'),'accept'))]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'createDB2Nodes')]"
             ],
@@ -1362,6 +1435,120 @@
                     },
                     "branch": {
                         "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('deployGDSCOperand'),equals(parameters('acceptLicense'),'accept'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployGDSCOperators')]"
+            ],
+            "name": "deployGDSCOperand",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-gdsc-operand/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gdscName": {
+                        "value": "[parameters('gdscName')]"
+                    },
+                    "gdscNamespace": {
+                        "value": "[parameters('gdscNamespace')]"
+                    },
+                    "gdscVersion": {
+                        "value": "[parameters('gdscVersion')]"
+                    },
+                    "gdscLicense": {
+                        "value": "[parameters('gdscLicense')]"
+                    },
+                    "gdscSize": {
+                        "value": "[parameters('gdscSize')]"
+                    },
+                    "gdscBackupName": {
+                        "value": "[parameters('gdscBackupName')]"
+                    },
+                    "gdscBackupSC": {
+                        "value": "[parameters('gdscBackupSC')]"
+                    },
+                    "gdscBackupSize": {
+                        "value": "[parameters('gdscBackupSize')]"
+                    },
+                    "rwoStorageClass": {
+                        "value": "[parameters('rwoStorageClass')]"
+                    },
+                    "rwxStorageClass": {
+                        "value": "[parameters('rwxStorageClass')]"
+                    },
+                    "imagePullSecret": {
+                        "value": "[variables('imagePullSecret')]"
+                    },
+                    "imageRepository": {
+                        "value": "[variables('imageRepository')]"
+                    },
+                    "icsNamespace": {
+                        "value": "[parameters('icsNamespace')]"
+                    },
+                    "icsCatalogRegistry": {
+                        "value": "[variables('icsCatalogRegistry')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
                     },
                     "deploymentVersion": {
                         "value": "[parameters('deploymentVersion')]"

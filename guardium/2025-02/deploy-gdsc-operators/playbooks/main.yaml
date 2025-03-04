@@ -11,6 +11,8 @@
       filename: "case-info.yaml"
     gdsc:
       namespace: "gdsc"
+    env:
+      home: "/root"
     registry:
       name: "cp.icr.io"
       user: "cp"

@@ -1,0 +1,40 @@
+apiVersion: gi.ds.isc.ibm.com/v1
+kind: GuardiumDataSecurityCenter
+metadata:
+  name: {{ gdsc.name }}
+  namespace: {{ gdsc.namespace}}
+spec:
+  version: {{gdsc.version}}
+  license:
+    accept: true
+    licenseType: {{ gdsc.license }}
+  guardiumGlobal:
+    backupsupport:
+      enabled: 'true'
+      name: {{ gdsc.backup_pvc.name }}
+      persistentVolumesClaims:
+        backup: 
+          size: {{ gdsc.backup_pvc.size }}
+          storageClassName: {{ gdsc.backup_pvc.storageclass }}
+    size: {{ gdsc.size }}
+    instance:
+      ingress:
+        hostName: "{{ gdsc.name }}.apps.{{ domain_name }}"
+        domainName: {{ domain_name }}
+      ics:
+        namespace: {{ ics.namespace }}
+        registry: {{ ics.catalog_registry }}
+    image:
+      insightsPullSecret: {{ image.pull_secret }}
+      repository: {{ image.repository }}
+    storageClassName: {{ storageclass.rwx }}
+    storageClassNameRWO: {{ storageclass.rwo }}
+  capabilities:
+    - name: quantum-safe
+      enabled: true
+      configurations: {}
+    - name: platform
+      enabled: true
+      configurations:
+       dependency-s3:
+         storageClassName: {{ storageclass.rwo }}
