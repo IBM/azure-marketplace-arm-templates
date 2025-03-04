@@ -6,8 +6,9 @@
     dest: "{{ directories.tmp_dir }}/gpu-machineset-{{ item }}.yaml"
 
 - name: Apply the machineset
-  ansible.builtin.shell:
-    cmd: "{{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/gpu-machineset-{{ item }}.yaml"
+  ansible.builtin.shell: |
+    export HOME={{ env.home | quote }}
+    {{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/gpu-machineset-{{ item }}.yaml
   args:
     executable: /bin/bash
   register: result
