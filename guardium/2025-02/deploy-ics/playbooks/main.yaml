@@ -469,7 +469,7 @@
       args:
         executable: /bin/bash
       register: response
-      until: response.stdout == "Ready"
+      until: response.stdout == "Running"
       retries: "{{ default.retries }}"
       delay: "{{ default.retry_delay }}"
       loop:
