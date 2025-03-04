@@ -1287,6 +1287,87 @@
                     }
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('createDB2Nodes')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'createDB2Nodes')]"
+            ],
+            "name": "deployGDSCOperators",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/create-db2-machinesets/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "registryName": {
+                        "value": "[parameters('registryName')]"
+                    },
+                    "registryUser": {
+                        "value": "[parameters('registryUser')]"
+                    },
+                    "entitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
         }
     ],
     "outputs": {

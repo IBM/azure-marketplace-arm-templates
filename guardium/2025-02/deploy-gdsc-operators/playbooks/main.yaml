@@ -179,7 +179,7 @@
     ansible.builtin.set_fact:
       local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"
 
-  - name: Create the DB2 catalogs
+  - name: Create the GDSC catalog sources
     ansible.builtin.shell: |
       set timeout 600
       export HOME="{{ env.home }}"
@@ -201,7 +201,7 @@
     ansible.builtin.shell: |
       set timeout 10
       export HOME="{{ env.home }}"
-      "{{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ item.name }} -o jsonpath='{.status.connectionState.lastObservedState}'"
+      {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ item.name }} -o jsonpath='{.status.connectionState.lastObservedState}'
     args:
       executable: /bin/bash
     register: response
@@ -211,7 +211,6 @@
     loop:
       - ibm-db2uoperator-catalog
       - ibm-redis-cp-operator-catalog
-      - 
 
   - name: Install the operators
     ansible.builtin.shell: |
@@ -254,4 +253,9 @@
     retries: "{{ default.retries }}"
     delay: "{{ default.retry_delay }}"
     loop:
-      - 
+      - ibm-redis-cp-operator-catalog-subscription
+
+      # - db2uOperatorSetup
+      # - mongodbOperator
+      # - noobaaOperator
+      # - guardiumDataSecurityCenterOperator
