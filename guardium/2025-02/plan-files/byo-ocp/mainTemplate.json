@@ -533,6 +533,20 @@
                 "description": "Flag to determine whether to use existing worker nodes or create new dedicated ones for ODF"
             }
         },
+        "rwoStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-ceph-rbd",
+            "metadata": {
+                "description": "RWO Block storage class to be used for the operand"
+            }
+        },
+        "rwxStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-cephfs",
+            "metadata": {
+                "description": "RWX File storage class to be used for the operand"
+            }
+        },
         "logLevel": {
             "type": "string",
             "defaultValue": "info",
@@ -563,9 +577,7 @@
         "registryUser": "cp",
         "imageRepository": "[concat(variables('registryName'),'/cp/ibm-guardium-data-security-center')]",
         "imagePullSecret": "ibm-entitlement-key",
-        "icsCatalogRegistry": "common-service",
-        "rwoStorageClass": "ocs-storagecluster-ceph-rbd",
-        "rwxStorageClass": "ocs-storagecluster-cephfs"
+        "icsCatalogRegistry": "common-service"
     },
     "resources": [
         { 
@@ -1193,7 +1205,7 @@
                         "value": "[parameters('certManagerNamespace')]"
                     },
                     "defaultStorageClass": {
-                        "value": "[variables('rwoStorageClass')]"
+                        "value": "[parameters('rwoStorageClass')]"
                     },
                     "entitlementKey": {
                         "value": "[parameters('ibmEntitlementKey')]"
@@ -1472,16 +1484,16 @@
                         "value": "[parameters('gdscBackupName')]"
                     },
                     "gdscBackupSC": {
-                        "value": "[variables('rwxStorageClass')]"
+                        "value": "[parameters('rwxStorageClass')]"
                     },
                     "gdscBackupSize": {
                         "value": "[parameters('gdscBackupSize')]"
                     },
                     "rwoStorageClass": {
-                        "value": "[variables('rwoStorageClass')]"
+                        "value": "[parameters('rwoStorageClass')]"
                     },
                     "rwxStorageClass": {
-                        "value": "[variables('rwxStorageClass')]"
+                        "value": "[parameters('rwxStorageClass')]"
                     },
                     "imagePullSecret": {
                         "value": "[variables('imagePullSecret')]"
