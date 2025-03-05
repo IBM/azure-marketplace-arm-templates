@@ -250,7 +250,7 @@
     block:
 
     - name: Create the operand definition
-      ansible.builtin.tempfile:
+      ansible.builtin.template:
         src: ./templates/gdsc-operand.j2
         dest: "{{ directories.tmp_dir }}/gdsc-operand-{{ gdsc.name }}.yaml"
 
