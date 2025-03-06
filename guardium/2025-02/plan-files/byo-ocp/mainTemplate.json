@@ -1548,7 +1548,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-gdsc-operand/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/wait-for-operand/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
