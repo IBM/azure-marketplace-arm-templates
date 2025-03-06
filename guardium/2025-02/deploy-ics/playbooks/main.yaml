@@ -427,8 +427,8 @@
       args:
         executable: /bin/bash
       register: response
-      async: 600 
-      poll: 30
+      async: 1800 
+      poll: 60
 
     - name: Output create ICS create operator command result
       ansible.builtin.debug:
