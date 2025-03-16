@@ -491,7 +491,7 @@
 							{
 								"name": "db2NodeType",
 								"type": "Microsoft.Compute.SizeSelector",
-								"label": "Worker VM Size",
+								"label": "DB2 VM Size",
 								"toolTip": "The size of each DB2 node",
 								"defaultValue": "Standard_D16s_v3",
 								"recommendedSizes": [
