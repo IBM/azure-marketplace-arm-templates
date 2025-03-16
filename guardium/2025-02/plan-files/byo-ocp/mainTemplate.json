@@ -866,8 +866,7 @@
                                 "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
                             }
                         },
-                        "vnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks',parameters('vnetName'))]",
-                        "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]"
+                        "subnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
                     },
                     "resources": [
                         {
