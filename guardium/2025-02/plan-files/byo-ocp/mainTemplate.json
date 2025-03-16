@@ -872,7 +872,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.Network/publicIPAddresses",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-05-01",
                             "condition": "[and(parameters('createPublicIP'),equals(parameters('publicIpNewOrExisting'),'new'))]",
                             "name": "[parameters('publicIPName')]",
                             "location": "[parameters('location')]",
@@ -897,7 +897,7 @@
                         },
                         {
                             "type": "Microsoft.Network/networkSecurityGroups",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-05-01",
                             "name": "[variables('nsgName')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
@@ -907,7 +907,7 @@
                         },
                         {
                             "type": "Microsoft.Network/networkInterfaces",
-                            "apiVersion": "2022-07-01",
+                            "apiVersion": "2024-05-01",
                             "name": "[variables('nicName')]",
                             "location": "[parameters('location')]",
                             "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkInterfaces'), parameters('tagsByResource')['Microsoft.Network/networkInterfaces'], json('{}')) ]",
@@ -992,12 +992,12 @@
                         },
                         "internalIP": {
                             "type": "string",
-                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2022-07-01').ipConfigurations[0].properties.privateIPAddress]"
+                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2024-05-01').ipConfigurations[0].properties.privateIPAddress]"
                         },
                         "publicIP": {
                             "condition": "[parameters('createPublicIP')]",
                             "type": "string",
-                            "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2022-07-01').ipAddress]"
+                            "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2024-05-01').ipAddress]"
                         }
                     }
                 }
