@@ -655,11 +655,7 @@
                             "apiVersion": "2024-05-01",
                             "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
                             "properties": {
-                                "addressPrefix": "[parameters('subnetCidr')]",
-                                "serviceEndpoints": [
-                                ],
-                                "delegations": [
-                                ]
+                                "addressPrefix": "[parameters('subnetCidr')]"
                             }
                         }
                     ]
