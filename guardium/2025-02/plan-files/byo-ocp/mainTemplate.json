@@ -582,7 +582,7 @@
     "resources": [
         { 
             "apiVersion": "2023-07-01",
-            "name": "pid-gdsc-partnercenter",
+            "name": "pid-3132ff24-b734-4a4c-bd9f-9fe0a4c9f763-partnercenter",
             "condition": "[parameters('registerDeployment')]", 
             "type": "Microsoft.Resources/deployments",
             "properties": {
