@@ -207,7 +207,12 @@
 								"label": "RWO Storage Class",
 								"visible": "[steps('openshift').odf.existingODF]",
 								"toolTip": "The name of the Block Read-Write-One (RWO) storage class for persistent volumes",
-								"defaultValue": "ocs-storagecluster-ceph-rbd"
+								"defaultValue": "ocs-storagecluster-ceph-rbd",
+								"constraints": {
+									"required": false,
+									"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+									"validationMessage": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+								}
 							},
 							{
 								"name": "rwxStorageClass",
@@ -215,7 +220,12 @@
 								"label": "RWX Storage Class",
 								"visible": "[steps('openshift').odf.existingODF]",
 								"toolTip": "The name of the File Read-Write-Many (RWX) storage class for persistent volumes",
-								"defaultValue": "ocs-storagecluster-cephfs"
+								"defaultValue": "ocs-storagecluster-cephfs",
+								"constraints": {
+									"required": false,
+									"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+									"validationMessage": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+								}
 							},
 							{
 								"name": "odfNodeSize",
@@ -349,8 +359,8 @@
 						  "required": true,
 						  "validations": [
 							{
-							  "regex": "^[a-z0-9A-Z-]{3,63}$",
-							  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+							  "regex": "^[a-z0-9][a-z0-9:.-]{1,63}[a-z0-9]$",
+							  "message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
 							}
 						  ]
 						},
@@ -373,8 +383,8 @@
 								"required": true,
 								"validations": [
 									{
-									"regex": "^[a-z0-9A-Z-]{3,63}$",
-									"message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+										"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+										"message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
 									}
 								]
 								},
@@ -410,8 +420,8 @@
 								  "required": true,
 								  "validations": [
 									{
-									  "regex": "^[a-z0-9A-Z-]{3,63}$",
-									  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+									  	"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+										"message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
 									}
 								  ]
 								},
@@ -444,7 +454,7 @@
 									"required": true,
 									"validations": [
 									{
-										"regex": "^[a-z0-9A-Z-]{3,63}$",
+										"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
 										"message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
 									}
 									]
@@ -604,8 +614,8 @@
 								  "required": false,
 								  "validations": [
 									{
-									  "regex": "^[a-z0-9A-Z-]{3,63}$",
-									  "message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+										"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+							  			"message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
 									}
 								  ]
 								}
@@ -633,7 +643,12 @@
 								"label": "GDSC Backup PVC Name",
 								"toolTip": "Name for the PVC that will be created for the GDSC backups",
 								"visible": "[not(steps('gdsc').gdscOperand.noOperand)]",
-								"defaultValue": "gdsc-backup"
+								"defaultValue": "gdsc-backup",
+								"constraints": {
+									"required": false,
+									"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+									"validationMessage": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+								}
 							},
 							{
 								"name": "gdscBackupSize",
@@ -992,7 +1007,7 @@
             "openshiftApiUrl": "[steps('openshift').ocpApiServer]",
 			"openShiftAuthType": "[steps('openshift').ocpAuthType]",
 			"openShiftUsername": "[steps('openshift').ocpUsername]",
-			"openShiftPassword": "[steps('openshift').ocpPassword]",
+			"openShiftPassword": "[if(equals(steps('openshift').ocpAuthType,'Password'),steps('openshift').ocpPassword,steps('openshift').ocpToken)]",
 			"deployODF": "[not(steps('openshift').odf.existingODF)]",
 			"odfClusterSize": "[steps('openshift').odf.odfNodeSize]",
 			"odfExistingNodes": "[steps('openshift').odf.odfExistingNodes]",
