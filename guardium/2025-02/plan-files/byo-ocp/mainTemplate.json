@@ -1539,11 +1539,86 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/deployments', 'deployGDSCOperand')]"
             ],
-            "name": "waitForOperand",
+            "name": "waitForOperand1",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/wait-for-operand/azuredeploy.json'))]",
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/wait-for-operand-1/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gdscName": {
+                        "value": "[parameters('gdscName')]"
+                    },
+                    "gdscNamespace": {
+                        "value": "[parameters('gdscNamespace')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('waitForOperand'),equals(parameters('acceptLicense'),'accept'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployGDSCOperand')]"
+            ],
+            "name": "waitForOperand2",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/wait-for-operand-2/azuredeploy.json'))]",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {

@@ -146,7 +146,7 @@
     "variables": {
         "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
         "gitRepoBaseDirectory": "[parameters('gitBaseDirectory')]",
-        "gitRepoDeploymentDirectory": "/wait-for-operand/",
+        "gitRepoDeploymentDirectory": "/wait-for-operand-2/",
         "scriptParameters": {
             "ansible_python_interpreter": "[parameters('pythonInterpreter')]",
             "log_level": "[parameters('logLevel')]",

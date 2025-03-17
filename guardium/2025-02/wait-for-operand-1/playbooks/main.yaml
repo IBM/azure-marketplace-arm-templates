@@ -166,5 +166,6 @@
       executable: /bin/bash
     register: response
     until: response.stdout == "True"
-    retries: 240
+    failed_when: response.stderr != ""
+    retries: 170
     delay: 60
