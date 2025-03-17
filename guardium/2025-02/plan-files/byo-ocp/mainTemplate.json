@@ -1612,7 +1612,7 @@
             "apiVersion": "2023-07-01",
             "condition": "[and(parameters('waitForOperand'),equals(parameters('acceptLicense'),'accept'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', 'deployGDSCOperand')]"
+                "[resourceId('Microsoft.Resources/deployments', 'waitForOperand1')]"
             ],
             "name": "waitForOperand2",
             "properties": {
