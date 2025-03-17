@@ -1,0 +1,267 @@
+---
+- name: Install CPD CLI tool and configure deployment VM for watsonx
+  hosts: localhost
+  gather_facts: false
+  become: yes
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
+    casedata:
+      filename: "case-info.yaml"
+    gdsc:
+      namespace: "gdsc"
+    env:
+      home: "/root"
+    registry:
+      name: "cp.icr.io"
+      user: "cp"
+      password: ""
+    directories:
+      bin_dir: "/usr/local/bin"
+      tmp_dir: "/tmp"
+    default:
+      retries: 30
+      retry_delay: 15
+
+  tasks:
+
+  - name: Read the CASE details
+    when: (case.name is not defined) or (case.version is not defined)
+    block:
+    - name: Built path to case datafile
+      ansible.builtin.set_fact:
+        datafile_path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
+
+    - name: Read the case data file
+      ansible.builtin.set_fact:
+        case: "{{ lookup('template', datafile_path) | from_yaml }}"
+
+    - name: Output the case details
+      ansible.builtin.debug:
+        msg: "Case name: {{ case.name }}      Case version: {{ case.version }}"
+      when: log_level == "debug"
+
+  - name: Check if oc client is already installed
+    ansible.builtin.stat:
+      path: "{{ directories.bin_dir }}/oc"
+    register: oc_file
+
+  - name: Install oc client if not already installed
+    when: not oc_file.stat.exists
+    block:
+    - name: Set version to stable if not provided
+      ansible.builtin.set_fact:
+        oc_version: "stable"
+      when: oc_version is not defined
+
+    - name: Set machine architecture if not provided
+      ansible.builtin.set_fact:
+        arch: "{{ ansible_facts.architecture }}"
+      when: arch is not defined
+
+    - name: Set OS type to mac if not provided and system reports as Darwin
+      ansible.builtin.set_fact:
+        os_type: "mac"
+      when: 
+        - os_type is not defined
+        - ansible_facts.system == "Darwin"
+
+    - name: Set OS type to linux if not provided and anything else
+      ansible.builtin.set_fact:
+        os_type: "linux"
+      when: os_type is not defined
+
+    - name: Build the URL for download
+      ansible.builtin.set_fact:
+        oc_url: "https://mirror.openshift.com/pub/openshift-v4/{{ arch }}/clients/ocp/{{ oc_version }}/openshift-client-{{ os_type }}.tar.gz"
+
+    - name: Output the URL
+      ansible.builtin.debug:
+        msg: "Will download {{ oc_url }}"
+      when: log_level == "debug"
+
+    - name: Download the OpenShift client
+      ansible.builtin.get_url:
+        url: "{{ oc_url }}"
+        dest: "{{ directories.tmp_dir  }}"
+      register: downloaded_file
+
+    - name: Extract the OpenShift client binary 
+      ansible.builtin.command:
+        tar xzf {{ downloaded_file.dest }} -C {{ directories.tmp_dir }} oc
+      register: result
+
+    - name: Fail if unable to extract file
+      ansible.builtin.fail:
+        msg: "Unable to extract the oc client from {{ downloaded_file.dest }}"
+      when: result.failed
+
+    - name: Move client to bin directory
+      ansible.builtin.copy:
+        src: "{{ directories.tmp_dir }}/oc"
+        dest: "{{ directories.bin_dir }}/oc"
+        mode: '0755'
+      become: true
+
+  - name: Check if already logged into cluster (and if logged in with cluster admin role)
+    ansible.builtin.shell: |
+      set timeout 30
+      export HOME={{ env.home | quote }}
+      {{ directories.bin_dir }}/oc get co 2> /dev/null
+      exit 0
+    args:
+      executable: /bin/bash
+    register: response
+
+  - name: Login to OpenShift cluster if not already logged in
+    when: response.stdout == ""  
+    block:
+    - name: Fail if cluster details are not provided
+      ansible.builtin.fail:
+        msg: "Cluster login details are not provided"
+      when: ( cluster.api_server is not defined ) or 
+            ( cluster.token is not defined and cluster.password is not defined ) 
+
+    - name: Set username to kubeadmin if not provided
+      ansible.builtin.set_fact:
+        username: "kubeadmin"
+      when: ( cluster.username is not defined ) or
+            ( cluster.username == "" )
+
+    - name: Set username to kubeadmin if not provided
+      ansible.builtin.set_fact:
+        username: "{{ cluster.username }}"
+      when: 
+        - cluster.username is defined
+        - cluster.username != ""
+
+    - name: Set token to empty if not defined
+      ansible.builtin.set_fact:
+        cluster_token: ""
+      when: cluster.token is not defined
+
+    - name: Set token if defined
+      ansible.builtin.set_fact:
+        cluster_token: "{{ cluster.token }}"
+      when:
+        - cluster.token is defined
+
+    - name: Log into the OpenShift cluster with credentials
+      ansible.builtin.shell: |
+        set timeout 30
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --username={{ username }} --password={{ cluster.password }} --insecure-skip-tls-verify=true 2> /dev/null 
+        exit 0
+      args:
+        executable: /bin/bash
+      register: result
+      until: result.stdout != ""
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - cluster_token == ""
+
+    - name: Log into the OpenShift cluster with token
+      ansible.builtin.shell: |
+        set timeout 30
+        export HOME={{ env.home | quote }}
+        {{ directories.bin_dir }}/oc login --server={{ cluster.api_server }} --token={{ cluster_token }} --insecure-skip-tls-verify=true 2> /dev/null 
+        exit 0
+      args:
+        executable: /bin/bash
+      register: result
+      until: result.stdout != ""
+      retries: "{{ default.retries }}"
+      delay: "{{ default.retry_delay }}"
+      when: 
+        - cluster_token != ""
+
+  - name: Set local case directory
+    ansible.builtin.set_fact:
+      local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case.version }}"
+
+  - name: Create the GDSC catalog sources
+    ansible.builtin.shell: |
+      set timeout 600
+      export HOME="{{ env.home }}"
+      {{ directories.bin_dir}}/oc ibm-pak launch {{ case.name }} \
+        --version {{ case.version }} \
+        --inventory install \
+        --action install-catalog \
+        --namespace openshift-marketplace \
+        --args "--inputDir \"{{ local_case_dir }}\""
+      exit 0
+    args:
+      executable: /bin/bash
+    register: response
+    failed_when: response.stderr | length > 0
+
+  - name: Output the result of the catalog creation
+    ansible.builtin.debug:
+      var: response
+    when: log_level == "debug"
+    
+  - name: Wait for catalog sources to be available
+    ansible.builtin.shell: |
+      set timeout 10
+      export HOME="{{ env.home }}"
+      {{ directories.bin_dir }}/oc get catalogsource  -n openshift-marketplace {{ item }} -o jsonpath='{.status.connectionState.lastObservedState}'
+    args:
+      executable: /bin/bash
+    register: response
+    until: response.stdout == "READY"
+    retries: "{{ default.retries }}"
+    delay: "{{ default.retry_delay }}"
+    loop:
+      - ibm-db2uoperator-catalog
+      - ibm-redis-cp-operator-catalog
+      - ibm-guardium-insights-operator-catalog
+
+  - name: Install the operators
+    ansible.builtin.shell: |
+      set timeout 600
+      export HOME="{{ env.home }}"
+      {{ directories.bin_dir}}/oc ibm-pak launch {{ case.name }} \
+        --version {{ case.version }} \
+        --inventory install \
+        --action install-operator \
+        --namespace {{ gdsc.namespace }} \
+        --args \
+          "--secret \"ibm-entitlement-key\" \
+          --registry \"{{ registry.name }}\" \
+          --user \"{{ registry.user }}\" \
+          --pass \"{{ registry.password }}\" \
+          --inputDir \"{{ local_case_dir }}\""
+      exit 0
+    args:
+      executable: /bin/bash
+    register: response
+    failed_when: response.stderr | length > 0
+
+  - name: Output the result of the operator creation
+    ansible.builtin.debug:
+      var: response
+    when: log_level == "debug"
+
+  - name: Wait for subscriptions to be available (namespace scoped)
+    ansible.builtin.shell: |
+      set timeout 60
+      export HOME="{{ env.home }}"
+      CSV=$({{ directories.bin_dir }}/oc get subscription -n {{ gdsc.namespace }} {{ item }} -o jsonpath='{.status.currentCSV}' )
+      if [[ "$CSV" == "null" ]]; then
+        echo "PendingCSV"
+      else
+        echo $({{ directories.bin_dir }}/oc get csv -n {{ gdsc.namespace }} ${CSV} -o jsonpath='{.status.phase}')
+      fi
+      exit 0
+    args:
+      executable: /bin/bash
+    register: response
+    until: response.stdout == "Succeeded"
+    retries: "{{ default.retries }}"
+    delay: "{{ default.retry_delay }}"
+    loop:
+      - ibm-redis-cp-operator-catalog-subscription
+      - ibm-db2uoperator-catalog-subscription
+      - ibm-guardium-insights-operator-subscription

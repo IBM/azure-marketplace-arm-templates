@@ -1,0 +1,59 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  labels:
+    machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
+    machine.openshift.io/cluster-api-machine-role: worker
+    machine.openshift.io/cluster-api-machine-type: worker
+  name: {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }}
+  namespace: openshift-machine-api
+spec:
+  replicas: {{ db2.zone_qty }}
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
+      machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        machine.openshift.io/cluster-api-cluster: {{ cluster_id }} 
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: {{ cluster_id }}-{{ db2.name }}-{{ cluster_location }}{{ item }}
+    spec:
+      providerSpec:
+        value:
+          apiVersion: azureproviderconfig.openshift.io/v1beta1
+          credentialsSecret:
+            name: azure-cloud-credentials
+            namespace: openshift-machine-api
+          image:
+            offer: {{ image_offer }}
+            publisher: {{ image_publisher }}
+            resourceID: {{ image_resourceid }}
+            sku: {{ image_sku }}
+            version: {{ image_version }}
+          internalLoadBalancer: ""
+          kind: AzureMachineProviderSpec
+          location: {{ cluster_location }}
+          metadata:
+            creationTimestamp: null
+          natRule: null
+          networkResourceGroup: {{ network_resource_group }}
+          osDisk:
+            diskSizeGB: {{ db2.disk_size }}
+            managedDisk:
+              storageAccountType: {{ db2.storage_type }}
+            osType: Linux
+          publicIP: false
+          publicLoadBalancer: {{ cluster_id }}
+          resourceGroup: {{ ocp_resource_group }} 
+          sshPrivateKey: ""
+          sshPublicKey: ""
+          subnet: {{ subnet_name }}  
+          userDataSecret:
+            name: worker-user-data 
+          vmSize: {{ db2.node_type }}
+          vnet: {{ vnet_name }}
+          zone: "{{ item }}" 

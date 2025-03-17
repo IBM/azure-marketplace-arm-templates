@@ -1,0 +1,1688 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "registerDeployment": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag for whether to register the deployment in partner center (debug only)"
+            }
+        },
+        "deployVM": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the deployment VM (debug only)"
+            }
+        },
+        "configureVM": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to configure the deployment VM for GDSC installation (debug only)"
+            }
+        },
+        "deployODF": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy ODF on the cluster (debug only)"
+            }
+        },
+        "deployICS": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy IBM Common Services on the cluster (debug only)"
+            }
+        },
+        "createDB2Nodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to create and configure the DB2 nodes (debug only)"
+            }
+        },
+        "deployGDSCOperators": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the GDSC operators (debug only)"
+            }
+        },
+        "deployGDSCOperand": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether to deploy the GDSC operand (debug only)"
+            }
+        },
+        "waitForOperand": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether deployment for wait for operand to finish installing"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for linked deployments."
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2025-02",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        },
+        "existingVnet": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether the virtual network already exists"
+            }
+        },
+        "networkResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The resource group containing the virtual network. Service principal must have permissions for this network."
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "vnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "vnetCIDR": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20",
+            "metadata": {
+                "description": "CIDR for Virtual Network"
+            }
+        },
+        "vmSubnetName": {
+            "type": "string",
+            "defaultValue": "vm-subnet",
+            "metadata": {
+                "description": "Name of the subnet to attach the deployment / management VM to. Used for private vnet."
+            }
+        },
+        "vmSubnetCidr": {
+            "type": "string",
+            "defaultValue": "10.0.3.0/27",
+            "metadata": {
+                "description": "Network address of the subnet to attach the deployment / management VM to"
+            }
+        },
+        "ibmEntitlementKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Entitlement key for IBM container registry"
+            }
+        },
+        "acceptLicense": {
+            "type": "string",
+            "defaultValue": "decline",
+            "allowedValues": [
+                "accept",
+                "decline"
+            ],
+            "metadata": {
+                "description": "Accept Red Hat and IBM License Terms to instantiate software."
+            }
+        },
+        "gdscVersion": {
+            "type": "string",
+            "defaultValue": "3.6.2",
+            "metadata": {
+                "description": "IBM Guardium Data Security Center version to be installed"
+            }
+        },
+        "gdscLicense": {
+            "type": "string",
+            "defaultValue": "L-QABB-9QRLFB",
+            "metadata": {
+                "description": "GDSC License to be used"
+            }
+        },
+        "gdscSize": {
+            "type": "string",
+            "defaultValue": "values-small",
+            "metadata": {
+                "description": "GDSC operand size"
+            }
+        },
+        "gdscBackupName": {
+            "type": "string",
+            "defaultValue": "gdsc-backup",
+            "metadata": {
+                "description": "Name for the GDSC Backup PVC"
+            }
+        },
+        "gdscBackupSize": {
+            "type": "string",
+            "defaultValue": "500Gi",
+            "metadata": {
+                "description": "Size of the GDSC Backup PVC"
+            }
+        },
+        "ocVersion": {
+            "type": "string",
+            "defaultValue": "stable-4.17",
+            "metadata": {
+                "description": "Version of oc CLI to be deployed"
+            }
+        },
+        "ibmPakVersion": {
+            "type": "string",
+            "defaultValue": "v1.16.3",
+            "metadata": {
+                "description": "Version of the IBM Pak oc extension to install"
+            }
+        },
+        "caseName": {
+            "type": "string",
+            "defaultValue": "ibm-guardium-data-security-center",
+            "metadata": {
+                "description": "Name of the CASE repository to deploy"
+            }
+        },
+        "gdscName": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "Name of the GDSC operand to create"
+            }
+        },
+        "gdscNamespace": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "OpenShift namespace for Guardium Data Security Center"
+            }
+        },
+        "icsNamespace": {
+            "type": "string",
+            "defaultValue": "[parameters('gdscNamespace')]",
+            "metadata": {
+                "description": "Namespace for IBM Common Services"
+            }
+        },
+        "icsSize": {
+            "type": "string",
+            "defaultValue": "small",
+            "metadata": {
+                "description": "Deployment size for IBM Common Services"
+            }
+        },
+        "certManagerNamespace": {
+            "type": "string",
+            "defaultValue": "ibm-cert-manager",
+            "metadata": {
+                "description": "Namespace for the IBM Certificate Manager operator"
+            }
+        },
+        "db2NodeType": {
+            "type": "string",
+            "defaultValue": "Standard_D16s_v3",
+            "metadata": {
+                "description": "Type of GPU node to be deployed"
+            }
+        },
+        "db2NodeQty": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Number of db2 nodes to deploy per zone"
+            }
+        },
+        "db2NodeStorageType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "metadata": {
+                "description": "Type of managed disk to be attached to the node"
+            }
+        },
+        "db2NodeDiskSize": {
+            "type": "int",
+            "defaultValue": 512,
+            "metadata": {
+                "description": "Size of the root disk for the GPU node"
+            }
+        },
+        "db2NodeName": {
+            "type": "string",
+            "defaultValue": "db2",
+            "metadata": {
+                "description": "Machineset naming identifier"
+            }
+        },
+        "taintDb2Nodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether DB2 node/s can be used for non-DB2 related workloads or not (taint/set true to prevent other workloads)"
+            }
+        },
+        "labelDb2Nodes": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Flag to determine whether the DB2 nodes should be labelled for DB2 use"
+            }
+        },
+        "db2nodeZones": {
+            "type": "array",
+            "defaultValue": [
+                1,
+                2
+            ],
+            "metadata": {
+                "description": "The Azure availability zones containing the db2 nodes."
+            }
+        },
+        "db2Namespace": {
+            "type": "string",
+            "defaultValue": "[parameters('gdscNamespace')]",
+            "metadata": {
+                "description": "OpenShift namespace for the DB2 operator"
+            }
+        },
+        "binariesDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Directory for CLI binaries"
+            }
+        },
+        "tmpDirectory": {
+            "type": "string",
+            "defaultValue": "/tmp",
+            "metadata": {
+                "description": "Temporary working directory for downloads, etc"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "vmAdminUserName": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "Admin user for created VMs"
+            }
+        },
+        "vmAdminPassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine."
+            }
+        },
+        "vmAuthType": {
+            "type": "string",
+            "defaultValue": "sshPublicKey",
+            "allowedValues": [
+                "sshPublicKey",
+                "password"
+            ],
+            "metadata": {
+                "description": "Type of VM authentication. SSH Key or Password"
+            }
+        },
+        "vmSecurityType": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "TrustedLaunch"
+            ],
+            "metadata": {
+                "description": "Security type for virtual machine (trusted launch not supported with RHEL)"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2s",
+            "allowedValues": [
+                "Standard_B2s",
+                "Standard_D2s_v3",
+                "Standard_D4s_v3"
+            ],
+            "metadata": {
+                "description": "Size of Virtual Machine"
+            }
+        },
+        "vmDiskType": {
+            "type": "string",
+            "defaultValue": "Premium_LRS",
+            "allowedValues": [
+                "Premium_LRS",
+                "Premium_ZRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "StandardSSD_ZRS",
+                "UltraSSD_LRS"
+            ],
+            "metadata": {
+                "description": "OS Disk type for Dev VM"
+            }
+        },
+        "vmOsDiskSize": {
+            "type": "int",
+            "defaultValue": 256,
+            "metadata": {
+                "description": "Size of the VM's OS Disk in GB"
+            }
+        },
+        "vmZone": {
+            "type": "string",
+            "defaultValue": "1",
+            "allowedValues": [
+                "1", "2", "3"
+            ],
+            "metadata": {
+                "description": "Availability zone for the VM"
+            }
+        },
+        "vmOSVersion": {
+            "type": "string",
+            "defaultValue": "RHEL 9.4",
+            "allowedValues": [
+                "RHEL 9.2",
+                "RHEL 9.4"
+            ],
+            "metadata": {
+                "description": "Operating system version"
+            }
+        },
+        "vmCreatePublicIP": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to indicate whether a public ip address should be created."
+            }
+        },
+        "vmPublicIpNewOrExisting": {
+            "type": "string",
+            "defaultValue": "new",
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Flag to determine whether the public IP is existing or not"
+            }
+        },
+        "vmPublicIpResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group for public IP address if using an existing one"
+            }
+        },
+        "vmPublicIPName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-pip')]",
+            "metadata": {
+                "description": "Name for the public IP address if creating."
+            }
+        },
+        "vmDomainName": {
+            "type": "string",
+            "defaultValue": "[toLower( concat(parameters('namePrefix'),uniqueString(resourceGroup().name)) )]",
+            "metadata": {
+                "description": "Domain name prefix for the public IP address"
+            }
+        },
+        "vmNSGSecurityRules": {
+            "type": "array",
+            "defaultValue": [
+                {
+                    "name": "SSH",
+                    "properties": {
+                        "priority": 300,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "22"
+                    }
+                }
+            ],
+            "metadata": {
+                "description": "Network security group rules for VM NIC (applicable when using public IP for deployment VM)"
+            }
+        },
+        "vmExtensionName": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Password",
+                "Token"
+            ],
+            "metadata": {
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
+        "odfClusterSize": {
+            "type": "string",
+            "defaultValue": "1Ti",
+            "metadata": {
+                "description": "Size of the ODF storage cluster to create"
+            }
+        },
+        "odfExistingNodes": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Flag to determine whether to use existing worker nodes or create new dedicated ones for ODF"
+            }
+        },
+        "rwoStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-ceph-rbd",
+            "metadata": {
+                "description": "RWO Block storage class to be used for the operand"
+            }
+        },
+        "rwxStorageClass": {
+            "type": "string",
+            "defaultValue": "ocs-storagecluster-cephfs",
+            "metadata": {
+                "description": "RWX File storage class to be used for the operand"
+            }
+        },
+        "logLevel": {
+            "type": "string",
+            "defaultValue": "info",
+            "allowedValues": [
+                "info",
+                "debug"
+            ],
+            "metadata": {
+                "description": "Log level for Ansible playbook (VM Approach)"
+            }
+        },
+        "tagsByResource": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags for the resources"
+            }
+        }
+    },
+    "variables": {
+        "gitRepositoryUrl": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
+        "baseUrl": "[uri(variables('gitRepositoryUrl'),parameters('branch'))]",
+        "gitRepoBaseDirectory": "/guardium/",
+        "caseDataFileName": "case-info.yaml",
+        "homeDirectory": "/root",
+        "pythonInterpreter": "/usr/bin/python3",
+        "registryName": "cp.icr.io",
+        "registryUser": "cp",
+        "imageRepository": "[concat(variables('registryName'),'/cp/ibm-guardium-data-security-center')]",
+        "imagePullSecret": "ibm-entitlement-key",
+        "icsCatalogRegistry": "common-service"
+    },
+    "resources": [
+        { 
+            "apiVersion": "2023-07-01",
+            "name": "pid-3132ff24-b734-4a4c-bd9f-9fe0a4c9f763-partnercenter",
+            "condition": "[parameters('registerDeployment')]", 
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
+        {  
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2024-05-01",
+            "name": "[parameters('vnetName')]",
+            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/virtualNetworks'), parameters('tagsByResource')['Microsoft.Network/virtualNetworks'], json('{}')) ]",
+            "condition": "[not(parameters('existingVnet'))]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetCIDR')]"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2024-11-01",
+            "name": "scriptSubnet",
+            "resourceGroup": "[parameters('networkResourceGroup')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]"
+                    },
+                    "subnetCidr": {
+                        "value": "[parameters('vmSubnetCidr')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "subnetCidr": {
+                            "type": "string"
+                        }
+                    },
+                    "variables": {
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/virtualNetworks/subnets",
+                            "apiVersion": "2024-05-01",
+                            "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetName'))]",
+                            "properties": {
+                                "addressPrefix": "[parameters('subnetCidr')]"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployVM')]",   
+            "dependsOn": [
+               "[resourceId(parameters('networkResourceGroup'),'Microsoft.Resources/deployments', 'scriptSubnet')]" 
+            ],
+            "name": "deploymentVM",
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "virtualNetworkResourceGroupName": {
+                        "value": "[parameters('networkResourceGroup')]" 
+                    },
+                    "subnetName": {
+                        "value": "[parameters('vmSubnetName')]" 
+                    },
+                    "createPublicIP": {
+                        "value": "[parameters('vmCreatePublicIP')]"
+                    },
+                    "publicIpNewOrExisting": {
+                        "value": "[parameters('vmPublicIpNewOrExisting')]"
+                    },
+                    "publicIpResourceGroup": {
+                        "value": "[parameters('vmPublicIpResourceGroup')]" 
+                    },
+                    "publicIPName": {
+                        "value": "[parameters('vmPublicIPName')]" 
+                    },
+                    "domainName": {
+                        "value": "[parameters('vmDomainName')]" 
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]"
+                    },
+                    "vmZone": {
+                        "value": "[parameters('vmZone')]"
+                    },
+                    "vmOSVersion": {
+                        "value": "[parameters('vmOSVersion')]"
+                    },
+                    "vmDiskType": {
+                        "value": "[parameters('vmDiskType')]"
+                    },
+                    "vmOsDiskSize": {
+                        "value": "[parameters('vmOsDiskSize')]" 
+                    },
+                    "vmNsgSecurityRules": {
+                        "value": "[parameters('vmNSGSecurityRules')]"
+                    },
+                    "securityType": {
+                        "value": "[parameters('vmSecurityType')]"
+                    },
+                    "authType": {
+                        "value": "[parameters('vmAuthType')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('vmAdminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('vmAdminPassword')]" 
+                    },
+                    "tagsByResource": {
+                        "value": "[parameters('tagsByResource')]"
+                    }
+                    
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "namePrefix": {
+                            "type": "string"
+                        },
+                        "location": {
+                            "type": "string"
+                        },
+                        "vmName": {
+                            "type": "string"
+                        },
+                        "vnetName": {
+                            "type": "string"
+                        },
+                        "virtualNetworkResourceGroupName": {
+                            "type": "string"
+                        },
+                        "subnetName": {
+                            "type": "string"
+                        },
+                        "adminUserName": {
+                            "type": "string"
+                        },
+                        "adminPassword": {
+                            "type": "secureString"
+                        },
+                        "authType": {
+                            "type": "string"
+                        },
+                        "securityType": {
+                            "type": "string"
+                        },
+                        "vmNsgSecurityRules": {
+                            "type": "array"
+                        },
+                        "vmSize": {
+                            "type": "string"
+                        },
+                        "vmDiskType": {
+                            "type": "string"
+                        },
+                        "vmOsDiskSize": {
+                            "type": "int"
+                        },
+                        "vmZone": {
+                            "type": "string"
+                        },
+                        "vmOSVersion": {
+                            "type": "string"
+                        },
+                        "createPublicIP": {
+                            "type": "bool"
+                        },
+                        "publicIpNewOrExisting": {
+                            "type": "string"
+                        },
+                        "publicIpResourceGroup": {
+                            "type": "string"
+                        },
+                        "publicIPName": {
+                            "type": "string"
+                        },
+                        "domainName": {
+                            "type": "string"
+                        },
+                        "tagsByResource": {
+                            "type": "object"
+                        }
+                    },
+                    "variables": {
+                        "nsgName": "[concat(parameters('namePrefix'), '-nsg')]",
+                        "nicName": "[concat(parameters('namePrefix'),'-nic')]",
+                        "linuxConfigSSH": {
+                            "disablePasswordAuthentication": true,
+                            "ssh": {
+                                "publicKeys": [
+                                    {
+                                        "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                                        "keyData": "[parameters('adminPassword')]"
+                                    }
+                                ]
+                            }
+                        },
+                        "linuxConfigPWD": {
+                            "disablePasswordAuthentication": false
+                        },
+                        "imageReference": {
+                            "RHEL 9.2": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "9_2",
+                                "version": "latest"
+                            },
+                            "RHEL 9.4": {
+                                "publisher": "RedHat",
+                                "offer": "RHEL",
+                                "sku": "9_4",
+                                "version": "latest"
+                            }
+                        },
+                        "vmBootstrap": "[concat('#cloud-config\npackage_upgrade: true\npackages:\n- python3.11\n- python3.11-pip\nruncmd:\n- python3.11 -m pip install ansible-core==2.16.3')]",
+                        "securityProfile": {
+                            "uefiSettings": {
+                                "secureBootEnabled": false,
+                                "vTpmEnabled": false
+                            },
+                            "securityType": "[parameters('securityType')]"
+                        },
+                        "publicIpId": {
+                            "new": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                            },
+                            "existing": {
+                                "id": "[resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                            }
+                        },
+                        "subnetId": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks/subnets',parameters('vnetName'),parameters('subnetName'))]"
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Network/publicIPAddresses",
+                            "apiVersion": "2024-05-01",
+                            "condition": "[and(parameters('createPublicIP'),equals(parameters('publicIpNewOrExisting'),'new'))]",
+                            "name": "[parameters('publicIPName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/publicIPAddresses'), parameters('tagsByResource')['Microsoft.Network/publicIPAddresses'], json('{}')) ]",
+                            "sku": {
+                                "name": "Standard",
+                                "tier": "Regional"
+                            },
+                            "zones": [
+                                "1",
+                                "2",
+                                "3"
+                            ],
+                            "properties": {
+                                "publicIPAllocationMethod": "Static",
+                                "deleteOption": "Delete",
+                                "publicIPAddressVersion": "IPv4",
+                                "dnsSettings": {
+                                    "domainNameLabel": "[parameters('domainName')]"
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/networkSecurityGroups",
+                            "apiVersion": "2024-05-01",
+                            "name": "[variables('nsgName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkSecurityGroups'), parameters('tagsByResource')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]",
+                            "properties": {
+                                "securityRules": "[parameters('vmNsgSecurityRules')]"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2024-05-01",
+                            "name": "[variables('nicName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Network/networkInterfaces'), parameters('tagsByResource')['Microsoft.Network/networkInterfaces'], json('{}')) ]",
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "ipconfig1",
+                                        "properties": {
+                                            "subnet": {
+                                                "id": "[variables('subnetId')]"
+                                            },
+                                            "publicIPAddress": "[if(parameters('createPublicIP'),variables('publicIpId')[parameters('publicIpNewOrExisting')],json('null'))]",
+                                            "privateIPAllocationMethod": "Dynamic"
+                                        }
+                                    }
+                                ],
+                                "networkSecurityGroup": {
+                                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                                }
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
+                                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPName'))]"
+                            ]
+                        },
+                        {
+                            "type": "Microsoft.Compute/virtualMachines",
+                            "apiVersion": "2024-07-01",
+                            "name": "[parameters('vmName')]",
+                            "location": "[parameters('location')]",
+                            "tags": "[ if(contains(parameters('tagsByResource'), 'Microsoft.Compute/virtualMachines'), parameters('tagsByResource')['Microsoft.Compute/virtualMachines'], json('{}')) ]",
+                            "properties": {
+                                "hardwareProfile": {
+                                    "vmSize": "[parameters('vmSize')]"
+                                },
+                                "storageProfile": {
+                                    "osDisk": {
+                                        "name": "[concat(parameters('vmName'),'-osdisk')]",
+                                        "createOption": "FromImage",
+                                        "diskSizeGB": "[parameters('vmOsDiskSize')]",
+                                        "caching": "ReadWrite",
+                                        "osType": "Linux",
+                                        "managedDisk": {
+                                            "storageAccountType": "[parameters('vmDiskType')]"
+                                        }
+                                    },
+                                    "imageReference": "[variables('imageReference')[parameters('vmOSVersion')]]"
+                                },
+                                "networkProfile": {
+                                    "networkInterfaces": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                                        }
+                                    ]
+                                },
+                                "osProfile": {
+                                    "computerName": "[parameters('vmName')]",
+                                    "adminUsername": "[parameters('adminUserName')]",
+                                    "adminPassword": "[parameters('adminPassword')]",
+                                    "customData": "[base64(variables('vmBootstrap'))]",
+                                    "linuxConfiguration": "[if(equals(parameters('authType'), 'sshPublicKey'), variables('linuxConfigSSH'), variables('linuxConfigPWD'))]"
+                                },
+                                "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'),variables('securityProfile'),json('null'))]",
+                                "diagnosticsProfile": {
+                                    "bootDiagnostics": {
+                                        "enabled": true
+                                    }
+                                }
+                            },
+                            "zones": [
+                                "[parameters('vmZone')]"
+                            ],
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                            ]
+                        }
+                    ],
+                    "outputs": {
+                        "vmName": {
+                            "type": "string",
+                            "value": "[parameters('vmName')]"
+                        },
+                        "internalIP": {
+                            "type": "string",
+                            "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', variables('nicName')), '2024-05-01').ipConfigurations[0].properties.privateIPAddress]"
+                        },
+                        "publicIP": {
+                            "condition": "[parameters('createPublicIP')]",
+                            "type": "string",
+                            "value": "[reference(resourceId(parameters('publicIpResourceGroup'),'Microsoft.Network/publicIPAddresses', parameters('publicIPName')), '2024-05-01').ipAddress]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('configureVM')]", 
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deploymentVM')]"
+            ],
+            "name": "configureVM",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/configure-build-vm/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "ocVersion": {
+                        "value": "[parameters('ocVersion')]" 
+                    },
+                    "ibmPakVersion": {
+                        "value": "[parameters('ibmPakVersion')]"
+                    },
+                    "caseName": {
+                        "value": "[parameters('caseName')]"
+                    },
+                    "gdscVersion": {
+                        "value": "[parameters('gdscVersion')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('deployODF')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'configureVM')]"
+            ],
+            "name": "deployODF",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-odf/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "clusterSize": {
+                        "value": "[parameters('odfClusterSize')]"  
+                    },
+                    "existingNodes": {
+                        "value": "[parameters('odfExistingNodes')]"  
+                    },
+                    "licenseAccepted": {
+                        "value": "[parameters('acceptLicense')]" 
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('deployICS'),equals(parameters('acceptLicense'),'accept'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployODF')]"
+            ],
+            "name": "deployCommonServices",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-ics/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "icsNamespace": {
+                        "value": "[parameters('icsNamespace')]"
+                    },
+                    "icsSize": {
+                        "value": "[parameters('icsSize')]"
+                    },
+                    "registryName": {
+                        "value": "[variables('registryName')]"
+                    },
+                    "registryUser": {
+                        "value": "[variables('registryUser')]"
+                    },
+                    "certManagerNamespace": {
+                        "value": "[parameters('certManagerNamespace')]"
+                    },
+                    "defaultStorageClass": {
+                        "value": "[parameters('rwoStorageClass')]"
+                    },
+                    "entitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[parameters('createDB2Nodes')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployCommonServices')]"
+            ],
+            "name": "createDB2Nodes",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/create-db2-machinesets/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "nodeType": {
+                        "value": "[parameters('db2NodeType')]"   
+                    },
+                    "nodeQty": {
+                        "value": "[parameters('db2NodeQty')]"   
+                    },
+                    "nodeStorageType": {
+                        "value": "[parameters('db2NodeStorageType')]" 
+                    },
+                    "nodeDiskSize": {
+                        "value": "[parameters('db2NodeDiskSize')]"  
+                    },
+                    "nodeName": {
+                        "value": "[parameters('db2NodeName')]" 
+                    },
+                    "taintNodes": {
+                        "value": "[parameters('taintDb2Nodes')]" 
+                    },
+                    "labelNodes": {
+                        "value": "[parameters('labelDb2Nodes')]"
+                    },
+                    "nodeZones": {
+                        "value": "[parameters('db2nodeZones')]"
+                    },
+                    "namespace": {
+                        "value": "[parameters('db2Namespace')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('deployGDSCOperators'),equals(parameters('acceptLicense'),'accept'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'createDB2Nodes')]"
+            ],
+            "name": "deployGDSCOperators",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-gdsc-operators/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "registryName": {
+                        "value": "[variables('registryName')]"
+                    },
+                    "registryUser": {
+                        "value": "[variables('registryUser')]"
+                    },
+                    "entitlementKey": {
+                        "value": "[parameters('ibmEntitlementKey')]"
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('deployGDSCOperand'),equals(parameters('acceptLicense'),'accept'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployGDSCOperators')]"
+            ],
+            "name": "deployGDSCOperand",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/deploy-gdsc-operand/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gdscName": {
+                        "value": "[parameters('gdscName')]"
+                    },
+                    "gdscNamespace": {
+                        "value": "[parameters('gdscNamespace')]"
+                    },
+                    "gdscVersion": {
+                        "value": "[parameters('gdscVersion')]"
+                    },
+                    "gdscLicense": {
+                        "value": "[parameters('gdscLicense')]"
+                    },
+                    "gdscSize": {
+                        "value": "[parameters('gdscSize')]"
+                    },
+                    "gdscBackupName": {
+                        "value": "[parameters('gdscBackupName')]"
+                    },
+                    "gdscBackupSC": {
+                        "value": "[parameters('rwxStorageClass')]"
+                    },
+                    "gdscBackupSize": {
+                        "value": "[parameters('gdscBackupSize')]"
+                    },
+                    "rwoStorageClass": {
+                        "value": "[parameters('rwoStorageClass')]"
+                    },
+                    "rwxStorageClass": {
+                        "value": "[parameters('rwxStorageClass')]"
+                    },
+                    "imagePullSecret": {
+                        "value": "[variables('imagePullSecret')]"
+                    },
+                    "imageRepository": {
+                        "value": "[variables('imageRepository')]"
+                    },
+                    "icsNamespace": {
+                        "value": "[parameters('icsNamespace')]"
+                    },
+                    "icsCatalogRegistry": {
+                        "value": "[variables('icsCatalogRegistry')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "caseDataFileName": {
+                        "value": "[variables('caseDataFileName')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('waitForOperand'),equals(parameters('acceptLicense'),'accept'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'deployGDSCOperand')]"
+            ],
+            "name": "waitForOperand1",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/wait-for-operand-1/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gdscName": {
+                        "value": "[parameters('gdscName')]"
+                    },
+                    "gdscNamespace": {
+                        "value": "[parameters('gdscNamespace')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2023-07-01",
+            "condition": "[and(parameters('waitForOperand'),equals(parameters('acceptLicense'),'accept'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'waitForOperand1')]"
+            ],
+            "name": "waitForOperand2",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[uri(variables('baseUrl'), concat(parameters('branch'), variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),'/wait-for-operand-2/azuredeploy.json'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "namePrefix": {
+                        "value": "[parameters('namePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "extensionName": {
+                        "value": "[parameters('vmExtensionName')]"
+                    },
+                    "openShiftApiUrl": {
+                        "value": "[parameters('openShiftApiUrl')]" 
+                    },
+                    "openShiftUsername": {
+                        "value": "[parameters('openShiftUsername')]"   
+                    },
+                    "openShiftAuthType": {
+                        "value": "[parameters('openShiftAuthType')]"
+                    },
+                    "openShiftPassword": {
+                        "value": "[parameters('openShiftPassword')]"  
+                    },
+                    "logLevel": {
+                        "value": "[parameters('logLevel')]" 
+                    },
+                    "gdscName": {
+                        "value": "[parameters('gdscName')]"
+                    },
+                    "gdscNamespace": {
+                        "value": "[parameters('gdscNamespace')]"
+                    },
+                    "homeDirectory": {
+                        "value": "[variables('homeDirectory')]"
+                    },
+                    "binariesDirectory": {
+                        "value": "[parameters('binariesDirectory')]"
+                    },
+                    "tmpDirectory": {
+                        "value": "[parameters('tmpDirectory')]"
+                    },
+                    "pythonInterpreter": {
+                        "value": "[variables('pythonInterpreter')]"
+                    },
+                    "gitRepositoryUrl": {
+                        "value": "[variables('gitRepositoryUrl')]"
+                    },
+                    "branch": {
+                        "value": "[parameters('branch')]"
+                    },
+                    "gitBaseDirectory": {
+                        "value": "[variables('gitRepoBaseDirectory')]"
+                    },
+                    "deploymentVersion": {
+                        "value": "[parameters('deploymentVersion')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

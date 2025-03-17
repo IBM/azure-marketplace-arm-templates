@@ -1,0 +1,294 @@
+---
+- name: Configure the build VM for IBM Guardium Data Security Center on OpenShift
+  hosts: localhost
+  gather_facts: true
+  become: no
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    log_level: "info"
+    oc_version: "stable-4.17"
+    ibm_pak_version: "v1.16.3"
+    casedata: 
+      filename: "case-info.yaml"
+    gdsc:
+      version: "3.6.2"
+    case:
+      name: "ibm-guardium-data-security-center"
+    directories:
+      bin_dir: "/usr/local/bin"
+      tmp_dir: "/tmp"
+    env:
+      home: "/root"
+    default:
+      retries: 30
+      retry_delay: 15
+
+  tasks:
+
+  # - name: Install required packages
+  #   ansible.builtin.package:
+  #     name:
+  #       - podman
+  #       - jq
+  #     state: latest
+
+  - name: Create temporary directory if it does not exist
+    ansible.builtin.file:
+      path: "{{ directories.tmp_dir }}"
+      state: directory
+
+  - name: Create binary directory if it does not exist
+    ansible.builtin.file:
+      path: "{{ directories.bin_dir }}"
+      state: directory
+
+  - name: Check if oc CLI already present
+    ansible.builtin.stat:
+      path: "{{ directories.bin_dir }}/oc"
+    register: occli
+
+  - name: Check if kubectl CLI already present
+    ansible.builtin.stat:
+      path: "{{ directories.bin_dir }}/kubectl"
+    register: kubectlcli
+
+  - name: Install oc CLI
+    when: 
+      - not occli.stat.exists
+      - not kubectlcli.stat.exists
+    block:
+    - name: Set version to stable if not provided
+      ansible.builtin.set_fact:
+        oc_version: "stable"
+      when: oc_version is not defined
+
+    - name: Set machine architecture if not provided
+      ansible.builtin.set_fact:
+        arch: "{{ ansible_facts.architecture }}"
+      when: arch is not defined
+
+    - name: Set OS type to mac if not provided and system reports as Darwin
+      ansible.builtin.set_fact:
+        os_type: "mac"
+      when: 
+        - os_type is not defined
+        - ansible_facts.system == "Darwin"
+
+    - name: Set OS type to linux if not provided and anything else
+      ansible.builtin.set_fact:
+        os_type: "linux"
+      when: os_type is not defined
+
+    - name: Build the URL for download
+      ansible.builtin.set_fact:
+        oc_url: "https://mirror.openshift.com/pub/openshift-v4/{{ arch }}/clients/ocp/{{ oc_version }}/openshift-client-{{ os_type }}.tar.gz"
+
+    - name: Output the URL
+      ansible.builtin.debug:
+        msg: "Will download {{ oc_url }}"
+      when: log_level == "debug"
+
+    - name: Download the OpenShift client
+      ansible.builtin.get_url:
+        url: "{{ oc_url }}"
+        dest: "{{ directories.tmp_dir  }}"
+      register: downloaded_file
+
+    - name: Extract the OpenShift client binary 
+      ansible.builtin.command:
+        tar xzf {{ downloaded_file.dest }} -C {{ directories.tmp_dir }} oc kubectl
+      register: result
+
+    - name: Fail if unable to extract file
+      ansible.builtin.fail:
+        msg: "Unable to extract the oc client from {{ downloaded_file.dest }}"
+      when: result.failed
+
+    - name: Clean up the tar package
+      ansible.builtin.file:
+        path: "{{ downloaded_file.dest }}"
+        state: absent
+
+    - name: Move oc client to bin directory
+      ansible.builtin.copy:
+        src: "{{ directories.tmp_dir }}/oc"
+        dest: "{{ directories.bin_dir }}/oc"
+        mode: '0755'
+      become: true
+
+    - name: Clean up the oc client from tmp dir
+      ansible.builtin.file:
+        path: "{{ directories.tmp_dir }}/oc"
+        state: absent
+
+    - name: Move kubectl client to bin directory
+      ansible.builtin.copy:
+        src: "{{ directories.tmp_dir }}/kubectl"
+        dest: "{{ directories.bin_dir }}/kubectl"
+        mode: '0755'
+      become: true
+
+    - name: Clean up the kubectl client from tmp dir
+      ansible.builtin.file:
+        path: "{{ directories.tmp_dir }}/kubectl"
+        state: absent
+
+  - name: Check if ibm_pak present
+    ansible.builtin.stat:
+      path: "{{ directories.bin_dir }}/oc-ibm_pak"
+    register: ibmpakcli
+
+  - name: Install ibm_pak oc extension
+    when: not ibmpakcli.stat.exists
+    block:
+    - name: Set version to default if not provided
+      ansible.builtin.set_fact:
+        ibm_pak_version: "v1.16.3"
+      when: ibm_pak_version is not defined
+
+    - name: Set machine architecture if not provided
+      ansible.builtin.set_fact:
+        arch: "{{ ansible_facts.architecture }}"
+      when: arch is not defined
+
+    - name: Set OS type to mac if not provided and system reports as Darwin
+      ansible.builtin.set_fact:
+        os_type: "mac"
+      when: 
+        - os_type is not defined
+        - ansible_facts.system == "Darwin"
+
+    - name: Set OS type to linux if not provided and anything else
+      ansible.builtin.set_fact:
+        os_type: "linux"
+      when: os_type is not defined
+
+    - name: Change the architecture type to match expected filename for x86_64
+      ansible.builtin.set_fact:
+        arch: "amd64"
+      when: arch == "x86_64"
+
+    - name: Build the URL for download
+      ansible.builtin.set_fact:
+        ibm_pak_url: "https://github.com/IBM/ibm-pak/releases/download/{{ ibm_pak_version }}/oc-ibm_pak-{{ os_type }}-{{ arch }}.tar.gz"
+
+    - name: Output the URL
+      ansible.builtin.debug:
+        msg: "Will download {{ ibm_pak_url }}"
+      when: log_level == "debug"
+
+    - name: Download the ibm_pak client package
+      ansible.builtin.get_url:
+        url: "{{ ibm_pak_url }}"
+        dest: "{{ directories.tmp_dir  }}"
+      register: downloaded_file
+
+    - name: Extract the ibm_pak client binary 
+      ansible.builtin.command:
+        tar xzf {{ downloaded_file.dest }} -C {{ directories.tmp_dir }} oc-ibm_pak-{{ os_type }}-{{ arch }}
+      register: result
+
+    - name: Fail if unable to extract file
+      ansible.builtin.fail:
+        msg: "Unable to extract the ibm_pak client from {{ downloaded_file.dest }}"
+      when: result.failed
+
+    - name: Clean up the tar package
+      ansible.builtin.file:
+        path: "{{ downloaded_file.dest }}"
+        state: absent
+
+    - name: Move ibm_pak client to bin directory
+      ansible.builtin.copy:
+        src: "{{ directories.tmp_dir }}/oc-ibm_pak-{{ os_type }}-{{ arch }}"
+        dest: "{{ directories.bin_dir }}/oc-ibm_pak"
+        mode: '0755'
+      become: true
+
+    - name: Clean up the client from tmp dir
+      ansible.builtin.file:
+        path: "{{ directories.tmp_dir }}/oc-ibm_pak-{{ os_type }}-{{ arch }}"
+        state: absent
+
+  - name: Get the case version
+    when: case.version is not defined
+    block: 
+    - name: Download the index
+      ansible.builtin.get_url:
+        url: "https://github.com/IBM/cloud-pak/raw/refs/heads/master/repo/case/{{ case.name}}/index.yaml"
+        dest: "{{ directories.tmp_dir }}"
+      register: case_index_file
+
+    - name: Read the index file
+      ansible.builtin.set_fact:
+        case_index: "{{ lookup('template', case_index_file.dest) | from_yaml }}"
+
+    - name: Output the index versions
+      ansible.builtin.debug:
+        msg: "{{ case_index.versions }}"
+      when: log_level == "debug"
+
+    - name: Get the relevant CASE version
+      ansible.builtin.set_fact:
+        case_version: "{{ item.key }}"
+      loop: "{{ case_index.versions | dict2items  }}"
+      when: "'{{ gdsc.version }}' in item.value.appVersion"
+
+    - name: Output the relevant case version for app version {{ gdsc.version }}
+      ansible.builtin.debug:
+        var: case_version
+      when: log_level == "debug"
+
+  - name: Write case details for future extensions to use
+    block:
+    - name: Write case version fact to file
+      ansible.builtin.lineinfile:
+        path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
+        line: "version: {{ case_version }}"
+        create: yes
+
+    - name: Write the case name fact to file
+      ansible.builtin.lineinfile:
+        path: "{{ directories.tmp_dir }}/{{ casedata.filename }}"
+        line: "name: {{ case.name }}"
+        create: yes
+
+  - name: Download CASE files
+    ansible.builtin.shell: |
+      set timeout 30
+      export PATH=$PATH:{{ directories.bin_dir }}
+      export HOME={{ env.home }}
+      oc ibm-pak get {{ case.name }} --version {{ case_version }} --skip-verify 1> /dev/null
+      exit 0
+    register: response 
+
+  - name: Output command result
+    ansible.builtin.debug:
+      var: response
+    when: log_level == "debug"
+
+  - name: Fail if unsuccessful
+    ansible.builtin.fail:
+      msg: "Unable download the {{ case.name }} CASE directory for {{ case_version }}"
+    when: response.stdout != ''
+
+  - name: Set local case directory
+    ansible.builtin.set_fact:
+      local_case_dir: "{{ env.home }}/.ibm-pak/data/cases/{{ case.name }}/{{ case_version }}"    
+
+  - name: Extract the CASE bundle
+    ansible.builtin.command:
+        tar xzf {{ local_case_dir }}/{{ case.name }}-{{ case_version }}.tgz --dir {{ local_case_dir }}
+    register: result
+
+  - name: Fail if unable to extract tar file
+    ansible.builtin.fail:
+      msg: "Unable to extract CASE bundle {{ local_case_dir }}/{{ case.name }}-{{ case_version }}.tgz"
+    when: result.failed
+
+
+
+
+
+

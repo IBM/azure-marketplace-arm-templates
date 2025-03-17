@@ -1,0 +1,24 @@
+---
+
+- name: Create machineset definition
+  ansible.builtin.template:
+    src: ./templates/machineset.j2
+    dest: "{{ directories.tmp_dir }}/gpu-machineset-{{ item }}.yaml"
+
+- name: Apply the machineset
+  ansible.builtin.shell: |
+    export HOME={{ env.home | quote }}
+    {{ directories.bin_dir }}/oc apply -f {{ directories.tmp_dir }}/gpu-machineset-{{ item }}.yaml
+  args:
+    executable: /bin/bash
+  register: result
+
+- name: Output the result of applying the machineset
+  ansible.builtin.debug:
+    var: result
+  when: log_level == "debug"
+
+- name: Clean up the machineset definition
+  ansible.builtin.file:
+    state: absent
+    path: "{{ directories.tmp_dir }}/gpu-machineset-{{ item }}.yaml"

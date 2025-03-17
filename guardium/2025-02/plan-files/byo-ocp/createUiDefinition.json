@@ -1,0 +1,1019 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+		"config": {
+			"isWizard": false,
+			"basics": {
+				"resourceGroup": {
+					"constraints": {
+						"validations": [
+							{
+								"permission": "Microsoft.Compute/virtualMachines/create",
+								"message": "Must be able to create a virtual machine in the resource group"
+							}
+						]
+					},
+					"allowExisting": true
+				},
+				"location": {
+					"visible": true,
+					"resourceTypes": [
+						"Microsoft.Compute/virtualMachines",
+						"Microsoft.Network/virtualNetworks"
+					]
+				}
+			}
+		},
+        "basics": [
+            {
+                "name": "namePrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Azure resource prefix",
+                "defaultValue": "gdsc",
+                "toolTip": "Prefix for Azure installation resources.",
+				"constraints":{
+					"required": true,
+					"validations": [
+						{
+							"regex": "^[a-zA-Z]+[a-z0-9A-Z]{2,10}$",
+							"message": "Only alphanumeric characters are allowed, the first character must be a letter and must be between 3 and 10 characters in length."
+						}
+					]
+				}
+            }
+        ],
+        "steps": [
+            {
+				"name": "openshift",
+				"label": "OpenShift Cluster",
+				"elements": [
+					{
+						"name": "ocpApiServer",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster API URL",
+						"toolTip": "The API server URL for the cluster for the installation.",
+						"placeholder": "https://mycluster.mydown.com:6443",
+						"multiLine": false,
+						"visible": true,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z://._-]{8,}$",
+									"message": "Can only contain valid characters for a URL"
+								},
+								{
+									"isValid": "[startsWith(steps('openshift').ocpApiServer, 'https://')]",
+									"message": "Must start with \"https://\""
+								},
+								{
+									"isValid": "[or(endsWith(steps('openshift').ocpApiServer, ':6443'), endsWith(steps('openshift').ocpApiServer, ':6443/'))]",
+									"message": "Must end with \":6443\" or \":6443/\""
+								}
+							]
+						}
+					},
+					{
+						"name": "ocpAuthType",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OpenShift Authorization Type",
+						"toolTip": "Type of authorization for OpenShift",
+						"defaultValue": "Password",
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Password",
+									"value": "Password"
+								},
+								{
+									"label": "Token",
+									"value": "Token"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "ocpUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Cluster administrator username",
+						"toolTip": "Administrator username for the cluster",
+						"defaultValue": "kubeadmin",
+						"multiLine": "false",
+						"visible": "[equals(steps('openshift').ocpAuthType,'Password')]",
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z:_-]{3,50}$",
+									"message": "Must be alphanumeric only and be between 3 and 50 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "ocpPassword",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Cluster administrator password",
+							"confirmPassword": "Confirm cluster password"
+						},
+						"toolTip": "Administrator password for existing cluster",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": "[equals(steps('openshift').ocpAuthType,'Password')]"
+					},
+					{
+						"name": "ocpToken",
+						"type": "Microsoft.Common.PasswordBox",
+						"label": {
+							"password": "Cluster token",
+							"confirmPassword": "Confirm cluster token"
+						},
+						"toolTip": "Token for access to cluster",
+						"constraints": {
+							"required": true
+						},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": "[equals(steps('openshift').ocpAuthType,'Token')]"
+					},
+					{
+						"name": "odf",
+						"type": "Microsoft.Common.Section",
+						"label": "Red Hat OpenShift Data Foundation",
+						"visible": true,
+						"elements": [
+							{
+								"name": "existingODF",
+								"type": "Microsoft.Common.CheckBox",
+								"label": "Existing Red Hat ODF or IBM Fusion storage cluster",
+								"visible": true,
+								"toolTip": "Select whether there is an existing ODF cluster available"
+							},
+							{
+								"name": "odfInfo",
+								"type": "Microsoft.Common.InfoBox",
+								"visible": "[steps('openshift').odf.existingODF]",
+								"options": {
+									"icon": "Info",
+									"text": "An IBM Fusion or Red Hat ODF storage cluster must be present on the OpenShift cluster" 
+								}
+							},
+							{
+								"name": "odfPSInfo",
+								"type": "Microsoft.Common.InfoBox",
+								"visible": "[not(steps('openshift').odf.existingODF)]",
+								"options": {
+									"icon": "Info",
+									"text": "A valid Red Hat pull secret must be present on the OpenShift cluster" 
+								}
+							},
+							{
+								"name": "odfExistingNodes",
+								"type": "Microsoft.Common.CheckBox",
+								"label": "Use existing nodes for ODF",
+								"visible": "[not(steps('openshift').odf.existingODF)]",
+								"toolTip": "Select whether there are existing nodes of Standard_D16s_v3 or larger available in 3 avialability zones for ODF"
+							},
+							{
+								"name": "odfExistingInfo",
+								"type": "Microsoft.Common.InfoBox",
+								"visible": "[and(not(steps('openshift').odf.existingODF),steps('openshift').odf.odfExistingNodes)]",
+								"options": {
+									"icon": "Info",
+									"text": "At least 3 available compute nodes of Standard_D16s_v3 or larger across 3 availability zones are required to use existing nodes for ODF" 
+								}
+							},
+							{
+								"name": "odfNewInfo",
+								"type": "Microsoft.Common.InfoBox",
+								"visible": "[and(not(steps('openshift').odf.existingODF),not(steps('openshift').odf.odfExistingNodes))]",
+								"options": {
+									"icon": "Info",
+									"text": "A Standard_D16s_v3 compute node will be created in each of the 3 availability zones and dedicated to ODF" 
+								}
+							},
+							{
+								"name": "rwoStorageClass",
+								"type": "Microsoft.Common.TextBox",
+								"label": "RWO Storage Class",
+								"visible": "[steps('openshift').odf.existingODF]",
+								"toolTip": "The name of the Block Read-Write-One (RWO) storage class for persistent volumes",
+								"defaultValue": "ocs-storagecluster-ceph-rbd",
+								"constraints": {
+									"required": false,
+									"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+									"validationMessage": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+								}
+							},
+							{
+								"name": "rwxStorageClass",
+								"type": "Microsoft.Common.TextBox",
+								"label": "RWX Storage Class",
+								"visible": "[steps('openshift').odf.existingODF]",
+								"toolTip": "The name of the File Read-Write-Many (RWX) storage class for persistent volumes",
+								"defaultValue": "ocs-storagecluster-cephfs",
+								"constraints": {
+									"required": false,
+									"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+									"validationMessage": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+								}
+							},
+							{
+								"name": "odfNodeSize",
+								"type": "Microsoft.Common.DropDown",
+								"label": "ODF Size per Node",
+								"visible": "[not(steps('openshift').odf.existingODF)]",
+								"toolTip": "This is the usage storage amount. ODF Cluster Size will be three times this size (3 copies)",
+								"defaultValue": "2 TiB",
+								"constraints": {
+									"allowedValues": [
+										{
+											"label": "500 MiB",
+											"value": "0.5Ti"
+										},
+										{
+											"label": "1 TiB",
+											"value": "1Ti"
+										},
+										{
+											"label": "2 TiB",
+											"value": "2Ti"
+										},
+										{
+											"label": "3 TiB",
+											"value": "3Ti"
+										},
+										{
+											"label": "4 TiB",
+											"value": "4Ti"
+										}
+									]
+								}
+							}
+						]
+					}
+				]
+			},
+			{
+                "name": "gdsc",
+                "label": "Guardium Data Security Center",
+                "elements": [
+                    {
+						"name": "ibmEntitlementKey",
+						"type": "Microsoft.Common.PasswordBox",	
+						"toolTip": "Entitlement key for the IBM Entitled Registry, used to pull the software images",					
+						"label": {
+							"password": "Entitlement key",
+                            "confirmPassword": "Confirm Entitlement key"
+						},
+						"constraints": {
+							"required": true,
+							"regex": "^[a-zA-Z0-9._-]{100,}$",
+							"validationMessage": "Key must be at least 100 characters long, contain only numbers, letters, underscores, dots and dashes"
+                		},
+						"options": {
+							"hideConfirmation": false
+						},
+						"visible": true
+					},
+					{
+						"name": "licenseInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+						  "icon": "None",
+						  "text": "By accepting the license agreement you are accepting the terms and conditions of the license.  For more information about licenses, click this box.",
+						  "uri": "https://www.ibm.com/support/customer/csol/terms/licenses#license-search-result"
+						}
+					},
+					{
+						"name": "gdscVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "GDSC Version",
+						"toolTip": "The version to be used for the installation.",
+						"constraints": {
+						  "allowedValues": [
+							{
+								"label": "IBM  Guardium Data Security Center 3.6.2",
+								"value": "3.6.2"
+							}
+						  ],
+						  "required": true
+						},
+						"visible": true
+					},
+					{
+						"name": "gdscLicense",
+						"type": "Microsoft.Common.DropDown",
+						"label": "GDSC License Identifier",
+						"toolTip": "The version and license to be used for the installation. Refer to the information box for details.",
+						"constraints": {
+						  "allowedValues": [
+							{
+								"label": "L-QABB-9QRLFB",
+								"value": "L-QABB-9QRLFB"
+							}
+						  ],
+						  "required": true
+						},
+						"visible": true
+					},
+					{
+						"name": "acceptLicense",
+						"type": "Microsoft.Common.OptionsGroup",
+						"label": "License agreement",
+						"toolTip": "Acceptance of license terms is required to continue with installation.  Refer to the information box for details.",
+						"defaultValue": "Decline",
+						"constraints": {
+							"required": true,
+							"allowedValues": [
+								{
+									"label": "Decline",
+									"value": "decline"
+								},
+								{
+									"label": "Accept",
+									"value": "accept"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "gdscNameSpace",
+						"type": "Microsoft.Common.TextBox",
+						"label": "GDSC Namespace",
+						"defaultValue": "gdsc",
+						"toolTip": "Namespace where the GDSC operators and instance should be created",
+						"multiLine": false,
+						"constraints": {
+						  "required": true,
+						  "validations": [
+							{
+							  "regex": "^[a-z0-9][a-z0-9:.-]{1,63}[a-z0-9]$",
+							  "message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+							}
+						  ]
+						},
+						"visible": "[equals(steps('gdsc').acceptLicense,'accept')]"
+					},
+					{
+						"name": "ibmCommonServices",
+						"type": "Microsoft.Common.Section",
+						"label": "IBM Common Services",
+						"visible": "[equals(steps('gdsc').acceptLicense,'accept')]",
+						"elements": [
+							{
+								"name": "icsNameSpace",
+								"type": "Microsoft.Common.TextBox",
+								"label": "IBM Common Services namespace",
+								"defaultValue": "gdsc",
+								"toolTip": "Namespace where you want to install the operators",
+								"multiLine": false,
+								"constraints": {
+								"required": true,
+								"validations": [
+									{
+										"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+										"message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+									}
+								]
+								},
+								"visible": "[equals(steps('gdsc').acceptLicense,'accept')]"
+							},
+							{
+								"name": "icsSize",
+								"type": "Microsoft.Common.DropDown",
+								"label": "IBM Common Services Size",
+								"toolTip": "Size of the IBM Common Services deployment to create",
+								"defaultValue": "Small",
+								"constraints": {
+									"allowedValues": [
+										{
+											"label": "Small",
+											"value": "small"
+										},
+										{
+											"label": "Medium",
+											"value": "medium"
+										}
+									]
+								}
+							},
+							{
+								"name": "certMgrNameSpace",
+								"type": "Microsoft.Common.TextBox",
+								"label": "IBM Certificate Manager Namespace",
+								"defaultValue": "ibm-cert-manager",
+								"toolTip": "Namespace where the IBM Certificate Manager operators and instance should be created",
+								"multiLine": false,
+								"constraints": {
+								  "required": true,
+								  "validations": [
+									{
+									  	"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+										"message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+									}
+								  ]
+								},
+								"visible": "[equals(steps('gdsc').acceptLicense,'accept')]"
+							}
+						]
+					},
+					{
+						"name": "db2",
+						"type": "Microsoft.Common.Section",
+						"label": "IBM DB2",
+						"visible": "[equals(steps('gdsc').acceptLicense,'accept')]",
+						"elements": [
+							{
+								"name": "db2Info",
+								"type": "Microsoft.Common.InfoBox",
+								"visible": true,
+								"options": {
+									"icon": "Info",
+									"text": "At least 2 nodes are required for the DB2 deployment" 
+								}
+							},
+							{
+								"name": "db2NameSpace",
+								"type": "Microsoft.Common.TextBox",
+								"label": "IBM DB2 Namespace",
+								"defaultValue": "gdsc",
+								"toolTip": "OpenShift namespace where the DB2 operators and instance should be created",
+								"constraints": {
+									"required": true,
+									"validations": [
+									{
+										"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+										"message": "Only alphanumeric characters and dashes are allowed, and the value must be more than 3 and less than 63 characters long."
+									}
+									]
+								},
+								"visible": "[equals(steps('gdsc').acceptLicense,'accept')]"
+							},
+							{
+								"name": "db2AvailabilityZones",
+								"type": "Microsoft.Common.DropDown",
+								"label": "DB2 Node Availability Zones",
+								"toolTip": "Availability zones to deploy DB2 nodes into",
+								"defaultValue": ["Zone 1", "Zone 2"],
+								"visible": true,
+								"multiselect": true,
+								"selectAll": true,
+								"multiLine": false,
+								"constraints": {
+									"allowedValues": [
+										{
+											"label": "Zone 1",
+											"value": "1"
+										},
+										{
+											"label": "Zone 2",
+											"value": "2"
+										},
+										{
+											"label": "Zone 3",
+											"value": "3"
+										}
+									]
+								}
+							},
+							{
+								"name": "db2NodeType",
+								"type": "Microsoft.Compute.SizeSelector",
+								"label": "DB2 VM Size",
+								"toolTip": "The size of each DB2 node",
+								"defaultValue": "Standard_D16s_v3",
+								"recommendedSizes": [
+									"Standard_D16s_v3",
+									"Standard_D8s_v3"
+								],
+								"constraints": {
+									"allowedSizes": [
+										"Standard_D16s_v3",
+										"Standard_D32s_v3",
+										"Standard_D16as_v4",
+										"Standard_D32as_v4",
+										"Standard_E16s_v3",
+										"Standard_E32s_v3",
+										"Standard_E64is_v3",
+										"Standard_E80is_v4",
+										"Standard_E80ids_v4",
+										"Standard_E104is_v5",
+										"Standard_E104id_v5",
+										"Standard_E104ids_v5",
+										"Standard_F16s_v2",
+										"Standard_F32s_v2",
+										"Standard_F72s_v2",
+										"Standard_M128ms",
+										"Standard_L16s",
+										"Standard_L32s",
+										"Standard_L16s_v2",
+										"Standard_L32s_v2",
+										"Standard_L48s_v2"
+									]
+								},
+								"options": {
+									"hideDiskTypeFilter": false
+								},
+								"osPlatform": "Linux",
+								"count": "[steps('openshift').workerCount]",
+								"visible": true
+							},
+							{
+									"name": "db2CountPerZone",
+									"type": "Microsoft.Common.Slider",
+									"min": 1,
+									"max": 3,
+									"label": "DB2 Nodes per Availability Zone",
+									"defaultValue": 1,
+									"showStepMarkers": false,
+									"toolTip": "How many DB2 nodes to create in each selected availability zone",
+									"constraints": {
+										"required": false
+									},
+									"visible": true
+							},
+							{
+								"name": "db2DiskType",
+								"type": "Microsoft.Common.DropDown",
+								"label": "OS disk type for the DB2 nodes",
+								"toolTip": "Select the disk type for the DB2 node system disk",
+								"defaultValue": ["Premium SSD"],
+								"multiselect": false,
+								"multiLine": false,
+								"constraints": {
+									"allowedValues": [
+										{
+											"label": "Premium SSD",
+											"value": "Premium_LRS"
+										},
+										{
+											"label": "Standard SSD",
+											"value": "Standard_LRS"
+										}
+									]
+								},
+								"visible": true
+							},
+							{
+									"name": "db2NodeDiskSize",
+									"type": "Microsoft.Common.Slider",
+									"min": 128,
+									"max": 1024,
+									"label": "Size of each DB2 system disk",
+									"defaultValue": 256,
+									"showStepMarkers": true,
+									"toolTip": "System disk needs to be enough for coreOS and pods to run",
+									"constraints": {
+										"required": false
+									},
+									"visible": true
+							},
+							{
+								"name": "notTaintDb2Nodes",
+								"type": "Microsoft.Common.CheckBox",
+								"label": "Do not taint the DB2 Nodes",
+								"visible": true,
+								"toolTip": "Select whether to not taint the DB2 nodes and allow them to be used for other workloads"
+							}
+						]
+					},
+					{
+						"name": "gdscOperand",
+						"type": "Microsoft.Common.Section",
+						"label": "GDSC Operand Details",
+						"visible": "[equals(steps('gdsc').acceptLicense,'accept')]",
+						"elements": [
+							{
+								"name": "noOperand",
+								"type": "Microsoft.Common.CheckBox",
+								"label": "Do not deploy Operand",
+								"toolTip": "Check this box to not deploy a default GDSC Instance",
+								"visible": true
+							},
+							{
+								"name": "gdscName",
+								"type": "Microsoft.Common.TextBox",
+								"label": "Platform Navigator instance name",
+								"defaultValue": "gdsc",
+								"toolTip": "Name of the GDSC Operand to create",
+								"visible": "[not(steps('gdsc').gdscOperand.noOperand)]",
+								"multiLine": false,
+								"constraints": {
+								  "required": false,
+								  "validations": [
+									{
+										"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+							  			"message": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+									}
+								  ]
+								}
+							},
+							{
+								"name": "gdscSize",
+								"type": "Microsoft.Common.DropDown",
+								"label": "GDSC Operand Size",
+								"toolTip": "Size of GDSC Operand to be created",
+								"visible": "[not(steps('gdsc').gdscOperand.noOperand)]",
+								"defaultValue": "values-small",
+								"constraints": {
+								  "allowedValues": [
+									{
+										"label": "values-small",
+										"value": "values-small"
+									}
+								  ],
+								  "required": false
+								}
+							},
+							{
+								"name": "gdscBackupName",
+								"type": "Microsoft.Common.TextBox",
+								"label": "GDSC Backup PVC Name",
+								"toolTip": "Name for the PVC that will be created for the GDSC backups",
+								"visible": "[not(steps('gdsc').gdscOperand.noOperand)]",
+								"defaultValue": "gdsc-backup",
+								"constraints": {
+									"required": false,
+									"regex": "^[a-z0-9][a-z0-9:.-]{1,61}[a-z0-9]$",
+									"validationMessage": "Only lowercase alphanumeric characters, ',' or '-' allowed. Must be more than 3 characters, less than 63 characters, start and end in an alphanumeric character"
+								}
+							},
+							{
+								"name": "gdscBackupSize",
+								"type": "Microsoft.Common.DropDown",
+								"label": "GDSC Backup Size",
+								"toolTip": "Select the PVC size for GDSC backups",
+								"visible": "[not(steps('gdsc').gdscOperand.noOperand)]",
+								"defaultValue": "500 GiB",
+								"constraints": {
+									"allowedValues": [
+										{
+											"label": "500 GiB",
+											"value": "500Gi"
+										},
+										{
+											"label": "1 TiB",
+											"value": "1Ti"
+										},
+										{
+											"label": "2 TiB",
+											"value": "2Ti"
+										}
+										,
+										{
+											"label": "4 TiB",
+											"value": "4Ti"
+										}
+									]
+								}
+							},
+							{
+								"name": "noWaitForOperand",
+								"type": "Microsoft.Common.CheckBox",
+								"label": "Do not wait for Operand to Deploy",
+								"toolTip": "Checking this box will stop the deployment when operand has been created and not fully provisioned. You will need to manually check the operand status.",
+								"visible": "[not(steps('gdsc').gdscOperand.noOperand)]"
+							}
+						]
+					}
+                ]
+            },
+			{
+				"name": "deployVm",
+				"label": "Deployment VM",
+				"elements": [	
+					{
+						"name": "deployVmInfo",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+							"icon": "Info",
+							"text": "The deployment VM is used to run the deployment scripts and may be removed post implementation." 
+						}
+					},
+					{
+						"name": "vmName",
+						"type": "Microsoft.Common.TextBox",
+						"label": "VM Hostname",
+						"toolTip": "Name of the virtual machine",
+						"visible": true,
+						"defaultValue": "[concat(basics('namePrefix'),'-vm')]",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^[a-z0-9A-Z-_]{5,64}$",
+									"message": "Alphanumeric, underscores and dashes only between 5 and 64 characters"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmUsername",
+						"type": "Microsoft.Common.TextBox",
+						"label": "Administrator username for virtual machine",
+						"toolTip": "Username for the virtual machine",
+						"visible": true,
+						"defaultValue": "azureuser",
+						"multiLine": false,
+						"constraints": {
+							"required": true,
+							"validations": [
+								{
+									"regex": "^(?!administrator|admin|user|user1|test|user2|test1|user3|admin1|actuser|admin2|aspnet|backup|console|david|guest|john|owner|server|support|support_388945a0|test2|test3|user4|user5|root)[a-z0-9A-Z]{5,64}$",
+									"message": "Alphanumeric only between 5 and 64 characters. Must not contain disallowed values"
+								}
+							]
+						}
+					},
+					{
+						"name": "vmPassword",
+						"type": "Microsoft.Compute.CredentialsCombo",
+						"label": {
+						  "authenticationType": "Authentication type",
+						  "password": "Password",
+						  "confirmPassword": "Confirm password",
+						  "sshPublicKey": "SSH public key"
+						},
+						"toolTip": {
+						  "authenticationType": "SSH key or password. SSH key is recommended.",
+						  "password": "Password for the administrator user",
+						  "sshPublicKey": "Public SSH key for the administrator user. Private key required for access."
+						},
+						"constraints": {
+						  "required": true,
+						  "customPasswordRegex": "^(?!abc@123|P@$$w0rd|P@ssw0rd|P@ssword123|Pa$$word|pass@word1|Password!|Password1|Password22|iloveyou!)(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,72}$",
+						  "customValidationMessage": "The password must have a lowercase character, an uppercase character, a digit and a special character and contain at least 6 characters, up to 72 characters."
+						},
+						"options": {
+						  "hideConfirmation": false,
+						  "hidePassword": false
+						},
+						"osPlatform": "Linux",
+						"visible": true
+					},
+					{
+						"name": "vmSize",
+						"type": "Microsoft.Compute.SizeSelector",
+						"label": "VM Size",
+						"toolTip": "Azure VM Size",
+						"recommendedSizes": [
+						  "Standard_B2s"
+						],
+						"constraints": {
+						  "allowedSizes": [
+							"Standard_B2s",
+							"Standard_D2s_v3",
+							"Standard_D4s_v3"
+						  ],
+						  "numAvailabilityZonesRequired": 1,
+						  "zone": "3"
+						},
+						"options": {
+						  "hideDiskTypeFilter": false
+						},
+						"osPlatform": "Linux",
+						"imageReference": {
+						  "publisher": "RedHat",
+						  "offer": "RHEL",
+						  "sku": "9_2"
+						},
+						"count": 1,
+						"visible": true
+					},
+					{
+						"name": "vmZone",
+						"type": "Microsoft.Common.DropDown",
+						"label": "Availability Zone for VM",
+						"defaultValue": ["1"],
+						"toolTip": "Zone must be present in selected region",
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "1",
+									"value": "1"
+								},
+								{
+									"label": "2",
+									"value": "2"
+								},
+								{
+									"label": "3",
+									"value": "3"
+								}
+							]
+						},
+						"required": true,
+						"visible": true
+					},
+					{
+						"name": "vmDiskType",
+						"type": "Microsoft.Common.DropDown",
+						"label": "OS disk type for VM",
+						"toolTip": "Select the disk type for the deployment VM operating system disk",
+						"defaultValue": ["Standard SSD"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "Premium SSD",
+									"value": "Premium_LRS"
+								},
+								{
+									"label": "Standard SSD",
+									"value": "Standard_LRS"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "vmOsVersion",
+						"type": "Microsoft.Common.DropDown",
+						"label": "RHEL Version",
+						"toolTip": "Select the version of RHEL for the dpeloyment VM",
+						"defaultValue": ["RHEL 9.4"],
+						"multiselect": false,
+						"multiLine": false,
+						"constraints": {
+							"allowedValues": [
+								{
+									"label": "RHEL 9.2",
+									"value": "RHEL 9.2"
+								},
+								{
+									"label": "RHEL 9.4",
+									"value": "RHEL 9.4"
+								}
+							]
+						},
+						"visible": true
+					},
+					{
+						"name": "networkInfoPublic",
+						"type": "Microsoft.Common.InfoBox",
+						"visible": true,
+						"options": {
+							"icon": "Warning",
+							"text": "Ensure that the OpenShift API endpoint is accessible from the virtual network below." 
+						}
+					},
+					{
+						"name": "vmNetwork",
+						"type": "Microsoft.Network.VirtualNetworkCombo",
+						"label": {
+							"virtualNetwork": "Virtual network",
+							"subnets": "VM Subnet"
+						},
+						"toolTip": {
+							"virtualNetwork": "Select the virtual network for the VM",
+							"subnets": "Select the subnet for the VM"
+						},
+						"defaultValue": {
+							"name": "[concat(basics('namePrefix'),'-',substring(guid(),0,8),'-vnet')]",
+							"addressPrefixSize": "/24"
+						},
+						"constraints": {
+							"minAddressPrefixSize": "/27"
+						},
+						"options": {
+							"hideExisting": false
+						},
+						"subnets": {
+							"vmSubnet": {
+								"label": "VM Subnet",
+								"defaultValue": {
+									"name": "vm-subnet",
+									"addressPrefixSize": "/27"
+								},
+								"constraints": {
+									"minAddressCount": 1,
+									"minAddressPrefixSize": "/30",
+									"requireContiguousAddresses": false
+								}
+							}
+						},
+						"visible": true
+					},
+					{
+						"name": "vmPublicIPRequired",
+						"label": "VM Public IP",
+						"toolTip": "Create a public IP for the deployment VM?",
+						"type": "Microsoft.Common.CheckBox",
+						"constraints": {
+							"required": false
+						}
+					},
+					{
+						"name": "vmPublicIP",
+						"type": "Microsoft.Network.PublicIpAddressCombo",
+						"label": {
+							"publicIpAddress": "Public IP address for VM",
+							"domainNameLabel": "Domain name label for the VM's public IP"
+						},
+						"toolTip": {
+							"publicIpAddress": "Name of the public IP for the VM",
+							"domainNameLabel": "Domain name label for the public IP of the VM"
+						},
+						"defaultValue": {
+							"publicIpAddressName": "[concat(basics('namePrefix'),'-pip')]",
+							"domainNameLabel": "[toLower( concat(substring(basics('namePrefix'),0,1),substring(guid(),0,7)) )]"
+						},
+						"constraints": {
+							"required": {
+								"domainNameLabel": false
+							}
+						},
+						"options": {
+							"hideNone": true,
+							"hideDomainNameLabel": false,
+							"hideExisting": false,
+							"zone": "[steps('deployVm').vmZone]"
+						},
+						"visible": "[steps('deployVm').vmPublicIPRequired]"
+					},
+					{
+						"name": "resourceTags",
+						"type": "Microsoft.Common.TagsByResource",
+						"toolTip": "Adds tags for the created resources",
+						"resources": [
+							"Microsoft.Network/virtualNetworks",
+							"Microsoft.Compute/virtualMachines",
+							"Microsoft.Network/publicIPAddresses"
+						]
+					}
+				]
+			}
+         ],
+        "outputs": {
+            "namePrefix": "[basics('namePrefix')]",
+            "location": "[location()]",
+			"deployGDSCOperand": "[not(steps('gdsc').gdscOperand.noOperand)]",
+			"waitForOperand": "[not(steps('gdsc').gdscOperand.noWaitForOperand)]",	
+			"existingVnet": "[equals(steps('deployVm').vmNetwork.newOrExisting,'existing')]",
+			"networkResourceGroup": "[steps('deployVm').vmNetwork.resourceGroup]",
+			"vnetName": "[steps('deployVm').vmNetwork.name]",
+			"vnetCIDR": "[steps('deployVm').vmNetwork.addressPrefix]",
+			"vmSubnetName": "[steps('deployVm').vmNetwork.subnets.vmSubnet.name]",
+			"vmSubnetCidr": "[steps('deployVm').vmNetwork.subnets.vmSubnet.addressPrefix]",
+			"ibmEntitlementKey": "[steps('gdsc').ibmEntitlementKey]",
+			"acceptLicense": "[steps('gdsc').acceptLicense]",
+			"gdscVersion": "[steps('gdsc').gdscVersion]",
+			"gdscLicense": "[steps('gdsc').gdscLicense]",
+			"gdscNamespace": "[steps('gdsc').gdscNameSpace]",
+			"gdscName": "[steps('gdsc').gdscOperand.gdscName]",
+			"gdscSize": "[steps('gdsc').gdscOperand.gdscSize]",
+			"gdscBackupName": "[steps('gdsc').gdscOperand.gdscBackupName]",
+			"gdscBackupSize": "[steps('gdsc').gdscOperand.gdscBackupSize]",
+			"icsNamespace": "[steps('gdsc').ibmCommonServices.icsNameSpace]",
+			"icsSize": "[steps('gdsc').ibmCommonServices.icsSize]",
+			"certManagerNamespace": "[steps('gdsc').ibmCommonServices.certMgrNameSpace]",
+			"db2NodeType": "[steps('gdsc').db2.db2NodeType]",
+			"db2NodeQty": "[steps('gdsc').db2.db2CountPerZone]",
+			"db2NodeStorageType": "[steps('gdsc').db2.db2DiskType]",
+			"db2NodeDiskSize": "[steps('gdsc').db2.db2NodeDiskSize]",
+			"taintDb2Nodes": "[not(steps('gdsc').db2.notTaintDb2Nodes)]",
+			"db2nodeZones": "[steps('gdsc').db2.db2AvailabilityZones]",
+			"db2Namespace": "[steps('gdsc').db2.db2NameSpace]",
+			"vmName": "[steps('deployVm').vmName]",
+			"vmAdminUserName": "[steps('deployVm').vmUsername]",
+			"vmAdminPassword": "[if(equals(steps('deployVm').vmPassword.authenticationType,'password'),steps('deployVm').vmPassword.password,steps('deployVm').vmPassword.sshPublicKey)]",
+			"vmAuthType": "[steps('deployVm').vmPassword.authenticationType]",
+			"vmSize": "[steps('deployVm').vmSize]",
+			"vmDiskType": "[steps('deployVm').vmDiskType]",
+			"vmZone": "[steps('deployVm').vmZone]",
+			"vmOSVersion": "[steps('deployVm').vmOsVersion]",
+			"vmCreatePublicIP": "[steps('deployVm').vmPublicIPRequired]",
+			"vmPublicIPName": "[steps('deployVm').vmPublicIP.name]",
+			"vmPublicIpResourceGroup": "[steps('deployVm').vmPublicIP.resourceGroup]",
+			"vmPublicIpNewOrExisting": "[steps('deployVm').vmPublicIP.newOrExistingOrNone]",
+			"vmDomainName": "[steps('deployVm').vmPublicIP.domainNameLabel]",
+            "openShiftApiUrl": "[steps('openshift').ocpApiServer]",
+			"openShiftAuthType": "[steps('openshift').ocpAuthType]",
+			"openShiftUsername": "[steps('openshift').ocpUsername]",
+			"openShiftPassword": "[if(equals(steps('openshift').ocpAuthType,'Password'),steps('openshift').ocpPassword,steps('openshift').ocpToken)]",
+			"deployODF": "[not(steps('openshift').odf.existingODF)]",
+			"odfClusterSize": "[steps('openshift').odf.odfNodeSize]",
+			"odfExistingNodes": "[steps('openshift').odf.odfExistingNodes]",
+			"rwoStorageClass": "[steps('openshift').odf.rwoStorageClass]",
+			"rwxStorageClass": "[steps('openshift').odf.rwxStorageClass]",		
+			"tagsByResource": "[steps('deployVm').resourceTags]"
+         }
+    }
+}

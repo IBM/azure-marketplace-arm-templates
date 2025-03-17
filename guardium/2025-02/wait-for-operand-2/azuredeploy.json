@@ -1,0 +1,195 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "namePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 10,
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Azure location for resources"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('namePrefix'),'-vm')]",
+            "metadata": {
+                "description": "Name for the Azure virtual machine"
+            }
+        },
+        "extensionName": {
+            "type": "string",
+            "defaultValue": "installCpdCli",
+            "metadata": {
+                "description": "Name of the VM Extension"
+            }
+        },
+        "openShiftApiUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "API URL for the OpenShift cluster"
+            }
+        },
+        "openShiftUsername": {
+            "type": "string",
+            "defaultValue": "kubeadmin",
+            "metadata": {
+                "description": "Username for the cluster administrator"
+            }
+        },
+        "openShiftAuthType": {
+            "type": "string",
+            "defaultValue": "Password",
+            "allowedValues": [
+                "Password",
+                "Token"
+            ],
+            "metadata": {
+                "description": "Determines the type of openShiftPassword provided - either a token or password/username credentials."
+            }
+        },
+        "openShiftPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the cluster administrator. Can be either a password or a token depending upon openShiftAuthType setting."
+            }
+        },
+        "logLevel": {
+            "type": "string",
+            "defaultValue": "info",
+            "allowedValues": [
+                "info",
+                "debug"
+            ],
+            "metadata": {
+                "description": "Log level for Ansible playbook"
+            }
+        },
+        "gdscName": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "Name of the GDSC operand to create"
+            }
+        },
+        "gdscNamespace": {
+            "type": "string",
+            "defaultValue": "gdsc",
+            "metadata": {
+                "description": "OpenShift namespace for the GDSC operators"
+            }
+        },
+        "homeDirectory": {
+            "type": "string",
+            "defaultValue": "/root",
+            "metadata": {
+                "description": "Home directory in which to run commands"
+            }
+        },
+        "binariesDirectory": {
+            "type": "string",
+            "defaultValue": "/usr/local/bin",
+            "metadata": {
+                "description": "Directory for CLI binaries"
+            }
+        },
+        "tmpDirectory": {
+            "type": "string",
+            "defaultValue": "/tmp",
+            "metadata": {
+                "description": "Temporary working directory for downloads, etc"
+            }
+        },
+        "pythonInterpreter": {
+            "type": "string",
+            "defaultValue": "/usr/bin/python3",
+            "metadata": {
+                "description": "Path to python interpreter to use for Ansible"
+            }
+        },
+        "gitRepositoryUrl": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/IBM/azure-marketplace-arm-templates/",
+            "metadata": {
+                "description": "URL for the GitHub repository containing the files to download"
+            }
+        },
+        "branch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "Github branch for installation script"
+            }
+        },
+        "gitBaseDirectory": {
+            "type": "string",
+            "defaultValue": "/guardium/",
+            "metadata": {
+                "description": "Subdirectory within the GitHub repository to use"
+            }
+        },
+        "deploymentVersion": {
+            "type": "string",
+            "defaultValue": "2025-02",
+            "metadata": {
+                "description": "Deployment version to use"
+            }
+        }
+    },
+    "variables": {
+        "baseUrl": "[uri(parameters('gitRepositoryUrl'),parameters('branch'))]",
+        "gitRepoBaseDirectory": "[parameters('gitBaseDirectory')]",
+        "gitRepoDeploymentDirectory": "/wait-for-operand-2/",
+        "scriptParameters": {
+            "ansible_python_interpreter": "[parameters('pythonInterpreter')]",
+            "log_level": "[parameters('logLevel')]",
+            "env": {
+                "home": "[parameters('homeDirectory')]"
+            },
+            "cluster": {
+                "api_server": "[parameters('openShiftApiUrl')]",
+                "username": "[parameters('openShiftUsername')]",
+                "password": "[if(equals(parameters('openShiftAuthType'),'Password'),parameters('openShiftPassword'),'')]",
+                "token": "[if(equals(parameters('openShiftAuthType'),'Token'),parameters('openShiftPassword'),'')]"
+            },
+            "gdsc": {
+                "name": "[parameters('gdscName')]",
+                "namespace": "[parameters('gdscNamespace')]"
+            },
+            "directories": {
+                "bin_dir": "[parameters('binariesDirectory')]",
+                "tmp_dir": "[parameters('tmpDirectory')]"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2023-03-01",
+            "location": "[parameters('location')]",
+            "name": "[concat(parameters('vmName'),'/',parameters('extensionName'))]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "protectedSettings": {
+                    "fileUris": [
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'playbooks/main.yaml'))]",
+                        "[uri(variables('baseUrl'),concat(parameters('branch'),variables('gitRepoBaseDirectory'),parameters('deploymentVersion'),variables('gitRepoDeploymentDirectory'),'wait-for-cloud-init.sh'))]"
+                    ],
+                    "commandToExecute": "[concat('/bin/bash ./wait-for-cloud-init.sh && /usr/local/bin/ansible-playbook ./main.yaml --extra-vars \"', replace(string(variables('scriptParameters')), '\"', '\\\"'),'\"')]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
