@@ -1004,7 +1004,7 @@
 			"vmPublicIpResourceGroup": "[steps('deployVm').vmPublicIP.resourceGroup]",
 			"vmPublicIpNewOrExisting": "[steps('deployVm').vmPublicIP.newOrExistingOrNone]",
 			"vmDomainName": "[steps('deployVm').vmPublicIP.domainNameLabel]",
-            "openshiftApiUrl": "[steps('openshift').ocpApiServer]",
+            "openShiftApiUrl": "[steps('openshift').ocpApiServer]",
 			"openShiftAuthType": "[steps('openshift').ocpAuthType]",
 			"openShiftUsername": "[steps('openshift').ocpUsername]",
 			"openShiftPassword": "[if(equals(steps('openshift').ocpAuthType,'Password'),steps('openshift').ocpPassword,steps('openshift').ocpToken)]",
