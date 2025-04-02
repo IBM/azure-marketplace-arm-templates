@@ -167,5 +167,5 @@
     register: response
     until: response.stdout == "True"
     failed_when: response.stderr != ""
-    retries: 170
+    retries: 80
     delay: 60
